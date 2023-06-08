@@ -556,6 +556,44 @@ def sign_consent():
     db.session.commit() 
     return {"url":url_for("training", page=1)}       
 
+
+@app.route("/intro", methods=["GET", "POST"])
+@login_required
+def intro():
+    # form = LoginForm()
+    # if form.validate_on_submit():
+    #     user = User.query.filter_by(username=form.username.data).first()
+    #
+    #     if user is None:
+    #         user = User(username=form.username.data)
+    #         user.set_num_trials_completed(0)
+    #         user.set_completion(0)
+    #         user.set_attention_check(-1)
+    #
+    #         # Change depending on the study type.
+    #         cond = user.set_condition("in_person" if IS_IN_PERSON else "online")
+    #         code = user.set_code()
+    #
+    #         db.session.add(user)
+    #
+    #         cond.users.append(user)
+    #         cond.count += 1
+    #
+    #         db.session.commit()
+    #
+    #     login_user(user)
+    #     next_page = request.args.get("next")
+    #     if not next_page or url_parse(next_page).netloc != "":
+    #         next_page = url_for("index")
+    #     return redirect(next_page)
+    #
+    # render_template("login.html", title="Sign In", form=form)
+
+    # just testing out my code
+    # return render_template("intro.html")
+    return render_template("augmented_taxi2.html")
+
+
 @app.route("/consent", methods=["GET", "POST"])
 @login_required
 def consent():
@@ -566,7 +604,8 @@ def consent():
         current_condition = db.session.query(OnlineCondition).get(online_condition_id)
 
         if current_user.num_trials_completed < (len(current_condition.trials)):
-            return redirect(url_for("test"))
+            return redirect(url_for("intro")) # verifying url_for and displaying training/testing simulations
+            # return redirect(url_for("test"))
         return redirect(url_for("survey"))
 
     else:
