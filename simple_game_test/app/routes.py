@@ -8,10 +8,13 @@ from app.params import *
 from utils import rules_to_str, str_to_rules
 import numpy as np
 import random as rand
+import json
 from datetime import datetime
 from generate_rules import generate_rule, generate_hard_rule_constrained
 from environment import Environment
 from learner import Learner
+
+from app.backend_test import send_signal
 
 # rule_str = None
 # TODO need a proper solution instead of global variables, i.e. per-user environment
@@ -554,12 +557,19 @@ def index():
 def sign_consent():
     current_user.consent = 1
     db.session.commit() 
-    return {"url":url_for("training", page=1)}       
+    return {"url":url_for("training", page=1)}  
 
+@app.route("/pass_trajectories", methods=["GET", "POST"])
+@login_required
+def pass_trajectories():
+    final_data = request.get_json()
+    print(final_data)
+    return json.dumps(send_signal(final_data["opt_response"]))
 
 @app.route("/intro", methods=["GET", "POST"])
 @login_required
 def intro():
+    print(send_signal(True))
     # form = LoginForm()
     # if form.validate_on_submit():
     #     user = User.query.filter_by(username=form.username.data).first()

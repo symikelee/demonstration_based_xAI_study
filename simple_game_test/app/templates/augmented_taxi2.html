@@ -366,16 +366,42 @@ var spaceship =
             'opt_response': same_traj
         });
 
+        // final_data = {
+        //     'simulation_rt': (end_time - start_time),
+        //     'moves': moves,
+        //     'opt_response': same_traj
+        //     };
+
         var event = new CustomEvent("game-completed", { "detail": "Demonstration has now ended." });
         document.dispatchEvent(event);
 
-        data_sent = true
-        if (same_traj) {
-          console.log("Yay the trajectory was optimal!!");
-        }
-        else {
-          console.log("Sad, the trajectory was suboptimal...");
-        }
+        // $.post('/pass_trajectories', 
+        //         final_data,
+        //         function callback(data) { // change
+        //             data_sent = true
+        //             console.log(data)
+        //         }
+        // );
+
+        $.ajax({
+                type: "POST",
+                url: "/pass_trajectories",
+                data: final_data,
+                success: function(data){
+                    data_sent = true
+                    console.log(data.first)
+                },
+                contentType: "application/json",
+                dataType: "json"
+            });
+
+        
+        // if (same_traj) {
+        //   console.log("Yay the trajectory was optimal!!");
+        // }
+        // else {
+        //   console.log("Sad, the trajectory was suboptimal...");
+        // }
     }
 
       function draw()
