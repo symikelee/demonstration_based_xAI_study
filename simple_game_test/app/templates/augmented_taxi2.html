@@ -17,7 +17,12 @@
   <canvas id="game" width="800" height="500" ></canvas>
     <br></br>
 
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
+
     <script>
+    // socket object
+    const socket = io();
+
     var canvas = document.getElementById("game");
     var context = canvas.getContext("2d");
 
@@ -372,16 +377,19 @@ var spaceship =
         //     'opt_response': same_traj
         //     };
 
+        var socket = io();
+        socket.on('connect', function() {
+            socket.emit('my event', {data: 'I\'m connected!'});
+        });
+        socket.on('ping event', function(data){
+            console.log(data.test);
+        });
+        socket.on('join event', function(data){
+            console.log(data.test);
+        });
+
         var event = new CustomEvent("game-completed", { "detail": "Demonstration has now ended." });
         document.dispatchEvent(event);
-
-        // $.post('/pass_trajectories', 
-        //         final_data,
-        //         function callback(data) { // change
-        //             data_sent = true
-        //             console.log(data)
-        //         }
-        // );
 
         $.ajax({
                 type: "POST",

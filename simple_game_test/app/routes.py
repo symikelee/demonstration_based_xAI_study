@@ -15,6 +15,8 @@ from environment import Environment
 from learner import Learner
 
 from app.backend_test import send_signal
+from app import socketio
+from flask_socketio import join_room, leave_room
 
 # rule_str = None
 # TODO need a proper solution instead of global variables, i.e. per-user environment
@@ -565,6 +567,23 @@ def pass_trajectories():
     final_data = request.get_json()
     print(final_data)
     return json.dumps(send_signal(final_data["opt_response"]))
+
+@socketio.on('my event')
+def handle_message(data):
+    print('received message: ' + data['data'])
+    # session_id = request.sid
+    # print('session_id is: ' + session_id)
+    print(request.sid)
+    socketio.emit('ping event', {'test': 'sending to client'}, to=request.sid)
+    current_user.set_test_column(812)
+    db.session.commit()
+    curr_room = ""
+    if len(current_user.username) % 2 == 0:
+        curr_room = "room1"
+    else:
+        curr_room = "room2"
+    join_room(curr_room)
+    socketio.emit('join event', {"test":current_user.username + "just joined!"}, to=curr_room)
 
 @app.route("/intro", methods=["GET", "POST"])
 @login_required

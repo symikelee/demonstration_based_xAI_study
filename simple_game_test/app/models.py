@@ -37,9 +37,15 @@ class User(UserMixin, db.Model):
     attention_check = db.Column(db.Integer)
     study_completed = db.Column(db.Integer)
 
+    test_column = db.Column(db.Integer)
+
 
     def __repr__(self):
         return "<User {}>".format(self.username)
+    
+    def set_test_column(self, value):
+        self.test_column = value
+        return value
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
