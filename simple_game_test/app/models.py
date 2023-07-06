@@ -37,13 +37,13 @@ class User(UserMixin, db.Model):
     attention_check = db.Column(db.Integer)
     study_completed = db.Column(db.Integer)
 
-    test_column = db.Column(db.Integer)
+    curr_progress = db.Column(db.String(50))
 
 
     def __repr__(self):
         return "<User {}>".format(self.username)
     
-    def set_test_column(self, value):
+    def set_curr_progress(self, value):
         self.test_column = value
         return value
 

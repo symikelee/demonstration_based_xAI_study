@@ -554,12 +554,67 @@ def index():
                            completed=completed,
                            code=current_user.code)
 
+@app.route("/introduction", methods=["GET", "POST"])
+@login_required
+def introduction():
+    return render_template("mike/intro.html")
+
+@app.route("/overview", methods=["GET", "POST"])
+@login_required
+def overview():
+    return render_template("mike/overview.html")
+
+@app.route("/sandbox_introduction", methods=["GET", "POST"])
+@login_required
+def sandbox_introduction():
+    return render_template("mike/sandbox_introduction.html")
+
+@socketio.on('make sandbox')
+def make_sandbox(data):
+    version = data['version']
+    # print('received message: ' + data['version'])
+    # session_id = request.sid
+    # print('session_id is: ' + session_id)
+    # print(request.sid)
+    if version == 1:
+        current_user.set_curr_progress("sandbox_1")
+    db.session.commit()
+    # socketio.emit('made sandbox', {'test': 'sending to client'}, to=request.sid)
+    # current_user.set_test_column(812)
+    # db.session.commit()
+    # curr_room = ""
+    # if len(current_user.username) % 2 == 0:
+    #     curr_room = "room1"
+    # else:
+    #     curr_room = "room2"
+    # join_room(curr_room)
+    # socketio.emit('join event', {"test":current_user.username + "just joined!"}, to=curr_room)
+
+@app.route("/sandbox", methods=["GET", "POST"])
+@login_required
+def sandbox():
+    data = request.get_json()
+    print(data)
+    if data['preamble'] == "sandbox_2_header":
+        preamble = ''' <h1>Free play</h1> <hr/> 
+        <h4>A subset of the following keys will be available to control Chip in each game:</h4>
+        <table class=\"center\"><tr><th>Key</th><th>Action</th></tr><tr><td>up/down/left/right arrow keys</td><td>corresponding movement</td></tr><tr><td>p</td><td>pick up</td></tr><tr><td>d</td><td>drop</td></tr><tr><td>r</td><td>reset simulation</td></tr></table><br>
+        <h4>If you accidentally take a wrong action, you may reset the simulation and start over.</h4> <br>
+        <h3>Feel free to play around in the game below and get used to the controls. </h3> <h4>You can click the continue button whenever you feel ready to move on.</h4>
+        '''
+    res = {'data': render_template("mike/sandbox.html", preamble=preamble)}
+    # print(res)
+    return res
+
 @app.route("/sign_consent", methods=["GET", "POST"])
 @login_required
 def sign_consent():
     current_user.consent = 1
     db.session.commit() 
-    return {"url":url_for("training", page=1)}  
+    # need to return json since this function is called on button press
+    # which replaces the current url with new url
+    # sorry trying to work within existing infra
+    return {"url":url_for("introduction")}  
 
 @app.route("/pass_trajectories", methods=["GET", "POST"])
 @login_required
