@@ -44,7 +44,7 @@ class User(UserMixin, db.Model):
         return "<User {}>".format(self.username)
     
     def set_curr_progress(self, value):
-        self.test_column = value
+        self.curr_progress = value
         return value
 
     def set_password(self, password):

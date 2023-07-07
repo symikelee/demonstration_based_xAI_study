@@ -572,14 +572,18 @@ def sandbox_introduction():
 @socketio.on('make sandbox')
 def make_sandbox(data):
     version = data['version']
+    print("I am getting called with version: " + str(version))
     # print('received message: ' + data['version'])
     # session_id = request.sid
     # print('session_id is: ' + session_id)
     # print(request.sid)
     if version == 1:
         current_user.set_curr_progress("sandbox_1")
+    elif version == 2:
+        current_user.set_curr_progress("sandbox_2")
     db.session.commit()
-    # socketio.emit('made sandbox', {'test': 'sending to client'}, to=request.sid)
+    print("current user progress is: " + current_user.curr_progress)
+    socketio.emit('made sandbox', to=request.sid)
     # current_user.set_test_column(812)
     # db.session.commit()
     # curr_room = ""
@@ -593,16 +597,48 @@ def make_sandbox(data):
 @app.route("/sandbox", methods=["GET", "POST"])
 @login_required
 def sandbox():
-    data = request.get_json()
-    print(data)
-    if data['preamble'] == "sandbox_2_header":
+    version = current_user.curr_progress
+    print(version)
+    if version == "sandbox_1":
         preamble = ''' <h1>Free play</h1> <hr/> 
         <h4>A subset of the following keys will be available to control Chip in each game:</h4>
         <table class=\"center\"><tr><th>Key</th><th>Action</th></tr><tr><td>up/down/left/right arrow keys</td><td>corresponding movement</td></tr><tr><td>p</td><td>pick up</td></tr><tr><td>d</td><td>drop</td></tr><tr><td>r</td><td>reset simulation</td></tr></table><br>
         <h4>If you accidentally take a wrong action, you may reset the simulation and start over.</h4> <br>
         <h3>Feel free to play around in the game below and get used to the controls. </h3> <h4>You can click the continue button whenever you feel ready to move on.</h4>
         '''
-    res = {'data': render_template("mike/sandbox.html", preamble=preamble)}
+        params = {
+            'agent': {'x': 4, 'y': 3, 'has_passenger': 0},
+            'walls': [{'x': 2, 'y': 3}, {'x': 2, 'y': 2}, {'x': 3, 'y': 2}, {'x': 4, 'y': 2}],
+            'passengers': [{'x': 4, 'y': 1, 'dest_x': 1, 'dest_y': 4, 'in_taxi': 0}],
+            'hotswap_station': [{'x': 1, 'y': 2}],
+            'width': 4,
+            'height': 4,
+        }
+        legend = None
+        continue_condition = "free_play"
+    elif version == "sandbox_2":
+        preamble = ("<h1>Practice game</h1> <hr/> " +
+        "<h3>As previously mentioned, the task in this practice game is the following: </h3> <br>" +
+        "<table class=\"center\"><tr><th>Task</th><th>Sample sequence</th></tr><tr><td>Dropping off the green pentagon at the purple star</td><td><img src = 'static/img/sandbox_dropoff1.png' width=\"75\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/sandbox_dropoff2.png' width=\"75\" height=auto /></td></tr></table> <br>" +
+        "<h3>Each game will consist of <b>actions that change your energy level</b> differently. In this game, the following actions affect your energy:</h3> <br>" +
+        "<table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr>" +
+        "<tr><td>Moving through the orange diamond</td><td><img src = 'static/img/sandbox_diamond1.png' width=\"225\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/sandbox_diamond2.png' width=\"225\" height=auto /> <img src='static/img/arrow.png' width=\"30\" height=auto /><img src ='static/img/sandbox_diamond3.png' width=\"225\" height=auto/> <td>+10%</td></tr>" +
+        "<tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>-5%</td></tr></table> <br>" +
+        "<h3><b>Pick up the green pentagon</b> and <b>drop it off at the purple star</b> with the <b>maximum possible energy remaining</b>. </h3> " +
+        "<h4>You should end with 40% \energy left (you won't be able to move if energy falls to 0%). <u>You will have 3 chances to get it right to continue on with the study!</u></h4>" +
+        "<h4>Note: Since this is practice, we have revealed each actions's effect on Chip's energy and also provide a running counter of Chip's current energy level below.</h4> <br>")
+        params = {
+            'agent': {'x': 4, 'y': 1, 'has_passenger': 0},
+            'walls': [{'x': 1, 'y': 3}, {'x': 2, 'y': 3}, {'x': 3, 'y': 3}],
+            'passengers': [{'x': 1, 'y': 2, 'dest_x': 1, 'dest_y': 4, 'in_taxi': 0}],
+            'hotswap_station': [{'x': 2, 'y': 1}],
+            'width': 4,
+            'height': 4,
+        }
+        legend = "<br><br><br><table class=\"center\"><tr><th>Key</th><th>Action</th></tr><tr><td>up/down/left/right arrow keys</td><td>corresponding movement</td></tr><tr><td>p</td><td>pick up</td></tr><tr><td>d</td><td>drop</td></tr><tr><td>r</td><td>reset simulation</td></tr></table><br>"
+        continue_condition = "optimal_traj_1"
+    # stimulus = '<iframe id = "ifrm" style="border:none;" src="' + source + '" height="550" width="950" title="Iframe Example"></iframe>    '
+    res = render_template("mike/sandbox.html", preamble=preamble, params=params, legend=legend, continue_condition=continue_condition)
     # print(res)
     return res
 

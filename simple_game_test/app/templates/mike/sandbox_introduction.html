@@ -76,6 +76,9 @@
     //       });
     var socket = io();
     socket.emit('make sandbox', {version: 1});
-    window.location.assign("/sandbox");
+    // socket.on("connect", function() {socket.emit('make sandbox', {version: 1})});
+    socket.on('made sandbox', function() {
+      window.location.assign("/sandbox");
+    });
   }
 </script>
