@@ -572,6 +572,7 @@ def sandbox_introduction():
 @socketio.on('make sandbox')
 def make_sandbox(data):
     version = data['version']
+    print(request.sid)
     print("I am getting called with version: " + str(version))
     # print('received message: ' + data['version'])
     # session_id = request.sid
@@ -594,6 +595,37 @@ def make_sandbox(data):
     # join_room(curr_room)
     # socketio.emit('join event', {"test":current_user.username + "just joined!"}, to=curr_room)
 
+@socketio.on("connect")
+def handle_connect():
+    print(request.sid + " connected?")
+
+@socketio.on("sandbox settings")
+def sandbox_settings(data):
+    print(request.sid)
+    version = data["version"]
+    if version == 1:
+        params = {
+            'agent': {'x': 4, 'y': 3, 'has_passenger': 0},
+            'walls': [{'x': 2, 'y': 3}, {'x': 2, 'y': 2}, {'x': 3, 'y': 2}, {'x': 4, 'y': 2}],
+            'passengers': [{'x': 4, 'y': 1, 'dest_x': 1, 'dest_y': 4, 'in_taxi': 0}],
+            'hotswap_station': [{'x': 1, 'y': 2}],
+            'width': 4,
+            'height': 4,
+        }
+        continue_condition = "free_play"
+    elif version == 2:
+        params = {
+            'agent': {'x': 4, 'y': 1, 'has_passenger': 0},
+            'walls': [{'x': 1, 'y': 3}, {'x': 2, 'y': 3}, {'x': 3, 'y': 3}],
+            'passengers': [{'x': 1, 'y': 2, 'dest_x': 1, 'dest_y': 4, 'in_taxi': 0}],
+            'hotswap_station': [{'x': 2, 'y': 1}],
+            'width': 4,
+            'height': 4,
+        }
+        continue_condition = "optimal_traj_1"
+    socketio.emit("sandbox configured", {"params": params, "continue_condition": continue_condition}, to=request.sid)
+
+
 @app.route("/sandbox", methods=["GET", "POST"])
 @login_required
 def sandbox():
@@ -606,16 +638,16 @@ def sandbox():
         <h4>If you accidentally take a wrong action, you may reset the simulation and start over.</h4> <br>
         <h3>Feel free to play around in the game below and get used to the controls. </h3> <h4>You can click the continue button whenever you feel ready to move on.</h4>
         '''
-        params = {
-            'agent': {'x': 4, 'y': 3, 'has_passenger': 0},
-            'walls': [{'x': 2, 'y': 3}, {'x': 2, 'y': 2}, {'x': 3, 'y': 2}, {'x': 4, 'y': 2}],
-            'passengers': [{'x': 4, 'y': 1, 'dest_x': 1, 'dest_y': 4, 'in_taxi': 0}],
-            'hotswap_station': [{'x': 1, 'y': 2}],
-            'width': 4,
-            'height': 4,
-        }
-        legend = None
-        continue_condition = "free_play"
+        # params = {
+        #     'agent': {'x': 4, 'y': 3, 'has_passenger': 0},
+        #     'walls': [{'x': 2, 'y': 3}, {'x': 2, 'y': 2}, {'x': 3, 'y': 2}, {'x': 4, 'y': 2}],
+        #     'passengers': [{'x': 4, 'y': 1, 'dest_x': 1, 'dest_y': 4, 'in_taxi': 0}],
+        #     'hotswap_station': [{'x': 1, 'y': 2}],
+        #     'width': 4,
+        #     'height': 4,
+        # }
+        legend = ""
+        # continue_condition = "free_play"
     elif version == "sandbox_2":
         preamble = ("<h1>Practice game</h1> <hr/> " +
         "<h3>As previously mentioned, the task in this practice game is the following: </h3> <br>" +
@@ -627,20 +659,30 @@ def sandbox():
         "<h3><b>Pick up the green pentagon</b> and <b>drop it off at the purple star</b> with the <b>maximum possible energy remaining</b>. </h3> " +
         "<h4>You should end with 40% \energy left (you won't be able to move if energy falls to 0%). <u>You will have 3 chances to get it right to continue on with the study!</u></h4>" +
         "<h4>Note: Since this is practice, we have revealed each actions's effect on Chip's energy and also provide a running counter of Chip's current energy level below.</h4> <br>")
-        params = {
-            'agent': {'x': 4, 'y': 1, 'has_passenger': 0},
-            'walls': [{'x': 1, 'y': 3}, {'x': 2, 'y': 3}, {'x': 3, 'y': 3}],
-            'passengers': [{'x': 1, 'y': 2, 'dest_x': 1, 'dest_y': 4, 'in_taxi': 0}],
-            'hotswap_station': [{'x': 2, 'y': 1}],
-            'width': 4,
-            'height': 4,
-        }
+        # params = {
+        #     'agent': {'x': 4, 'y': 1, 'has_passenger': 0},
+        #     'walls': [{'x': 1, 'y': 3}, {'x': 2, 'y': 3}, {'x': 3, 'y': 3}],
+        #     'passengers': [{'x': 1, 'y': 2, 'dest_x': 1, 'dest_y': 4, 'in_taxi': 0}],
+        #     'hotswap_station': [{'x': 2, 'y': 1}],
+        #     'width': 4,
+        #     'height': 4,
+        # }
         legend = "<br><br><br><table class=\"center\"><tr><th>Key</th><th>Action</th></tr><tr><td>up/down/left/right arrow keys</td><td>corresponding movement</td></tr><tr><td>p</td><td>pick up</td></tr><tr><td>d</td><td>drop</td></tr><tr><td>r</td><td>reset simulation</td></tr></table><br>"
-        continue_condition = "optimal_traj_1"
+        # continue_condition = "optimal_traj_1"
     # stimulus = '<iframe id = "ifrm" style="border:none;" src="' + source + '" height="550" width="950" title="Iframe Example"></iframe>    '
-    res = render_template("mike/sandbox.html", preamble=preamble, params=params, legend=legend, continue_condition=continue_condition)
+    res = render_template("mike/sandbox.html", preamble=preamble, legend=legend)
     # print(res)
     return res
+
+@app.route("/post_practice", methods=["GET", "POST"])
+@login_required
+def post_practice():
+    current_user.set_curr_progress("post_practice")
+    preamble = ("<h3>Good job on completing the practice game! Let's now head over to the three main games and <b>begin the real study</b>.</h3><br>" +
+            "<h3>In these games, you will <b>not</b> be told how each action changes Chip's energy level.</h3><br>" +
+            "For example, note the '???' in the Energy Change column below. <table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr><tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>???</td></tr></table> <br>" +
+            "<h3>Instead, you will have to <u>figure that out</u> and subsequently the best strategy for completing the task while minimizing Chip's energy loss <u>by observing Chip's demonstrations!</u></h3><br>")
+    return render_template("mike/post_practice.html", preamble=preamble)
 
 @app.route("/sign_consent", methods=["GET", "POST"])
 @login_required
