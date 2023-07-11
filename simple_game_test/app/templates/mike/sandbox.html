@@ -41,6 +41,11 @@
         }
         else if (localStorage.getItem("progress") === "sandbox_2") {
             socket.emit("sandbox settings", {version: 2});
+            $( "button" ).replaceWith( `<button type="button" disabled id="next" 
+        onclick="make_sandbox()"
+        value="next" class="btn btn-primary btn-lg continue">
+        Next <span class="glyphicon glyphicon-arrow-right"></span>
+        </button>` );
         }
     });
     
@@ -51,6 +56,17 @@
         continue_condition = data["continue_condition"];
         run_page(mdp_parameters, continue_condition);
     });
+
+    socket.on("attention checked", function(data) {
+        if (data["passed"]) {
+            $( "button" ).replaceWith( `<button type="button" id="next" 
+        onclick="make_sandbox()"
+        value="next" class="btn btn-primary btn-lg continue">
+        Next <span class="glyphicon glyphicon-arrow-right"></span>
+        </button>` );
+                }
+        }
+    );
 
     function make_sandbox() {
     console.log("I am getting called!")
@@ -64,10 +80,13 @@
         });
     }
     else if (localStorage.getItem("progress") === "sandbox_2") {
+            if (localStorage.getItem("passed_attention_check") === "true") {
             localStorage.setItem("progress", "post_practice");
             window.location.assign("/post_practice");
+            }
+
         }
-  };
+  }
     
     function run_page(mdp_parameters, continue_condition) {
     // import {socket} from "sandbox_intro.html";
@@ -564,6 +583,8 @@
             else if (continue_condition == 'optimal_traj_2') {
                 drawString(context, "Good job delivering the pentagon in the fewest number of actions! \n However, you see that you ended up with a lower score than you started with. \n Click 'Continue' below.", text_loc_x, text_loc_y, text_color_success, 0, "'serif", 20)
             }
+            localStorage.setItem("passed_attention_check", "true");
+            socket.emit("attention check", {"passed" : true});
             if (data_sent == false) {
                 record_data()
                 document.removeEventListener('keydown', keyPressed);

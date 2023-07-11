@@ -674,6 +674,12 @@ def sandbox():
     # print(res)
     return res
 
+@socketio.on("attention check")
+def attention_check(data):
+    if data["passed"]:
+        socketio.emit("attention checked", {"passed": True}, to=request.sid)
+        # TODO: set database value for attention check to true
+
 @app.route("/post_practice", methods=["GET", "POST"])
 @login_required
 def post_practice():
