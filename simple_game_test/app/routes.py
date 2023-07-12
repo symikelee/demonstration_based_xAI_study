@@ -14,7 +14,7 @@ from generate_rules import generate_rule, generate_hard_rule_constrained
 from environment import Environment
 from learner import Learner
 
-from app.backend_test import send_signal
+from app.backend_test import send_signal, jsons
 from app import socketio
 from flask_socketio import join_room, leave_room
 
@@ -694,6 +694,90 @@ def post_practice():
 @login_required
 def at_intro():
     return render_template("mike/augmented_taxi2_introduction.html")
+
+@app.route("/at", methods=["GET", "POST"])
+@login_required
+def at():
+    return render_template("mike/augmented_taxi2.html")
+
+@socketio.on("settings")
+def settings(data):
+    # first we want to case on our between subjects condition
+    # open loop (old study), partial loop, or closed loop
+    response = {}
+    # if current_user.loop_condition == "open":
+    it = data["interaction type"]
+    if it == "demo":
+        if data["domain"] == "at":
+            response["params"] = jsons["augmented_taxi2"]["0"]
+        elif data["domain"] == "ct":
+            response["params"] = jsons["colored_tiles"]["0"]
+        elif data["domain"] == "sb":
+            response["params"] = jsons["skateboard2"]["0"]
+
+    elif it == "diagnostic test":
+        if data["domain"] == "at":
+            response["params"] = jsons["augmented_taxi2"]["1"]
+        elif data["domain"] == "ct":
+            response["params"] = jsons["colored_tiles"]["1"]
+        elif data["domain"] == "sb":
+            response["params"] = jsons["skateboard2"]["1"]
+
+    elif it == "diagnostic feedback": 
+        if data["domain"] == "at":
+            response["params"] = jsons["augmented_taxi2"]["0"]
+        elif data["domain"] == "ct":
+            response["params"] = jsons["colored_tiles"]["0"]
+        elif data["domain"] == "sb":
+            response["params"] = jsons["skateboard2"]["0"]
+
+    elif it == "remedial demo":
+        if data["domain"] == "at":
+            response["params"] = jsons["augmented_taxi2"]["0"]
+        elif data["domain"] == "ct":
+            response["params"] = jsons["colored_tiles"]["0"]
+        elif data["domain"] == "sb":
+            response["params"] = jsons["skateboard2"]["0"]
+
+    elif it == "remedial test":
+        if data["domain"] == "at":
+            response["params"] = jsons["augmented_taxi2"]["1"]
+        elif data["domain"] == "ct":
+            response["params"] = jsons["colored_tiles"]["1"]
+        elif data["domain"] == "sb":
+            response["params"] = jsons["skateboard2"]["1"]
+            
+    elif it == "remedial feedback": 
+        if data["domain"] == "at":
+            response["params"] = jsons["augmented_taxi2"]["0"]
+        elif data["domain"] == "ct":
+            response["params"] = jsons["colored_tiles"]["0"]
+        elif data["domain"] == "sb":
+            response["params"] = jsons["skateboard2"]["0"]
+
+    elif it == "final test":
+        if data["domain"] == "at":
+            response["params"] = jsons["augmented_taxi2"]["1"]
+        elif data["domain"] == "ct":
+            response["params"] = jsons["colored_tiles"]["1"]
+        elif data["domain"] == "sb":
+            response["params"] = jsons["skateboard2"]["1"]
+
+    socketio.emit("settings configured", response, to=request.sid)
+    # elif current_user.loop_condition == "pl":
+    #     if data["domain"] == "at":
+    #         pass
+    #     elif data["domain"] == "ct":
+    #         pass
+    #     elif data["domain"] == "sb":
+    #         pass
+    # elif current_user.loop_condition == "cl":
+    #     if data["domain"] == "at":
+    #         pass
+    #     elif data["domain"] == "ct":
+    #         pass
+    #     elif data["domain"] == "sb":
+    #         pass
 
 @app.route("/sign_consent", methods=["GET", "POST"])
 @login_required
