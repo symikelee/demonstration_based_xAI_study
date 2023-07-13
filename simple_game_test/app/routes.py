@@ -700,12 +700,44 @@ def at_intro():
 def at():
     return render_template("mike/augmented_taxi2.html")
 
+def get_next_state(data):
+    loop_cond = "cl" # TODO: GET THIS IN THE DATABASE
+    num_open_demos = 5
+    num_final_tests = 6
+    response = {}
+    
+    if loop_cond == "open":
+        if data["interaction type"] == "demo": 
+            if data["iteration"] < num_open_demos - 1:
+                response["interaction type"] = "demo"
+                response["iteration"] = data["iteration"] + 1
+            else:
+                response["interaction type"] = "final test"
+                response["iteration"] = 0
+        elif data["interaction type"] == "final test":
+            if data["iteration"] < num_final_tests - 1:
+                response["iteration"] = data["iteration"] + 1
+            else: 
+                response["interaction type"] = "next domain"
+
+    elif loop_cond == "pl":
+        pass
+    elif loop_cond == "cl":
+        if data["domain"] == "at":
+            response["params"] = jsons["augmented_taxi2"]["0"]
+        elif data["domain"] == "ct":
+            response["params"] = jsons["colored_tiles"]["0"]
+        elif data["domain"] == "sb":
+            response["params"] = jsons["skateboard2"]["0"]
+
+
+
+# takes in state, including interaction type and user input etc
+# and returns params for next state
 @socketio.on("settings")
 def settings(data):
-    # first we want to case on our between subjects condition
-    # open loop (old study), partial loop, or closed loop
+    # first we want to case on our interaction type
     response = {}
-    # if current_user.loop_condition == "open":
     it = data["interaction type"]
     if it == "demo":
         if data["domain"] == "at":
@@ -764,20 +796,6 @@ def settings(data):
             response["params"] = jsons["skateboard2"]["1"]
 
     socketio.emit("settings configured", response, to=request.sid)
-    # elif current_user.loop_condition == "pl":
-    #     if data["domain"] == "at":
-    #         pass
-    #     elif data["domain"] == "ct":
-    #         pass
-    #     elif data["domain"] == "sb":
-    #         pass
-    # elif current_user.loop_condition == "cl":
-    #     if data["domain"] == "at":
-    #         pass
-    #     elif data["domain"] == "ct":
-    #         pass
-    #     elif data["domain"] == "sb":
-    #         pass
 
 @app.route("/sign_consent", methods=["GET", "POST"])
 @login_required

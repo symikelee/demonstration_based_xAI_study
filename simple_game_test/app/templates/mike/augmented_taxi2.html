@@ -19,7 +19,7 @@
   <canvas id="game" width="800" height="500" ></canvas>
     <br></br>
     <div class="col-xs-2">
-        <button type="button" id="next" 
+        <button type="button" id="next" disabled
         onclick="next()"
         value="next" class="btn btn-primary btn-lg continue">
         Next <span class="glyphicon glyphicon-arrow-right"></span>
@@ -40,47 +40,34 @@
             //         Next <span class="glyphicon glyphicon-arrow-right"></span>
             //         </button>` );
             // }
-            socket.emit("settings", {"interaction type": "demo", "domain": "at"});
+            let data = {};
+            data["domain"] = localStorage.getItem("domain");
+            data["interaction type"] = localStorage.getItem("interaction type");
+            data["iteration"] = Number(localStorage.getItem("iteration"));
+            data["subiteration"] = Number(localStorage.getItem("subiteration"));
+            data["user input"] = JSON.parse(localStorage.getItem("user input"));
+            socket.emit("settings", data);
         });
 
         socket.on("settings configured", function (data) {
-            window.mdp_parameters = data["params"]; // TODO: CHANGE THIS LOL
-            // console.log(mdp_parameters);
-            // console.log(mdp_parameters.agent.x);
-            // continue_condition = data["continue_condition"];
-            console.log(run_page(window.mdp_parameters));
+            mdp_parameters = data["params"]; 
+            console.log(mdp_parameters);
+            run_page(mdp_parameters);
         });
 
-        socket.on("attention checked", function (data) {
-            if (data["passed"]) {
-                $("button").replaceWith(`<button type="button" id="next" 
-                    onclick="make_sandbox()"
-                    value="next" class="btn btn-primary btn-lg continue">
-                    Next <span class="glyphicon glyphicon-arrow-right"></span>
-                    </button>` );
-            }
-        }
-        );
+        // socket.on("", function (data) {
+        //     if (data["passed"]) {
+        //         $("button").replaceWith(`<button type="button" id="next" 
+        //             onclick="make_sandbox()"
+        //             value="next" class="btn btn-primary btn-lg continue">
+        //             Next <span class="glyphicon glyphicon-arrow-right"></span>
+        //             </button>` );
+        //     }
+        // }
+        // );
 
         function next() {
             window.location.href='/at';
-            // console.log("I am getting called!")
-
-            // if (localStorage.getItem("progress") === "sandbox_1") {
-            //     localStorage.setItem("progress", "sandbox_2");
-            //     socket.emit('make sandbox', { version: 2 });
-            //     // socket.on("connect", function() {socket.emit('make sandbox', {version: 1})});
-            //     socket.on('made sandbox', function () {
-            //         window.location.assign("/sandbox");
-            //     });
-            // }
-            // else if (localStorage.getItem("progress") === "sandbox_2") {
-            //     if (localStorage.getItem("passed_attention_check") === "true") {
-            //         localStorage.setItem("progress", "post_practice");
-            //         window.location.assign("/post_practice");
-            //     }
-
-            // }
         }
 
   function run_page(mdp_parameters) {
@@ -432,6 +419,13 @@ var spaceship =
         var event = new CustomEvent("game-completed", { "detail": "Demonstration has now ended." });
         document.dispatchEvent(event);
 
+        if (localStorage.getItem("interaction type").includes("test")) {
+            localStorage.setItem("user input", final_data);
+        }
+        else {
+            localStorage.setItem("user input", "{}");
+        }
+
         data_sent = true
     }
 
@@ -496,6 +490,12 @@ var spaceship =
             if (data_sent == false) {
                 record_data()
             }
+
+            $("button").replaceWith(`<button type="button" id="next" 
+                    onclick="next()"
+                    value="next" class="btn btn-primary btn-lg continue">
+                    Next <span class="glyphicon glyphicon-arrow-right"></span>
+                    </button>` );
         }
       }
 

@@ -14,7 +14,7 @@
             </div>
             <div class="col-xs-2">
                 <button type="button" id="next" value="next" 
-                onclick="window.location.href='/at_intro'"
+                onclick=start_study()
                 class="btn btn-primary btn-lg continue">
                 Next <span class="glyphicon glyphicon-arrow-right"></span>
                 </button>
@@ -25,4 +25,12 @@
 </div>
 
 <script>
-</script>
+    function start_study() {
+      localStorage.setItem("domain", "at");
+      localStorage.setItem("interaction type", "demo");
+      localStorage.setItem("iteration", "-1");
+      localStorage.setItem("subiteration", "-1");
+      localStorage.setItem("user input", "{}");
+      window.location.href="/at";
+    };
+  </script>
