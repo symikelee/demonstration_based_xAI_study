@@ -267,74 +267,74 @@ def set_fb_type():
     # session['learner'] = learner.to_dict()
     return "nothing"
 
-@app.route("/attn_check", methods=["GET", "POST"])
-@login_required
-def attn_check():
-    form = AttentionCheckForm()
+# @app.route("/attn_check", methods=["GET", "POST"])
+# @login_required
+# def attn_check():
+#     form = AttentionCheckForm()
 
-    true_rule = session['rule_str']
-    print(f"the true rule is {true_rule}")
+#     true_rule = session['rule_str']
+#     print(f"the true rule is {true_rule}")
 
-    # because exception_val is hard to identify, lets consider (primary class, exception class)
-    # the true rule is (TP, TP)
-    rules = [true_rule]
-    # so we generate (TP, FP)
-    rules.append(generate_hard_rule_constrained(session['rule_str_as_bin'], True, False))
-    # as well as (FP, TP)
-    rules.append(generate_hard_rule_constrained(session['rule_str_as_bin'], False, True))
-    # and, finally, (FP, FP)
-    rules.append(generate_hard_rule_constrained(session['rule_str_as_bin'], False, False))
-    rand.shuffle(rules)
+#     # because exception_val is hard to identify, lets consider (primary class, exception class)
+#     # the true rule is (TP, TP)
+#     rules = [true_rule]
+#     # so we generate (TP, FP)
+#     rules.append(generate_hard_rule_constrained(session['rule_str_as_bin'], True, False))
+#     # as well as (FP, TP)
+#     rules.append(generate_hard_rule_constrained(session['rule_str_as_bin'], False, True))
+#     # and, finally, (FP, FP)
+#     rules.append(generate_hard_rule_constrained(session['rule_str_as_bin'], False, False))
+#     rand.shuffle(rules)
 
-    if 'attention_check_rules' in session:
-        print(f"The attention check rules already exist, and are: {session['attention_check_rules']}")
+#     if 'attention_check_rules' in session:
+#         print(f"The attention check rules already exist, and are: {session['attention_check_rules']}")
 
-    else:
-        print(f"Defining attention check rules to be {rules}")
-        session['attention_check_rules'] = rules
+#     else:
+#         print(f"Defining attention check rules to be {rules}")
+#         session['attention_check_rules'] = rules
 
-    # print (session['attention_check_rules'])
-    if form.validate_on_submit():
-        attention_check_val = 1 if (int(form.prev_rule.data) == session['attention_check_rules'].index(session['rule_str'])) else 0
-        print(f"Attention Check value is: {attention_check_val}")
-        print(f"Form.prev_rule.data was {form.prev_rule.data}")
-        print(f"Rules is {session['attention_check_rules']}")
-        print(f"And the location we indexed into was {session['attention_check_rules'].index(true_rule)}")
+#     # print (session['attention_check_rules'])
+#     if form.validate_on_submit():
+#         attention_check_val = 1 if (int(form.prev_rule.data) == session['attention_check_rules'].index(session['rule_str'])) else 0
+#         print(f"Attention Check value is: {attention_check_val}")
+#         print(f"Form.prev_rule.data was {form.prev_rule.data}")
+#         print(f"Rules is {session['attention_check_rules']}")
+#         print(f"And the location we indexed into was {session['attention_check_rules'].index(true_rule)}")
 
-        current_user.set_attention_check(attention_check_val)
+#         current_user.set_attention_check(attention_check_val)
 
-        # Clear this variable -- for some reason was not clearing on its own. 
-        session.pop('attention_check_rules', None)
+#         # Clear this variable -- for some reason was not clearing on its own. 
+#         session.pop('attention_check_rules', None)
 
-        db.session.commit()
-        redirect(url_for("test"))
+#         db.session.commit()
+#         redirect(url_for("test"))
 
-    online_condition_id = current_user.online_condition_id
-    current_condition = db.session.query(OnlineCondition).get(online_condition_id)
+#     online_condition_id = current_user.online_condition_id
+#     current_condition = db.session.query(OnlineCondition).get(online_condition_id)
 
-    # We only provide an attention check after the first survey
-    completed_survey = db.session.query(Survey).filter_by(user_id=current_user.id, round_num=1).count()
+#     # We only provide an attention check after the first survey
+#     completed_survey = db.session.query(Survey).filter_by(user_id=current_user.id, round_num=1).count()
 
-    # Make sure previous step (survey after first game) has been completed
-    # if current_user.num_trials_completed == len(current_condition.trials) and current_user.study_completed == 0:
-    #     return redirect(url_for("survey"))
-    if completed_survey == 0:
-        return redirect(url_for("survey"))
+#     # Make sure previous step (survey after first game) has been completed
+#     # if current_user.num_trials_completed == len(current_condition.trials) and current_user.study_completed == 0:
+#     #     return redirect(url_for("survey"))
+#     if completed_survey == 0:
+#         return redirect(url_for("survey"))
 
-    # Only complete the attention check once
-    if current_user.attention_check != -1:
-        if current_user.num_trials_completed < len(current_condition.trials):
-            return redirect(url_for("test"))
-        else:
-            return redirect(url_for("survey"))
+#     # Only complete the attention check once
+#     if current_user.attention_check != -1:
+#         if current_user.num_trials_completed < len(current_condition.trials):
+#             return redirect(url_for("test"))
+#         else:
+#             return redirect(url_for("survey"))
 
-    return render_template("attention_check.html",
-                            title="Attention Check",
-                            rule_1=session['attention_check_rules'][0],
-                            rule_2=session['attention_check_rules'][1],
-                            rule_3=session['attention_check_rules'][2],
-                            rule_4=session['attention_check_rules'][3],
-                            form=form)
+#     return render_template("attention_check.html",
+#                             title="Attention Check",
+#                             rule_1=session['attention_check_rules'][0],
+#                             rule_2=session['attention_check_rules'][1],
+#                             rule_3=session['attention_check_rules'][2],
+#                             rule_4=session['attention_check_rules'][3],
+#                             form=form)
 
 @app.route("/training/<string:page>", methods=["GET", "POST"])
 @login_required
@@ -549,6 +549,14 @@ def index():
 
     completed = True if current_user.study_completed == 1 else False
 
+    current_user.loop_condition = "cl"
+    domains = ["at", "ct", "sb"] 
+    # rand.shuffle(domains)
+    current_user.domain_1 = domains[0]
+    current_user.domain_2 = domains[1]
+    current_user.domain_3 = domains[2]
+    db.session.commit()
+
     return render_template("index.html",
                            title="Home Page",
                            completed=completed,
@@ -678,17 +686,47 @@ def sandbox():
 def attention_check(data):
     if data["passed"]:
         socketio.emit("attention checked", {"passed": True}, to=request.sid)
-        # TODO: set database value for attention check to true
+        current_user.set_attention_check(1)
+         
+        db.session.commit()
 
 @app.route("/post_practice", methods=["GET", "POST"])
 @login_required
 def post_practice():
-    current_user.set_curr_progress("post_practice")
+    print("I'm in post practice")
+    current_user.set_curr_progress("post practice")
+    print(current_user.curr_progress)
+    db.session.commit()
     preamble = ("<h3>Good job on completing the practice game! Let's now head over to the three main games and <b>begin the real study</b>.</h3><br>" +
             "<h3>In these games, you will <b>not</b> be told how each action changes Chip's energy level.</h3><br>" +
             "For example, note the '???' in the Energy Change column below. <table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr><tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>???</td></tr></table> <br>" +
             "<h3>Instead, you will have to <u>figure that out</u> and subsequently the best strategy for completing the task while minimizing Chip's energy loss <u>by observing Chip's demonstrations!</u></h3><br>")
     return render_template("mike/post_practice.html", preamble=preamble)
+
+@socketio.on("next domain")
+def next_domain():
+    print("yassss")
+    current_user.interaction_type = "demo"
+    current_user.iteration = -1
+    current_user.subiteration = 0
+    print(current_user.curr_progress)
+
+    if current_user.curr_progress == "post practice":
+        print("slayyy")
+        current_user.set_curr_progress("domain 1")
+        socketio.emit("next domain is", {"domain": current_user.domain_1}, to=request.sid)
+    elif current_user.curr_progress == "domain 1":
+        current_user.set_curr_progress("domain 2")
+        socketio.emit("next domain is", {"domain": current_user.domain_2}, to=request.sid)
+    elif current_user.curr_progress == "domain 2":
+        current_user.set_curr_progress("domain 3")
+        socketio.emit("next domain is", {"domain": current_user.domain_3}, to=request.sid)
+    elif current_user.curr_progress == "domain 3":
+        current_user.set_curr_progress("final survey")
+        socketio.emit("next domain is", {"domain": "final survey"}, to=request.sid)
+    
+    db.session.commit()
+
 
 @app.route("/at_intro", methods=["GET", "POST"])
 @login_required
@@ -700,102 +738,286 @@ def at_intro():
 def at():
     return render_template("mike/augmented_taxi2.html")
 
-def get_next_state(data):
-    loop_cond = "cl" # TODO: GET THIS IN THE DATABASE
-    num_open_demos = 5
-    num_final_tests = 6
-    response = {}
-    
-    if loop_cond == "open":
-        if data["interaction type"] == "demo": 
-            if data["iteration"] < num_open_demos - 1:
-                response["interaction type"] = "demo"
-                response["iteration"] = data["iteration"] + 1
-            else:
-                response["interaction type"] = "final test"
-                response["iteration"] = 0
-        elif data["interaction type"] == "final test":
-            if data["iteration"] < num_final_tests - 1:
-                response["iteration"] = data["iteration"] + 1
-            else: 
-                response["interaction type"] = "next domain"
-
-    elif loop_cond == "pl":
-        pass
-    elif loop_cond == "cl":
-        if data["domain"] == "at":
-            response["params"] = jsons["augmented_taxi2"]["0"]
-        elif data["domain"] == "ct":
-            response["params"] = jsons["colored_tiles"]["0"]
-        elif data["domain"] == "sb":
-            response["params"] = jsons["skateboard2"]["0"]
-
-
-
 # takes in state, including interaction type and user input etc
 # and returns params for next state
 @socketio.on("settings")
 def settings(data):
-    # first we want to case on our interaction type
+    loop_cond = current_user.loop_condition
+    curr_domain = current_user.curr_progress[-1]
+    print(curr_domain)
+    print(current_user.curr_progress)
+    domain = ""
+    if curr_domain == "1":
+        domain = current_user.domain_1
+    elif curr_domain == "2":
+        domain = current_user.domain_2
+    elif curr_domain == "3":
+        domain = current_user.domain_3
+    it = current_user.interaction_type
+    iter = current_user.iteration
+    subiter = current_user.subiteration
     response = {}
-    it = data["interaction type"]
-    if it == "demo":
-        if data["domain"] == "at":
-            response["params"] = jsons["augmented_taxi2"]["0"]
-        elif data["domain"] == "ct":
-            response["params"] = jsons["colored_tiles"]["0"]
-        elif data["domain"] == "sb":
-            response["params"] = jsons["skateboard2"]["0"]
 
-    elif it == "diagnostic test":
-        if data["domain"] == "at":
-            response["params"] = jsons["augmented_taxi2"]["1"]
-        elif data["domain"] == "ct":
-            response["params"] = jsons["colored_tiles"]["1"]
-        elif data["domain"] == "sb":
-            response["params"] = jsons["skateboard2"]["1"]
+    # hardcoded progressions for all loop conditions
+    # REQUIRES: the params to be in a demo array, diagnostic test array, and final test array
+    # indexable, and in the order of presentation to the user
 
-    elif it == "diagnostic feedback": 
-        if data["domain"] == "at":
-            response["params"] = jsons["augmented_taxi2"]["0"]
-        elif data["domain"] == "ct":
-            response["params"] = jsons["colored_tiles"]["0"]
-        elif data["domain"] == "sb":
-            response["params"] = jsons["skateboard2"]["0"]
+    progression = {
+        "open": {
+            "at": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4],
+                   ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
+            "ct": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4],
+                   ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
+            "sb": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4], ["demo", 5], ["demo", 6],
+                   ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]]
+        },
+        "pl": {
+            "at": [["demo", -1], ["demo", 0], ["demo", 1], ["diagnostic test", 0], ["diagnostic feedback", 0], 
+                   ["demo", 2], ["demo", 3], ["diagnostic test", 1], ["diagnostic feedback", 1], ["diagnostic test", 2], ["diagnostic feedback", 2],
+                   ["demo", 4], ["diagnostic test", 3], ["diagnostic feedback", 3],
+                   ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
+            "ct": [["demo", -1], ["demo", 0], ["demo", 1], ["diagnostic test", 0], ["diagnostic feedback", 0], ["diagnostic test", 1], ["diagnostic feedback", 1],
+                   ["demo", 2], ["demo", 3], ["diagnostic test", 2], ["diagnostic feedback", 2], ["diagnostic test", 3], ["diagnostic feedback", 3],
+                   ["demo", 4], ["diagnostic test", 4], ["diagnostic feedback", 4],
+                   ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
+            "sb": [["demo", -1], ["demo", 0], ["demo", 1], ["diagnostic test", 0], ["diagnostic feedback", 0], ["diagnostic test", 1], ["diagnostic feedback", 1], 
+                   ["demo", 2], ["demo", 3], ["diagnostic test", 2], ["diagnostic feedback", 2], ["diagnostic test", 3], ["diagnostic feedback", 3],
+                   ["demo", 4], ["demo", 5], ["demo", 6], ["diagnostic test", 4], ["diagnostic feedback", 4], ["diagnostic test", 5], ["diagnostic feedback", 5], ["diagnostic test", 6], ["diagnostic feedback", 6], 
+                   ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]]
+        },
+        "cl": {
+            "at": [["demo", -1], ["demo", 0], ["demo", 1], 
+                   ["diagnostic test", 0], ["diagnostic feedback", 0], ["remedial demo", 0], 
+                   ["remedial test", 0, 0], ["remedial feedback", 0, 0], 
+                   ["remedial test", 0, 1], ["remedial feedback", 0, 1], 
+                   ["remedial test", 0, 2], ["remedial feedback", 0, 2], 
+                   ["remedial test", 0, 3], ["remedial feedback", 0, 3],
+                   ["demo", 2], ["demo", 3], 
+                   ["diagnostic test", 1], ["diagnostic feedback", 1], ["remedial demo", 1], 
+                   ["remedial test", 1, 0], ["remedial feedback", 1, 0], 
+                   ["remedial test", 1, 1], ["remedial feedback", 1, 1], 
+                   ["remedial test", 1, 2], ["remedial feedback", 1, 2], 
+                   ["remedial test", 1, 3], ["remedial feedback", 1, 3],
+                   ["diagnostic test", 2], ["diagnostic feedback", 2], ["remedial demo", 2],
+                   ["remedial test", 2, 0], ["remedial feedback", 2, 0], 
+                   ["remedial test", 2, 1], ["remedial feedback", 2, 1], 
+                   ["remedial test", 2, 2], ["remedial feedback", 2, 2], 
+                   ["remedial test", 2, 3], ["remedial feedback", 2, 3],
+                   ["demo", 4], 
+                   ["diagnostic test", 3], ["diagnostic feedback", 3], ["remedial demo", 3],
+                   ["remedial test", 3, 0], ["remedial feedback", 3, 0], 
+                   ["remedial test", 3, 1], ["remedial feedback", 3, 1], 
+                   ["remedial test", 3, 2], ["remedial feedback", 3, 2], 
+                   ["remedial test", 3, 3], ["remedial feedback", 3, 3],
+                   ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
+            "ct": [["demo", -1], ["demo", 0], ["demo", 1], 
+                   ["diagnostic test", 0], ["diagnostic feedback", 0], ["remedial demo", 0], 
+                   ["remedial test", 0, 0], ["remedial feedback", 0, 0], 
+                   ["remedial test", 0, 1], ["remedial feedback", 0, 1], 
+                   ["remedial test", 0, 2], ["remedial feedback", 0, 2], 
+                   ["remedial test", 0, 3], ["remedial feedback", 0, 3],
+                   ["diagnostic test", 1], ["diagnostic feedback", 1],["remedial demo", 1], 
+                   ["remedial test", 1, 0], ["remedial feedback", 1, 0], 
+                   ["remedial test", 1, 1], ["remedial feedback", 1, 1], 
+                   ["remedial test", 1, 2], ["remedial feedback", 1, 2], 
+                   ["remedial test", 1, 3], ["remedial feedback", 1, 3],
+                   ["demo", 2], ["demo", 3], 
+                   ["diagnostic test", 2], ["diagnostic feedback", 2], ["remedial demo", 2],
+                   ["remedial test", 2, 0], ["remedial feedback", 2, 0], 
+                   ["remedial test", 2, 1], ["remedial feedback", 2, 1], 
+                   ["remedial test", 2, 2], ["remedial feedback", 2, 2], 
+                   ["remedial test", 2, 3], ["remedial feedback", 2, 3],
+                   ["diagnostic test", 3], ["diagnostic feedback", 3], ["remedial demo", 3],
+                   ["remedial test", 3, 0], ["remedial feedback", 3, 0], 
+                   ["remedial test", 3, 1], ["remedial feedback", 3, 1], 
+                   ["remedial test", 3, 2], ["remedial feedback", 3, 2], 
+                   ["remedial test", 3, 3], ["remedial feedback", 3, 3],
+                   ["demo", 4], 
+                   ["diagnostic test", 4], ["diagnostic feedback", 4], ["remedial demo", 4],
+                   ["remedial test", 4, 0], ["remedial feedback", 4, 0], 
+                   ["remedial test", 4, 1], ["remedial feedback", 4, 1], 
+                   ["remedial test", 4, 2], ["remedial feedback", 4, 2], 
+                   ["remedial test", 4, 3], ["remedial feedback", 4, 3],
+                   ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
+            "sb": [["demo", -1], ["demo", 0], ["demo", 1], 
+                   ["diagnostic test", 0], ["diagnostic feedback", 0], ["remedial demo", 0], 
+                   ["remedial test", 0, 0], ["remedial feedback", 0, 0], 
+                   ["remedial test", 0, 1], ["remedial feedback", 0, 1], 
+                   ["remedial test", 0, 2], ["remedial feedback", 0, 2], 
+                   ["remedial test", 0, 3], ["remedial feedback", 0, 3],
+                   ["diagnostic test", 1], ["diagnostic feedback", 1], ["remedial demo", 1], 
+                   ["remedial test", 1, 0], ["remedial feedback", 1, 0], 
+                   ["remedial test", 1, 1], ["remedial feedback", 1, 1], 
+                   ["remedial test", 1, 2], ["remedial feedback", 1, 2], 
+                   ["remedial test", 1, 3], ["remedial feedback", 1, 3],
+                   ["demo", 2], ["demo", 3], 
+                   ["diagnostic test", 2], ["diagnostic feedback", 2], ["remedial demo", 2],
+                   ["remedial test", 2, 0], ["remedial feedback", 2, 0], 
+                   ["remedial test", 2, 1], ["remedial feedback", 2, 1], 
+                   ["remedial test", 2, 2], ["remedial feedback", 2, 2], 
+                   ["remedial test", 2, 3], ["remedial feedback", 2, 3],
+                   ["diagnostic test", 3], ["diagnostic feedback", 3], ["remedial demo", 3],
+                   ["remedial test", 3, 0], ["remedial feedback", 3, 0], 
+                   ["remedial test", 3, 1], ["remedial feedback", 3, 1], 
+                   ["remedial test", 3, 2], ["remedial feedback", 3, 2], 
+                   ["remedial test", 3, 3], ["remedial feedback", 3, 3],
+                   ["demo", 4], ["demo", 5], ["demo", 6], 
+                   ["diagnostic test", 4], ["diagnostic feedback", 4], ["remedial demo", 4],
+                   ["remedial test", 4, 0], ["remedial feedback", 4, 0], 
+                   ["remedial test", 4, 1], ["remedial feedback", 4, 1], 
+                   ["remedial test", 4, 2], ["remedial feedback", 4, 2], 
+                   ["remedial test", 4, 3], ["remedial feedback", 4, 3],
+                   ["diagnostic test", 5], ["diagnostic feedback", 5], ["remedial demo", 5],
+                   ["remedial test", 5, 0], ["remedial feedback", 5, 0], 
+                   ["remedial test", 5, 1], ["remedial feedback", 5, 1], 
+                   ["remedial test", 5, 2], ["remedial feedback", 5, 2], 
+                   ["remedial test", 5, 3], ["remedial feedback", 5, 3],
+                   ["diagnostic test", 6], ["diagnostic feedback", 6], ["remedial demo", 6],
+                   ["remedial test", 6, 0], ["remedial feedback", 6, 0], 
+                   ["remedial test", 6, 1], ["remedial feedback", 6, 1], 
+                   ["remedial test", 6, 2], ["remedial feedback", 6, 2], 
+                   ["remedial test", 6, 3], ["remedial feedback", 6, 3],
+                   ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]]
+        }
+    }
+    print(loop_cond)
+    print(domain)
+    arr = progression[loop_cond][domain]
+    idx = 0
+    if (it == "remedial test") or (it == "remedial feedback"):
+        idx = arr.index([it, iter, subiter])
+    else: 
+        idx = arr.index([it, iter])
 
-    elif it == "remedial demo":
-        if data["domain"] == "at":
-            response["params"] = jsons["augmented_taxi2"]["0"]
-        elif data["domain"] == "ct":
-            response["params"] = jsons["colored_tiles"]["0"]
-        elif data["domain"] == "sb":
-            response["params"] = jsons["skateboard2"]["0"]
+    # taking care of db pushes
+    if "test" in it:
+        # push the user input to the current trial ??
+        pass
+    # if db.session.query for the current domain, interaction type, iteration, and sub iteration
+    # then increment times seen?
+    
+    # taking care of next progs
+    # here is a nice little jump table
+    if idx == len(arr) - 1:
+        pass # figure this out later
+    else: 
+        if loop_cond == "open":
+            current_user.interaction_type = arr[idx + 1][0]
+            current_user.iteration = arr[idx + 1][1]
+        elif loop_cond == "pl":
+            if it == "diagnostic test" and data["user input"]["opt_response"]:
+                current_user.interaction_type = arr[idx + 2][0]
+                current_user.iteration = arr[idx + 2][1]
+            else:
+                current_user.interaction_type = arr[idx + 1][0]
+                current_user.iteration = arr[idx + 1][1]
+        elif loop_cond == "cl":
+            if it == "diagnostic test" and data["user input"]["opt_response"]:
+                current_user.interaction_type = arr[idx + 11][0]
+                current_user.iteration = arr[idx + 11][1]
+            elif it == "remedial test" and data["user input"]["opt_response"]:
+                jump = 2 * (4 - subiter)
+                current_user.interaction_type = arr[idx + jump][0]
+                current_user.iteration = arr[idx + jump][1]
+                current_user.subiteration = 0
+            else:
+                current_user.interaction_type = arr[idx + 1][0]
+                current_user.iteration = arr[idx + 1][1]
+                if current_user.interaction_type == ("remedial test" or "remedial feedback"):
+                    current_user.subiteration = arr[idx + 1][2]
+                else:
+                    current_user.subiteration = 0
+    
+    response["params"] = {}
 
-    elif it == "remedial test":
-        if data["domain"] == "at":
-            response["params"] = jsons["augmented_taxi2"]["1"]
-        elif data["domain"] == "ct":
-            response["params"] = jsons["colored_tiles"]["1"]
-        elif data["domain"] == "sb":
-            response["params"] = jsons["skateboard2"]["1"]
-            
-    elif it == "remedial feedback": 
-        if data["domain"] == "at":
-            response["params"] = jsons["augmented_taxi2"]["0"]
-        elif data["domain"] == "ct":
-            response["params"] = jsons["colored_tiles"]["0"]
-        elif data["domain"] == "sb":
-            response["params"] = jsons["skateboard2"]["0"]
-
-    elif it == "final test":
-        if data["domain"] == "at":
-            response["params"] = jsons["augmented_taxi2"]["1"]
-        elif data["domain"] == "ct":
-            response["params"] = jsons["colored_tiles"]["1"]
-        elif data["domain"] == "sb":
-            response["params"] = jsons["skateboard2"]["1"]
-
+    # REQUIRES: domain and loop condition are the same throughout this function
+    # it, iter, and subiter are the old versions
+    # current_user.{interaction_type, iteration, subiteration} are the new versions
+    temp = ""
+    if "test" in current_user.interaction_type:
+        temp = "1"
+    else:
+        temp = "0"
+    
+    response["params"] = jsons[domain][temp]
+    debug_string = f"domain={domain}, interaction type={current_user.interaction_type}, iteration={current_user.iteration}, subiteration={current_user.subiteration}"
+    response["debug string"] = debug_string
+    # response["domain"] = domain
+    # response["interaction type"] = current_user.interaction_type
+    # response["iteration"] = current_user.iteration
+    # response["subiteration"] = current_user.subiteration
+    db.session.commit()
     socketio.emit("settings configured", response, to=request.sid)
+
+
+
+
+
+
+# # takes in state, including interaction type and user input etc
+# # and returns params for next state
+# @socketio.on("settings")
+# def settings(data):
+    # # first we want to case on our interaction type
+    # response = {}
+    # it = data["interaction type"]
+    # if it == "demo":
+    #     if data["domain"] == "at":
+    #         response["params"] = jsons["augmented_taxi2"]["0"]
+    #     elif data["domain"] == "ct":
+    #         response["params"] = jsons["colored_tiles"]["0"]
+    #     elif data["domain"] == "sb":
+    #         response["params"] = jsons["skateboard2"]["0"]
+
+    # elif it == "diagnostic test":
+    #     if data["domain"] == "at":
+    #         response["params"] = jsons["augmented_taxi2"]["1"]
+    #     elif data["domain"] == "ct":
+    #         response["params"] = jsons["colored_tiles"]["1"]
+    #     elif data["domain"] == "sb":
+    #         response["params"] = jsons["skateboard2"]["1"]
+
+    # elif it == "diagnostic feedback": 
+    #     if data["domain"] == "at":
+    #         response["params"] = jsons["augmented_taxi2"]["0"]
+    #     elif data["domain"] == "ct":
+    #         response["params"] = jsons["colored_tiles"]["0"]
+    #     elif data["domain"] == "sb":
+    #         response["params"] = jsons["skateboard2"]["0"]
+
+    # elif it == "remedial demo":
+    #     if data["domain"] == "at":
+    #         response["params"] = jsons["augmented_taxi2"]["0"]
+    #     elif data["domain"] == "ct":
+    #         response["params"] = jsons["colored_tiles"]["0"]
+    #     elif data["domain"] == "sb":
+    #         response["params"] = jsons["skateboard2"]["0"]
+
+    # elif it == "remedial test":
+    #     if data["domain"] == "at":
+    #         response["params"] = jsons["augmented_taxi2"]["1"]
+    #     elif data["domain"] == "ct":
+    #         response["params"] = jsons["colored_tiles"]["1"]
+    #     elif data["domain"] == "sb":
+    #         response["params"] = jsons["skateboard2"]["1"]
+            
+    # elif it == "remedial feedback": 
+    #     if data["domain"] == "at":
+    #         response["params"] = jsons["augmented_taxi2"]["0"]
+    #     elif data["domain"] == "ct":
+    #         response["params"] = jsons["colored_tiles"]["0"]
+    #     elif data["domain"] == "sb":
+    #         response["params"] = jsons["skateboard2"]["0"]
+
+    # elif it == "final test":
+    #     if data["domain"] == "at":
+    #         response["params"] = jsons["augmented_taxi2"]["1"]
+    #     elif data["domain"] == "ct":
+    #         response["params"] = jsons["colored_tiles"]["1"]
+    #     elif data["domain"] == "sb":
+    #         response["params"] = jsons["skateboard2"]["1"]
+
+    # socketio.emit("settings configured", response, to=request.sid)
 
 @app.route("/sign_consent", methods=["GET", "POST"])
 @login_required

@@ -5,7 +5,7 @@ def send_signal(passed_test):
         return {"first":"oh no", "second":"you didn't quite get it..."}
     
 jsons = {
-  "augmented_taxi2": {
+  "at": {
     "0": {
       "agent": {
         "x": 3,
@@ -221,7 +221,7 @@ jsons = {
       ]
     }
   },
-  "colored_tiles": {
+  "ct": {
     "0": {
       "agent": {
         "x": 3,
@@ -429,7 +429,7 @@ jsons = {
       ]
     }
   },
-  "skateboard2": {
+  "sb": {
     "0": {
       "agent": {
         "x": 3,

@@ -16,7 +16,8 @@
   </head>
   <body>
     <div id="preamble"></div>
-  <canvas id="game" width="800" height="500" ></canvas>
+    <h2 id="debug"></h2>
+    <canvas id="game" width="800" height="500" ></canvas>
     <br></br>
     <div class="col-xs-2">
         <button type="button" id="next" disabled
@@ -41,16 +42,17 @@
             //         </button>` );
             // }
             let data = {};
-            data["domain"] = localStorage.getItem("domain");
-            data["interaction type"] = localStorage.getItem("interaction type");
-            data["iteration"] = Number(localStorage.getItem("iteration"));
-            data["subiteration"] = Number(localStorage.getItem("subiteration"));
+            // data["domain"] = localStorage.getItem("domain");
+            // data["interaction type"] = localStorage.getItem("interaction type");
+            // data["iteration"] = Number(localStorage.getItem("iteration"));
+            // data["subiteration"] = Number(localStorage.getItem("subiteration"));
             data["user input"] = JSON.parse(localStorage.getItem("user input"));
             socket.emit("settings", data);
         });
 
         socket.on("settings configured", function (data) {
             mdp_parameters = data["params"]; 
+            $("#debug").html(data["debug string"]);
             console.log(mdp_parameters);
             run_page(mdp_parameters);
         });
@@ -419,12 +421,7 @@ var spaceship =
         var event = new CustomEvent("game-completed", { "detail": "Demonstration has now ended." });
         document.dispatchEvent(event);
 
-        if (localStorage.getItem("interaction type").includes("test")) {
-            localStorage.setItem("user input", final_data);
-        }
-        else {
-            localStorage.setItem("user input", "{}");
-        }
+        localStorage.setItem("user input", final_data);
 
         data_sent = true
     }
@@ -496,6 +493,7 @@ var spaceship =
                     value="next" class="btn btn-primary btn-lg continue">
                     Next <span class="glyphicon glyphicon-arrow-right"></span>
                     </button>` );
+            
         }
       }
 

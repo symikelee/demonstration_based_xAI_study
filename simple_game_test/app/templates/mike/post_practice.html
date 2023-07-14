@@ -1,4 +1,5 @@
 <link rel="stylesheet" href="../../static/css/style.css" type="text/css" />
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
 
 <div id="container-instructions">
 
@@ -26,11 +27,24 @@
 
 <script>
     function start_study() {
-      localStorage.setItem("domain", "at");
-      localStorage.setItem("interaction type", "demo");
-      localStorage.setItem("iteration", "-1");
-      localStorage.setItem("subiteration", "-1");
+    //   localStorage.setItem("domain", "at");
+    //   localStorage.setItem("interaction type", "demo");
+    //   localStorage.setItem("iteration", "-1");
+    //   localStorage.setItem("subiteration", "-1");
       localStorage.setItem("user input", "{}");
-      window.location.href="/at";
+      let socket = io();
+      socket.emit("next domain");
+      socket.on("next domain is", function(data) {
+        console.log("I have received next domain");
+        let url = "";
+        if (data["domain"].length === 2){
+            url = "/".concat(data["domain"], "_intro");
+        }
+        else {
+            url = "final_survey";
+        }
+        window.location.href=url;
+      });
+      
     };
   </script>
