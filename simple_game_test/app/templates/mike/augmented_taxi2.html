@@ -12,6 +12,22 @@
     <link rel="stylesheet" href="/static/css/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
     <link rel="stylesheet" href="/static/css/jspsych.css" type="text/css" />
+    <style type="text/css">
+        .likert ul
+    {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .likert li
+    {
+        float: left;
+        text-align: left;
+        list-style-type: none;
+        padding:10px;
+    }
+    </style>
 
   </head>
   <body>
@@ -19,6 +35,21 @@
     <h2 id="debug"></h2>
     <canvas id="game" width="800" height="500" ></canvas>
     <br></br>
+    <div id="survey">
+        <!-- <h3> Did this sequence improve your understanding of the game strategy?</h3>
+        <ul class="likert">
+            <li> Not helpful/informative at all </li>
+            <li><input type="radio" name="info" value="1" /></li>
+            <li><input type="radio" name="info" value="2" /></li>
+            <li><input type="radio" name="info" value="3" /></li>
+            <li><input type="radio" name="info" value="4" /></li>
+            <li><input type="radio" name="info" value="5" /></li>
+            <li> Very helpful/informative </li>
+        </ul>
+        <br></br> -->
+    </div>
+    <br></br>
+    
     <div class="col-xs-2">
         <button type="button" id="next" disabled
         onclick="next()"
@@ -53,6 +84,9 @@
         socket.on("settings configured", function (data) {
             mdp_parameters = data["params"]; 
             $("#debug").html(data["debug string"]);
+            if (data["last test"]) {
+                localStorage.setItem("last test", "true");
+            }
             console.log(mdp_parameters);
             run_page(mdp_parameters);
         });
@@ -69,8 +103,35 @@
         // );
 
         function next() {
-            window.location.href='/at';
+            localStorage.setItem("survey completed", "false");
+            if (localStorage.getItem("last test") === "true") {
+                localStorage.setItem("last test", "false");
+                socket.emit("next domain");
+                socket.on("next domain is", function(data) {
+                    console.log("I have received next domain");
+                    let url = "";
+                    if (data["domain"].length === 2){
+                        url = "/".concat(data["domain"], "_intro");
+                    }
+                    else {
+                        url = "final_survey";
+                    }
+                    window.location.href=url;
+                });
+            }
+            else {
+                window.location.href='/at';
+            }
         }
+
+        addEventListener("input", (event) => {
+            localStorage.setItem("survey completed", "true");
+            $("button").replaceWith(`<button type="button" id="next" 
+                    onclick="next()"
+                    value="next" class="btn btn-primary btn-lg continue">
+                    Next <span class="glyphicon glyphicon-arrow-right"></span>
+                    </button>` );
+        });
 
   function run_page(mdp_parameters) {
     var canvas = document.getElementById("game");
@@ -488,11 +549,17 @@ var spaceship =
                 record_data()
             }
 
-            $("button").replaceWith(`<button type="button" id="next" 
-                    onclick="next()"
-                    value="next" class="btn btn-primary btn-lg continue">
-                    Next <span class="glyphicon glyphicon-arrow-right"></span>
-                    </button>` );
+            $("#survey").replaceWith(`<h3> Did this sequence improve your understanding of the game strategy?</h3>
+        <ul class="likert">
+            <li> Not helpful/informative at all </li>
+            <li><input type="radio" name="info" value="1" /></li>
+            <li><input type="radio" name="info" value="2" /></li>
+            <li><input type="radio" name="info" value="3" /></li>
+            <li><input type="radio" name="info" value="4" /></li>
+            <li><input type="radio" name="info" value="5" /></li>
+            <li> Very helpful/informative </li>
+        </ul>
+        <br></br>` );
             
         }
       }

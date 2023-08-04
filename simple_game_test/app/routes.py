@@ -2,7 +2,7 @@ from flask import render_template, flash, redirect, url_for, request, session
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.urls import url_parse
 from app import app, db
-from app.forms import LoginForm, RegistrationForm, TrialForm, DemoForm, ConsentForm, AttentionCheckForm, FinalForm, TrainingForm, FeedbackSurveyForm, NoFeedbackSurveyForm
+from app.forms import LoginForm, RegistrationForm, TrialForm, DemoForm, ConsentForm, AttentionCheckForm, FinalForm, TrainingForm, FeedbackSurveyForm, NoFeedbackSurveyForm, InformativenessForm
 from app.models import User, Trial, Demo, OnlineCondition, InPersonCondition, Survey
 from app.params import *
 from utils import rules_to_str, str_to_rules
@@ -549,7 +549,7 @@ def index():
 
     completed = True if current_user.study_completed == 1 else False
 
-    current_user.loop_condition = "cl"
+    current_user.loop_condition = "open"
     domains = ["at", "ct", "sb"] 
     # rand.shuffle(domains)
     current_user.domain_1 = domains[0]
@@ -736,9 +736,33 @@ def at_intro():
 @app.route("/at", methods=["GET", "POST"])
 @login_required
 def at():
+    # form = InformativenessForm()
+    # if form.validate_on_submit():
+    #     # do something, this might not be the best way to structure this lol
+    #     db.session.commit()
     return render_template("mike/augmented_taxi2.html")
 
-# takes in state, including interaction type and user input etc
+@app.route("/ct_intro", methods=["GET", "POST"])
+@login_required
+def ct_intro():
+    return render_template("mike/colored_tiles_introduction.html")
+
+@app.route("/ct", methods=["GET", "POST"])
+@login_required
+def ct():
+    return render_template("mike/colored_tiles.html")
+
+@app.route("/sb_intro", methods=["GET", "POST"])
+@login_required
+def sb_intro():
+    return render_template("mike/skateboard2_introduction.html")
+
+@app.route("/sb", methods=["GET", "POST"])
+@login_required
+def sb():
+    return render_template("mike/skateboard2.html")
+
+# takes in state, including user input etc
 # and returns params for next state
 @socketio.on("settings")
 def settings(data):
@@ -895,53 +919,62 @@ def settings(data):
         pass
     # if db.session.query for the current domain, interaction type, iteration, and sub iteration
     # then increment times seen?
-    
+    last_test = False
     # taking care of next progs
     # here is a nice little jump table
-    if idx == len(arr) - 1:
-        pass # figure this out later
-    else: 
-        if loop_cond == "open":
+    if idx == len(arr) - 2:
+        last_test = True
+        # current_user.interaction_type = "demo"
+        # current_user.iteration = -1
+        # current_user.subiteration = 0
+        # figure this out later
+    
+    if loop_cond == "open":
+        current_user.interaction_type = arr[idx + 1][0]
+        current_user.iteration = arr[idx + 1][1]
+    elif loop_cond == "pl":
+        if it == "diagnostic test" and data["user input"]["opt_response"]:
+            current_user.interaction_type = arr[idx + 2][0]
+            current_user.iteration = arr[idx + 2][1]
+        else:
             current_user.interaction_type = arr[idx + 1][0]
             current_user.iteration = arr[idx + 1][1]
-        elif loop_cond == "pl":
-            if it == "diagnostic test" and data["user input"]["opt_response"]:
-                current_user.interaction_type = arr[idx + 2][0]
-                current_user.iteration = arr[idx + 2][1]
+    elif loop_cond == "cl":
+        if it == "diagnostic test" and data["user input"]["opt_response"]:
+            current_user.interaction_type = arr[idx + 11][0]
+            current_user.iteration = arr[idx + 11][1]
+        elif it == "remedial test" and data["user input"]["opt_response"]:
+            jump = 2 * (4 - subiter)
+            current_user.interaction_type = arr[idx + jump][0]
+            current_user.iteration = arr[idx + jump][1]
+            current_user.subiteration = 0
+        else:
+            current_user.interaction_type = arr[idx + 1][0]
+            current_user.iteration = arr[idx + 1][1]
+            if current_user.interaction_type == ("remedial test" or "remedial feedback"):
+                current_user.subiteration = arr[idx + 1][2]
             else:
-                current_user.interaction_type = arr[idx + 1][0]
-                current_user.iteration = arr[idx + 1][1]
-        elif loop_cond == "cl":
-            if it == "diagnostic test" and data["user input"]["opt_response"]:
-                current_user.interaction_type = arr[idx + 11][0]
-                current_user.iteration = arr[idx + 11][1]
-            elif it == "remedial test" and data["user input"]["opt_response"]:
-                jump = 2 * (4 - subiter)
-                current_user.interaction_type = arr[idx + jump][0]
-                current_user.iteration = arr[idx + jump][1]
                 current_user.subiteration = 0
-            else:
-                current_user.interaction_type = arr[idx + 1][0]
-                current_user.iteration = arr[idx + 1][1]
-                if current_user.interaction_type == ("remedial test" or "remedial feedback"):
-                    current_user.subiteration = arr[idx + 1][2]
-                else:
-                    current_user.subiteration = 0
     
     response["params"] = {}
 
     # REQUIRES: domain and loop condition are the same throughout this function
     # it, iter, and subiter are the old versions
     # current_user.{interaction_type, iteration, subiteration} are the new versions
+
+    #TODO: set up dummy function for taxi call
     temp = ""
     if "test" in current_user.interaction_type:
         temp = "1"
     else:
         temp = "0"
+
+    # set up likert scale
     
     response["params"] = jsons[domain][temp]
     debug_string = f"domain={domain}, interaction type={current_user.interaction_type}, iteration={current_user.iteration}, subiteration={current_user.subiteration}"
     response["debug string"] = debug_string
+    response["last test"] = last_test
     # response["domain"] = domain
     # response["interaction type"] = current_user.interaction_type
     # response["iteration"] = current_user.iteration

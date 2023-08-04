@@ -117,4 +117,7 @@ class FeedbackSurveyForm(FlaskForm):
 
     submit_survey = SubmitField("Submit")
 
+class InformativenessForm(FlaskForm):
+    informativeness = RadioField("", choices=[(0, "Strongly Disagree"), (1, "Disagree"), (2, "Neutral"), (3, "Agree"), (4, "Strongly Agree")])
+    submit_survey = SubmitField("Submit")
    
