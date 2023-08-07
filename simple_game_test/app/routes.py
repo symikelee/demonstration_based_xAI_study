@@ -549,7 +549,7 @@ def index():
 
     completed = True if current_user.study_completed == 1 else False
 
-    current_user.loop_condition = "open"
+    current_user.loop_condition = "debug"
     domains = ["at", "ct", "sb"] 
     # rand.shuffle(domains)
     current_user.domain_1 = domains[0]
@@ -787,6 +787,14 @@ def settings(data):
     # indexable, and in the order of presentation to the user
 
     progression = {
+        "debug": {
+            "at": [["demo", -1], ["demo", 0], ["demo", 1], 
+                   ["final test",  0], ["final test", 1]],
+            "ct": [["demo", -1], ["demo", 0], ["demo", 1], 
+                   ["final test",  0], ["final test", 1]],
+            "sb": [["demo", -1], ["demo", 0], ["demo", 1], 
+                   ["final test",  0], ["final test", 1]]
+        },
         "open": {
             "at": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
@@ -929,7 +937,7 @@ def settings(data):
         # current_user.subiteration = 0
         # figure this out later
     
-    if loop_cond == "open":
+    if loop_cond == "open" or loop_cond == "debug":
         current_user.interaction_type = arr[idx + 1][0]
         current_user.iteration = arr[idx + 1][1]
     elif loop_cond == "pl":
@@ -1128,22 +1136,22 @@ def intro():
 @login_required
 def consent():
     form = ConsentForm()
-    if current_user.consent:
-        # flash("Consent completed!")
-        online_condition_id = current_user.online_condition_id
-        current_condition = db.session.query(OnlineCondition).get(online_condition_id)
+    # if current_user.consent:
+    #     # flash("Consent completed!")
+    #     online_condition_id = current_user.online_condition_id
+    #     current_condition = db.session.query(OnlineCondition).get(online_condition_id)
 
-        if current_user.num_trials_completed < (len(current_condition.trials)):
-            return redirect(url_for("intro")) # verifying url_for and displaying training/testing simulations
-            # return redirect(url_for("test"))
-        return redirect(url_for("survey"))
+    #     if current_user.num_trials_completed < (len(current_condition.trials)):
+    #         return redirect(url_for("intro")) # verifying url_for and displaying training/testing simulations
+    #         # return redirect(url_for("test"))
+    #     return redirect(url_for("survey"))
 
+    # else:
+    if IS_IN_PERSON:
+        procedure = "This study may take up to 90 minutes, and audio/screen recordings will be collected."
     else:
-        if IS_IN_PERSON:
-            procedure = "This study may take up to 90 minutes, and audio/screen recordings will be collected."
-        else:
-            procedure = "This study may take up to 30 minutes."
-        return render_template("consent.html", title="Consent", form=form, procedure=procedure)
+        procedure = "This study may take up to 30 minutes."
+    return render_template("consent.html", title="Consent", form=form, procedure=procedure)
 
 # @app.route("/training", methods=["GET", "POST"])
 # @login_required

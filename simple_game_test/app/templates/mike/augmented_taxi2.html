@@ -103,6 +103,7 @@
         // );
 
         function next() {
+            // reset()
             localStorage.setItem("survey completed", "false");
             if (localStorage.getItem("last test") === "true") {
                 localStorage.setItem("last test", "false");
@@ -121,6 +122,13 @@
             }
             else {
                 window.location.href='/at';
+            //     let data = {};
+            // // data["domain"] = localStorage.getItem("domain");
+            // // data["interaction type"] = localStorage.getItem("interaction type");
+            // // data["iteration"] = Number(localStorage.getItem("iteration"));
+            // // data["subiteration"] = Number(localStorage.getItem("subiteration"));
+            // data["user input"] = JSON.parse(localStorage.getItem("user input"));
+            // socket.emit("settings", data);
             }
         }
 
@@ -782,6 +790,7 @@ var spaceship =
       }
     }
 
+    // reset();
     document.addEventListener('keydown', _.debounce(keyPressed, 200))
     start_screen();
     canvas.addEventListener('click', draw);
