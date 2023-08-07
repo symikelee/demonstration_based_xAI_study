@@ -83,6 +83,7 @@
 
         socket.on("settings configured", function (data) {
             mdp_parameters = data["params"]; 
+            interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
             $("#debug").html(data["debug string"]);
             if (data["last test"]) {
                 localStorage.setItem("last test", "true");

@@ -13,12 +13,41 @@
     <link rel="stylesheet" href="/static/css/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
     <link rel="stylesheet" href="/static/css/jspsych.css" type="text/css" />
+    <style type="text/css">
+        .likert ul
+    {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+    }
 
+    .likert li
+    {
+        float: left;
+        text-align: left;
+        list-style-type: none;
+        padding:10px;
+    }
+    </style>
   </head>
   <body>
     <div id="preamble"></div>
     <h2 id="debug"></h2>
     <canvas id="game" width="750" height="650"></canvas>
+    <br></br>
+    <div id="survey">
+        <!-- <h3> Did this sequence improve your understanding of the game strategy?</h3>
+        <ul class="likert">
+            <li> Not helpful/informative at all </li>
+            <li><input type="radio" name="info" value="1" /></li>
+            <li><input type="radio" name="info" value="2" /></li>
+            <li><input type="radio" name="info" value="3" /></li>
+            <li><input type="radio" name="info" value="4" /></li>
+            <li><input type="radio" name="info" value="5" /></li>
+            <li> Very helpful/informative </li>
+        </ul>
+        <br></br> -->
+    </div>
     <br></br>
     <div class="col-xs-2">
         <button type="button" id="next" disabled
@@ -53,6 +82,7 @@
 
         socket.on("settings configured", function (data) {
             mdp_parameters = data["params"]; 
+            interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
             $("#debug").html(data["debug string"]);
             if (data["last test"]) {
                 localStorage.setItem("last test", "true");
@@ -83,6 +113,15 @@
                 window.location.href='/ct';
             }
         }
+
+        addEventListener("input", (event) => {
+            localStorage.setItem("survey completed", "true");
+            $("button").replaceWith(`<button type="button" id="next" 
+                    onclick="next()"
+                    value="next" class="btn btn-primary btn-lg continue">
+                    Next <span class="glyphicon glyphicon-arrow-right"></span>
+                    </button>` );
+        });
 
         function run_page(mdp_parameters) {
     var canvas = document.getElementById("game");
@@ -408,11 +447,17 @@ var spaceship =
                 record_data()
             }
 
-            $("button").replaceWith(`<button type="button" id="next" 
-                    onclick="next()"
-                    value="next" class="btn btn-primary btn-lg continue">
-                    Next <span class="glyphicon glyphicon-arrow-right"></span>
-                    </button>` );
+            $("#survey").replaceWith(`<h3> Did this sequence improve your understanding of the game strategy?</h3>
+        <ul class="likert">
+            <li> Not helpful/informative at all </li>
+            <li><input type="radio" name="info" value="1" /></li>
+            <li><input type="radio" name="info" value="2" /></li>
+            <li><input type="radio" name="info" value="3" /></li>
+            <li><input type="radio" name="info" value="4" /></li>
+            <li><input type="radio" name="info" value="5" /></li>
+            <li> Very helpful/informative </li>
+        </ul>
+        <br></br>` );
         }
       }
 
