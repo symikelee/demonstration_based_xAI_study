@@ -14,6 +14,12 @@ from generate_rules import generate_rule, generate_hard_rule_constrained
 from environment import Environment
 from learner import Learner
 
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), 'augmented_taxi'))
+from .augmented_taxi.policy_summarization import particle_filter as pf
+from .augmented_taxi.main import run_scripts
+
+
 from app.backend_test import send_signal, jsons
 from app import socketio
 from flask_socketio import join_room, leave_room
