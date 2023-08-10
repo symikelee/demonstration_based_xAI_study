@@ -999,24 +999,31 @@ def settings(data):
     # it, iter, and subiter are the old versions
     # current_user.{interaction_type, iteration, subiteration} are the new versions
 
+    if domain == "at":
+        domain_key = "augmented_taxi2"
+    elif domain == "ct":
+        domain_key = "colored_tiles"
+    else:
+        domain_key = "skateboard2"
+
     #TODO: set up dummy function for taxi call
     if loop_cond == "cl":
         if current_user.interaction_type == "final test":
             # todo: randomize the order of the tests and also potentially account for train_test_set (currently only using the first set)
             if current_user.iteration < 2:
-                response["params"] = jsons[domain][current_user.interaction_type]["low"][0][current_user.iteration]
+                response["params"] = jsons[domain_key][current_user.interaction_type]["low"][0][current_user.iteration]
             elif current_user.iteration < 4:
-                response["params"] = jsons[domain][current_user.interaction_type]["medium"][0][current_user.iteration - 2]
+                response["params"] = jsons[domain_key][current_user.interaction_type]["medium"][0][current_user.iteration - 2]
             else:
-                response["params"] = jsons[domain][current_user.interaction_type]["high"][0][current_user.iteration - 4]
+                response["params"] = jsons[domain_key][current_user.interaction_type]["high"][0][current_user.iteration - 4]
         else:
-            response["params"] = jsons[domain][current_user.interaction_type][str(current_user.iteration)]
+            response["params"] = jsons[domain_key][current_user.interaction_type][str(current_user.iteration)]
             # check if it's already been seen. if so, and interaction type is test, then change the tag to be -2
     else:
         if "test" in current_user.interaction_type:
-            response["params"] = jsons[domain]["final test"]["low"][0][0]
+            response["params"] = jsons[domain_key]["final test"]["low"][0][0]
         else:
-            response["params"] = jsons[domain]["demo"]["0"]
+            response["params"] = jsons[domain_key]["demo"]["0"]
 
     key = [current_user.interaction_type, 
             current_user.iteration,

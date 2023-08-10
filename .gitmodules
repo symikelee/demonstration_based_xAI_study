@@ -1,0 +1,3 @@
+[submodule "simple_game_test/app/augmented_taxi"]
+	path = simple_game_test/app/augmented_taxi
+	url = git@github.com:HARPLab/augmented_taxi.git
