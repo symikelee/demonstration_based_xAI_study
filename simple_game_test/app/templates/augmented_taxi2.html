@@ -377,10 +377,9 @@ var spaceship =
         //     'opt_response': same_traj
         //     };
 
-        var socket = io();
-        socket.on('connect', function() {
-            socket.emit('my event', {data: 'I\'m connected!'});
-        });
+        
+        socket.emit('my event', {data: 'I\'m connected!'});
+
         socket.on('ping event', function(data){
             console.log(data.test);
         });

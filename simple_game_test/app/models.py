@@ -3,6 +3,7 @@ from app import db, login
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import func
+from sqlalchemy.ext.mutable import MutableList
 import random
 import string
 
@@ -46,10 +47,17 @@ class User(UserMixin, db.Model):
     iteration = db.Column(db.Integer)
     subiteration = db.Column(db.Integer)
 
+    control_stack = db.Column(MutableList.as_mutable(db.PickleType),
+                                    default=[])
+    curr_trial_idx = db.Column(db.Integer)
 
     def __repr__(self):
         return "<User {}>".format(self.username)
     
+    def stack_push(self, value):
+        self.control_stack.append(value)
+        return self.control_stack
+
     def set_curr_progress(self, value):
         self.curr_progress = value
         return value
@@ -102,25 +110,55 @@ def load_user(id):
     return User.query.get(int(id))
 
 
+# class Trial(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+#     user_id = db.Column(db.String(64))
+#     trial_num = db.Column(db.Integer)
+#     duration_ms = db.Column(db.Float)
+#     rule_str = db.Column(db.String(256))
+#     fb_type = db.Column(db.String(32))
+#     cards_played = db.Column(db.PickleType)
+#     n_cards = db.Column(db.Integer)
+#     n_cards_to_learn_rule = db.Column(db.Integer)
+#     card_select_times = db.Column(db.PickleType)
+#     n_hypotheses_remaining = db.Column(db.PickleType)
+#     n_failed_terminations = db.Column(db.Integer)
+#     terminate_confidences = db.Column(db.PickleType)
+#     feedback_confidences = db.Column(db.PickleType)
+#     terminate_record = db.Column(db.PickleType)
+#     bonus_value = db.Column(db.String(256))
+#     feedback_strings = db.Column(db.PickleType)
+
 class Trial(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     user_id = db.Column(db.String(64))
-    trial_num = db.Column(db.Integer)
     duration_ms = db.Column(db.Float)
-    rule_str = db.Column(db.String(256))
-    fb_type = db.Column(db.String(32))
-    cards_played = db.Column(db.PickleType)
-    n_cards = db.Column(db.Integer)
-    n_cards_to_learn_rule = db.Column(db.Integer)
-    card_select_times = db.Column(db.PickleType)
-    n_hypotheses_remaining = db.Column(db.PickleType)
-    n_failed_terminations = db.Column(db.Integer)
-    terminate_confidences = db.Column(db.PickleType)
-    feedback_confidences = db.Column(db.PickleType)
-    terminate_record = db.Column(db.PickleType)
-    bonus_value = db.Column(db.String(256))
-    feedback_strings = db.Column(db.PickleType)
+    domain = db.Column(db.String(2))
+    interaction_type = db.Column(db.String(20))
+    iteration = db.Column(db.Integer)
+    subiteration = db.Column(db.Integer)
+    likert = db.Column(db.Integer)
+    moves = db.Column(db.PickleType)
+    coordinates = db.Column(db.PickleType)
+    is_opt_response = db.Column(db.Boolean)
+    percent_seen = db.Column(db.Float)
+    mdp_parameters = db.Column(db.PickleType)
+    human_model = db.Column(db.PickleType)
+
+class Domain(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    user_id = db.Column(db.String(64))
+    domain_name = db.Column(db.String(2))
+    attn1 = db.Column(db.Integer)
+    attn2 = db.Column(db.Integer)
+    attn3 = db.Column(db.Integer)
+    use1 = db.Column(db.Integer)
+    use2 = db.Column(db.Integer)
+    use3 = db.Column(db.Integer)
+    short_answer = db.Column(db.PickleType)
 
 class Demo(db.Model):
     id = db.Column(db.Integer, primary_key=True)

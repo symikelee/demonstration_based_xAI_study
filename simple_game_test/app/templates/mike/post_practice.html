@@ -32,6 +32,7 @@
     //   localStorage.setItem("iteration", "-1");
     //   localStorage.setItem("subiteration", "-1");
       localStorage.setItem("user input", "{}");
+      localStorage.setItem("movement", "false");
       let socket = io();
       socket.emit("next domain");
       socket.on("next domain is", function(data) {

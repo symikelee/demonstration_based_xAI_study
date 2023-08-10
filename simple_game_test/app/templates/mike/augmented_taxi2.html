@@ -27,6 +27,9 @@
         list-style-type: none;
         padding:10px;
     }
+    input[type="radio"] {
+        margin-right: 5px;
+    }
     </style>
 
   </head>
@@ -49,8 +52,13 @@
         <br></br> -->
     </div>
     <br></br>
-    
     <div class="col-xs-2">
+        <button type="button" id="prev" 
+        onclick="next()"
+        value="next" class="btn btn-primary btn-lg continue">
+        <span class="glyphicon glyphicon-arrow-left"></span> Previous 
+        </button>
+
         <button type="button" id="next" disabled
         onclick="next()"
         value="next" class="btn btn-primary btn-lg continue">
@@ -78,12 +86,15 @@
             // data["iteration"] = Number(localStorage.getItem("iteration"));
             // data["subiteration"] = Number(localStorage.getItem("subiteration"));
             data["user input"] = JSON.parse(localStorage.getItem("user input"));
+            data["movement"] = localStorage.getItem("movement");
             socket.emit("settings", data);
         });
 
         socket.on("settings configured", function (data) {
-            mdp_parameters = data["params"]; 
-            interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
+            let mdp_parameters = data["params"]; 
+            
+            let interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
+            localStorage.setItem("seen", data["seen"]);
             $("#debug").html(data["debug string"]);
             if (data["last test"]) {
                 localStorage.setItem("last test", "true");
@@ -91,20 +102,14 @@
             console.log(mdp_parameters);
             run_page(mdp_parameters);
         });
-
-        // socket.on("", function (data) {
-        //     if (data["passed"]) {
-        //         $("button").replaceWith(`<button type="button" id="next" 
-        //             onclick="make_sandbox()"
-        //             value="next" class="btn btn-primary btn-lg continue">
-        //             Next <span class="glyphicon glyphicon-arrow-right"></span>
-        //             </button>` );
-        //     }
-        // }
-        // );
+    
+        function prev() {
+            localStorage.setItem("movement", "prev");
+            window.location.href="/ct";
+        }
 
         function next() {
-            // reset()
+            localStorage.setItem("movement", "next");
             localStorage.setItem("survey completed", "false");
             if (localStorage.getItem("last test") === "true") {
                 localStorage.setItem("last test", "false");
@@ -133,9 +138,20 @@
             }
         }
 
+        addEventListener("beforeunload", (event) => {
+            if (localStorage.getItem("movement") === "false") {
+                event.preventDefault();
+                event.returnValue = "Are you sure you want to leave? The task is incomplete.";
+            }      
+        });
+
         addEventListener("input", (event) => {
             localStorage.setItem("survey completed", "true");
-            $("button").replaceWith(`<button type="button" id="next" 
+            let radioValue = $("input[name='info']:checked").val();
+            if(radioValue) {
+                localStorage.setItem("survey", radioValue);
+            }
+            $("#next").replaceWith(`<button type="button" id="next" 
                     onclick="next()"
                     value="next" class="btn btn-primary btn-lg continue">
                     Next <span class="glyphicon glyphicon-arrow-right"></span>
@@ -150,10 +166,10 @@
     var final_data = [];
     var data_sent = false;
 
-    var start_time = 0;
-    var start_time_set = false;
-    var moves = [];
-    var agent_history = [];
+    window.start_time = 0;
+    window.start_time_set = false;
+    window.moves = [];
+    window.agent_history = [];
 
     var offset_x = 1.5;
     var offset_y = 1;
@@ -228,7 +244,7 @@ var spaceship =
           //set location of taxi
           spaceship.grid_loc.x =  (mdp_parameters.agent.x-1) + offset_x;
           spaceship.grid_loc.y =  (mdp_parameters.height - mdp_parameters.agent.y) + offset_y;
-          agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y])
+          window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y])
           spaceship.taxi_set = true;
         //set location of passenger
         if (mdp_parameters.agent.has_passenger == 1){
@@ -328,13 +344,13 @@ var spaceship =
     function drawAgentHistory()
     {
         context.save();
-        for (j = 0; j < agent_history.length; j++) {
+        for (j = 0; j < window.agent_history.length; j++) {
             context.beginPath();
             if (j == 0) {
-                context.rect(agent_history[j][0]*100 + 37, agent_history[j][1]*100 + 48, 25, 4);
+                context.rect(window.agent_history[j][0]*100 + 37, window.agent_history[j][1]*100 + 48, 25, 4);
                 context.fillStyle = '#677387';
             }
-            context.arc(agent_history[j][0]*100 + 50, agent_history[j][1]*100 + 50, 6, 0, 2 * Math.PI);
+            context.arc(window.agent_history[j][0]*100 + 50, window.agent_history[j][1]*100 + 50, 6, 0, 2 * Math.PI);
             context.fillStyle = '#677387';
             context.fill();
             context.closePath();
@@ -455,16 +471,16 @@ var spaceship =
         same_traj = false;
         for (var j = 0; j < mdp_parameters.all_opt_actions.length; j++) {
             opt_moves = mdp_parameters.all_opt_actions[j]
-            if (moves.length == opt_moves.length) {
-                for (var k = 0; k < moves.length; k++) {
-                    if (moves[k] != opt_moves[k]) {
+            if (window.moves.length == opt_moves.length) {
+                for (var k = 0; k < window.moves.length; k++) {
+                    if (window.moves[k] != opt_moves[k]) {
                         // if one move differs, no need to consider other moves. they're not the same trajectory
                         break;
                     }
                 }
 
                 // if you've found a matching trajectory, no need to check other trajectories
-                if (k == moves.length) {
+                if (k == window.moves.length) {
                     same_traj = true;
                     break;
                 }
@@ -483,8 +499,8 @@ var spaceship =
         }
 
         final_data = JSON.stringify({
-            'simulation_rt': (end_time - start_time),
-            'moves': moves,
+            'simulation_rt': (end_time - window.start_time),
+            'moves': window.moves,
             'opt_response': same_traj
         });
 
@@ -498,9 +514,9 @@ var spaceship =
 
       function draw()
       {
-          if (!start_time_set) {
-              start_time = performance.now();
-              start_time_set = true
+          if (!window.start_time_set) {
+              window.start_time = performance.now();
+              window.start_time_set = true
           }
           if (!map_layout.set){
             set_grids();
@@ -558,18 +574,16 @@ var spaceship =
                 record_data()
             }
 
-            $("#survey").replaceWith(`<h3> Did this sequence improve your understanding of the game strategy?</h3>
+            $("#survey").replaceWith(`
+            <h3> This sequence improved my understanding of the game strategy.</h3>
         <ul class="likert">
-            <li> Not helpful/informative at all </li>
-            <li><input type="radio" name="info" value="1" /></li>
-            <li><input type="radio" name="info" value="2" /></li>
-            <li><input type="radio" name="info" value="3" /></li>
-            <li><input type="radio" name="info" value="4" /></li>
-            <li><input type="radio" name="info" value="5" /></li>
-            <li> Very helpful/informative </li>
+            <li><input type="radio" name="info" value="1" />Strongly Disagree</li>
+            <li><input type="radio" name="info" value="2" />Disagree</li>
+            <li><input type="radio" name="info" value="3" />Neither agree nor disagree</li>
+            <li><input type="radio" name="info" value="4" />Agree</li>
+            <li><input type="radio" name="info" value="5" />Strongly Agree</li>
         </ul>
         <br></br>` );
-            
         }
       }
 
@@ -587,7 +601,7 @@ var spaceship =
 
         if (spaceship.grid_loc.x > offset_x && map_layout.color_blocks[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-1-offset_x] != 1){
             spaceship.grid_loc.x -= 1;
-            moves.push("left");
+            window.moves.push("left");
             if (passenger.picked){
                 passenger.grid_loc.x -= 1;
             }
@@ -611,7 +625,7 @@ var spaceship =
 
         if (spaceship.grid_loc.x < mdp_parameters.width-1+offset_x && map_layout.color_blocks[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x+1-offset_x] != 1){
             spaceship.grid_loc.x += 1;
-            moves.push("right");
+            window.moves.push("right");
             if (passenger.picked){
                 passenger.grid_loc.x += 1;
             }
@@ -635,7 +649,7 @@ var spaceship =
 
         if (spaceship.grid_loc.y > offset_y && map_layout.color_blocks[spaceship.grid_loc.y-1-offset_y][spaceship.grid_loc.x-offset_x] != 1){
             spaceship.grid_loc.y -= 1;
-            moves.push("up");
+            window.moves.push("up");
             if (passenger.picked){
                 passenger.grid_loc.y -= 1;
             }
@@ -659,7 +673,7 @@ var spaceship =
 
         if (spaceship.grid_loc.y < mdp_parameters.height-1+offset_y && map_layout.color_blocks[spaceship.grid_loc.y+1-offset_y][spaceship.grid_loc.x-offset_x] != 1){
             spaceship.grid_loc.y += 1;
-            moves.push("down");
+            window.moves.push("down");
             if (passenger.picked){
                 passenger.grid_loc.y += 1;
             }
@@ -674,7 +688,7 @@ var spaceship =
             return;
         }
         if (spaceship.grid_loc.x == passenger.grid_loc.x && spaceship.grid_loc.y == passenger.grid_loc.y && passenger.picked == false){
-            moves.push("pickup");
+            window.moves.push("pickup");
             passenger.picked = true;
         }
       }
@@ -689,7 +703,7 @@ var spaceship =
                 // watched_vid_arr[current_page] = true;
             }
             passenger.picked = false;
-            moves.push("dropoff");
+            window.moves.push("dropoff");
         }
       }
 
@@ -702,11 +716,11 @@ var spaceship =
                 return;
             }   
         }
-        moves = [];
+        window.moves = [];
         map_layout.set = false;
         passenger.picked = false;
         hotswap_station.visited = false;
-        agent_history = [];
+        window.agent_history = [];
       }
 
       var idx = 0;
@@ -739,7 +753,7 @@ var spaceship =
                         dropoff();
                         break;
                 }
-                agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
+                window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
                 requestAnimationFrame(draw);
             }
             else if (event.keyCode == 82) {
@@ -786,7 +800,7 @@ var spaceship =
                     reset();
                     break;
             }
-            if (event.keyCode != 82) agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
+            if (event.keyCode != 82) window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
             requestAnimationFrame(draw);
       }
     }
