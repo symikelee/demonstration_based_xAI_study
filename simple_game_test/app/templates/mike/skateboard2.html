@@ -211,8 +211,10 @@ var spaceship =
             passenger.grid_loc.y = (mdp_parameters.height - mdp_parameters.agent.y) + offset_y;
         }
         else{
-            passenger.grid_loc.x = (mdp_parameters.skateboard[0].x-1) + offset_x;
-            passenger.grid_loc.y = (mdp_parameters.height - mdp_parameters.skateboard[0].y) + offset_y;
+            if (mdp_parameters.skateboard.length > 0) {
+                passenger.grid_loc.x = (mdp_parameters.skateboard[0].x-1) + offset_x;
+                passenger.grid_loc.y = (mdp_parameters.height - mdp_parameters.skateboard[0].y) + offset_y;
+            }
         }
         //set destination
         destination_grid = build_grid();
@@ -254,28 +256,30 @@ var spaceship =
 
       function drawPassenger()
       {
-          context.save();
-          context.beginPath();
-          var i = 0;
-          var j = 0;
+          if (mdp_parameters.skateboard.length > 0) {
+              context.save();
+              context.beginPath();
+              var i = 0;
+              var j = 0;
 
-          if (!passenger.picked){
-            context.beginPath();
-            context.rect(passenger.grid_loc.x*100 + 25, passenger.grid_loc.y*100 + 45, 50, 8);
-            context.fillStyle = passenger.color;
-            context.fill();
-            context.closePath();
+              if (!passenger.picked){
+                  context.beginPath();
+                  context.rect(passenger.grid_loc.x*100 + 25, passenger.grid_loc.y*100 + 45, 50, 8);
+                  context.fillStyle = passenger.color;
+                  context.fill();
+                  context.closePath();
 
+              }
+              else{
+                  context.beginPath();
+                  context.rect(passenger.grid_loc.x*100 + 25, passenger.grid_loc.y*100 + 77, 50, 8);
+                  context.fillStyle = passenger.color;
+                  context.fill();
+                  context.closePath();
+              }
+
+              context.restore();
           }
-          else{
-            context.beginPath();
-            context.rect(passenger.grid_loc.x*100 + 25, passenger.grid_loc.y*100 + 77, 50, 8);
-            context.fillStyle = passenger.color;
-            context.fill();
-            context.closePath();
-          }
-
-          context.restore();
       }
 
     function drawAgentHistory()
@@ -714,7 +718,8 @@ function onGoal()
       }
     }
 
-    document.addEventListener('keydown', _.debounce(keyPressed, 200))
+    // document.addEventListener('keydown', _.debounce(keyPressed, 200)) // prevent quick key presses
+    document.addEventListener('keydown', keyPressed);
     start_screen();
     canvas.addEventListener('click', draw);
     context.restore();

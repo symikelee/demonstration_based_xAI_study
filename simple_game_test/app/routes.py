@@ -14,9 +14,17 @@ from generate_rules import generate_rule, generate_hard_rule_constrained
 from environment import Environment
 from learner import Learner
 
-from app.backend_test import send_signal, jsons
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), 'augmented_taxi'))
+# from .augmented_taxi.policy_summarization import particle_filter as pf
+# from .augmented_taxi.main import run_scripts
+
+from app.backend_test import send_signal
 from app import socketio
 from flask_socketio import join_room, leave_room
+
+with open(os.path.join(os.path.dirname(__file__), 'user_study_dict.json'), 'r') as f:
+    jsons = json.load(f)
 
 # rule_str = None
 # TODO need a proper solution instead of global variables, i.e. per-user environment
@@ -549,7 +557,7 @@ def index():
 
     completed = True if current_user.study_completed == 1 else False
 
-    current_user.loop_condition = "debug"
+    current_user.loop_condition = "cl"
     domains = ["at", "ct", "sb"] 
     # rand.shuffle(domains)
     current_user.domain_1 = domains[0]
@@ -992,11 +1000,23 @@ def settings(data):
     # current_user.{interaction_type, iteration, subiteration} are the new versions
 
     #TODO: set up dummy function for taxi call
-    temp = ""
-    if "test" in current_user.interaction_type:
-        temp = "1"
+    if loop_cond == "cl":
+        if current_user.interaction_type == "final test":
+            # todo: randomize the order of the tests and also potentially account for train_test_set (currently only using the first set)
+            if current_user.iteration < 2:
+                response["params"] = jsons[domain][current_user.interaction_type]["low"][0][current_user.iteration]
+            elif current_user.iteration < 4:
+                response["params"] = jsons[domain][current_user.interaction_type]["medium"][0][current_user.iteration - 2]
+            else:
+                response["params"] = jsons[domain][current_user.interaction_type]["high"][0][current_user.iteration - 4]
+        else:
+            response["params"] = jsons[domain][current_user.interaction_type][str(current_user.iteration)]
+            # check if it's already been seen. if so, and interaction type is test, then change the tag to be -2
     else:
-        temp = "0"
+        if "test" in current_user.interaction_type:
+            response["params"] = jsons[domain]["final test"]["low"][0][0]
+        else:
+            response["params"] = jsons[domain]["demo"]["0"]
 
     key = [current_user.interaction_type, 
             current_user.iteration,
@@ -1008,7 +1028,7 @@ def settings(data):
     current_user.curr_trial_idx = current_user.control_stack.index(key)
     print(current_user.control_stack)
     
-    response["params"] = jsons[domain][temp]
+    # response["params"] = jsons[domain][temp]
     debug_string = f"domain={domain}, interaction type={current_user.interaction_type}, iteration={current_user.iteration}, subiteration={current_user.subiteration}"
     response["debug string"] = debug_string
     response["last test"] = last_test

@@ -603,8 +603,8 @@ function onGoal()
             requestAnimationFrame(draw);
         }
     }
-
-    document.addEventListener('keydown', _.debounce(keyPressed, 200))
+    // document.addEventListener('keydown', _.debounce(keyPressed, 200)) // prevent quick key presses
+    document.addEventListener('keydown', keyPressed);
     start_screen();
     canvas.addEventListener('click', draw);
     context.restore();
