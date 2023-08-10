@@ -709,6 +709,7 @@ def next_domain():
     current_user.interaction_type = "demo"
     current_user.iteration = -1
     current_user.subiteration = 0
+    current_user.control_stack = []
     print(current_user.curr_progress)
 
     if current_user.curr_progress == "post practice":
@@ -914,6 +915,26 @@ def settings(data):
     }
     print(loop_cond)
     print(domain)
+
+    key = [it, iter, subiter]
+
+    if data["movement"] == "prev":
+        old_idx = current_user.control_stack.index(key)
+        new_idx = old_idx - 1
+        current_user.interaction_type = current_user.control_stack[new_idx][0]
+        current_user.iteration = current_user.control_stack[new_idx][1]
+        current_user.subiteration = current_user.control_stack[new_idx][2]
+        current_user.curr_trial_idx = new_idx
+    elif data["movement"] == "next":
+        
+
+
+        if key not in current_user.control_stack:
+            current_user.stack_push(key)
+            seen = "false"
+        current_user.curr_trial_idx = current_user.control_stack.index(key)
+        print(current_user.control_stack)
+
     arr = progression[loop_cond][domain]
     idx = 0
     if (it == "remedial test") or (it == "remedial feedback"):
@@ -977,13 +998,22 @@ def settings(data):
     else:
         temp = "0"
 
-    # set up likert scale
+    key = [current_user.interaction_type, 
+            current_user.iteration,
+            current_user.subiteration]
+    seen = "true"
+    if key not in current_user.control_stack:
+        current_user.stack_push(key)
+        seen = "false"
+    current_user.curr_trial_idx = current_user.control_stack.index(key)
+    print(current_user.control_stack)
     
     response["params"] = jsons[domain][temp]
     debug_string = f"domain={domain}, interaction type={current_user.interaction_type}, iteration={current_user.iteration}, subiteration={current_user.subiteration}"
     response["debug string"] = debug_string
     response["last test"] = last_test
     response["interaction type"] = current_user.interaction_type
+    response["seen"] = seen
     # response["domain"] = domain
     # response["interaction type"] = current_user.interaction_type
     # response["iteration"] = current_user.iteration
@@ -1525,6 +1555,7 @@ def login():
 
         if user is None:
             user = User(username=form.username.data)
+            user.control_stack = []
             user.set_num_trials_completed(0)
             user.set_completion(0)
             user.set_attention_check(-1)
