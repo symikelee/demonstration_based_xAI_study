@@ -33,6 +33,10 @@
     //   localStorage.setItem("subiteration", "-1");
       localStorage.setItem("user input", "{}");
       localStorage.setItem("movement", "false");
+      localStorage.setItem("game completed", "false");
+      localStorage.setItem("survey completed", "false");
+      localStorage.setItem("page started", "false");
+      localStorage.setItem("survey", "-1");
       let socket = io();
       socket.emit("next domain");
       socket.on("next domain is", function(data) {

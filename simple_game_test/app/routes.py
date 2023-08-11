@@ -924,6 +924,15 @@ def settings(data):
     print(loop_cond)
     print(domain)
 
+    # need some cases
+    # if page not started, don't push to the db
+    # if survey completed, then push to the stack
+    # if movement is prev, 
+        # if key in ctrl stack, then get the prev idx
+        # if not, then get the -1 idx item
+    # if movement is next,
+        # search ctrl stack for the current key,  
+
     key = [it, iter, subiter]
 
     if data["movement"] == "prev":

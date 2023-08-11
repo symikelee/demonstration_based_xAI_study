@@ -92,16 +92,15 @@
         });
 
         socket.on("settings configured", function (data) {
-            let mdp_parameters = data["params"]; 
-            
-            let interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
+            window.mdp_parameters = data["params"]; 
+            window.interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
             localStorage.setItem("seen", data["seen"]);
             $("#debug").html(data["debug string"]);
             if (data["last test"]) {
                 localStorage.setItem("last test", "true");
             }
-            console.log(mdp_parameters);
-            run_page(mdp_parameters);
+            console.log(window.mdp_parameters);
+            run_page(window.mdp_parameters);
         });
     
         function prev() {
@@ -144,7 +143,25 @@
             if (localStorage.getItem("movement") === "false") {
                 event.preventDefault();
                 event.returnValue = "Are you sure you want to leave? The task is incomplete.";
-            }      
+            }
+            let simulation_rt = 0;
+            if (localStorage.getItem("game completed") === "false") {
+                if (localStorage.getItem("page started") === "true") {
+                    simulation_rt = performance.now() - window.start_time;
+                }
+                final_data = JSON.stringify({
+                    'simulation_rt': simulation_rt,
+                    'moves': window.moves,
+                    'opt_response': false,
+                    'agent_history_nonoffset': window.agent_history_nonoffset,
+                    'mdp_parameters': window.mdp_parameters,
+                });
+                localStorage.setItem("user input", final_data);
+            }
+            localStorage.setItem("page started", "false");
+            localStorage.setItem("game completed", "false"); 
+            localStorage.setItem("survey completed", "false");
+            localStorage.setItem("survey", "-1");     
         });
 
         addEventListener("input", (event) => {
@@ -514,6 +531,7 @@ var spaceship =
         document.dispatchEvent(event);
 
         localStorage.setItem("user input", final_data);
+        localStorage.setItem("game completed", "true");
 
         data_sent = true
     }
@@ -734,6 +752,7 @@ var spaceship =
 
       function keyPressed(event)
       {
+        localStorage.setItem("page started", "true");
         if (mdp_parameters.tag == - 1) {
             //training case, just pushing move from opt_actions           
             if (event.keyCode == 32) {
