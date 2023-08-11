@@ -924,8 +924,26 @@ def settings(data):
     print(loop_cond)
     print(domain)
 
+    trial = Trial(
+        user_id = current_user.id,
+        duration_ms = data["user input"]["simulation_rt"],
+        domain = domain,
+        interaction_type = it,
+        iteration = iter,
+        subiteration = subiter,
+        likert = data["survey"],
+        moves = data["user input"]["moves"],
+        coordinates = data["user input"]["agent_history_nonoffset"],
+        is_opt_response = data["user input"]["opt_response"],
+        percent_seen = -1, #TODO: later?
+        mdp_parameters = data["user input"]["mdp_parameters"],
+        human_model = None #TODO: later?
+    )
+    db.session.add(trial)
+
+    # if data["survey "]
+
     # need some cases
-    # if page not started, don't push to the db
     # if survey completed, then push to the stack
     # if movement is prev, 
         # if key in ctrl stack, then get the prev idx

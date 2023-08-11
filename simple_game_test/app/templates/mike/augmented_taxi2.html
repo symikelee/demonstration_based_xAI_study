@@ -39,17 +39,6 @@
     <canvas id="game" width="800" height="500" ></canvas>
     <br></br>
     <div id="survey">
-        <!-- <h3> Did this sequence improve your understanding of the game strategy?</h3>
-        <ul class="likert">
-            <li> Not helpful/informative at all </li>
-            <li><input type="radio" name="info" value="1" /></li>
-            <li><input type="radio" name="info" value="2" /></li>
-            <li><input type="radio" name="info" value="3" /></li>
-            <li><input type="radio" name="info" value="4" /></li>
-            <li><input type="radio" name="info" value="5" /></li>
-            <li> Very helpful/informative </li>
-        </ul>
-        <br></br> -->
     </div>
     <br></br>
     
@@ -93,8 +82,9 @@
 
         socket.on("settings configured", function (data) {
             localStorage.setItem("movement", "false");
-            localStorage.setItem("game completed", "false"); 
-            localStorage.setItem("survey completed", "false");
+            localStorage.setItem("user input", "{}");
+            // localStorage.setItem("game completed", "false"); 
+            // localStorage.setItem("survey completed", "false");
             localStorage.setItem("survey", "-1");
             window.mdp_parameters = data["params"]; 
             window.interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
@@ -115,7 +105,7 @@
 
         function next() {
             localStorage.setItem("movement", "next");
-            localStorage.setItem("survey completed", "false");
+            // localStorage.setItem("survey completed", "false");
             if (localStorage.getItem("last test") === "true") {
                 localStorage.setItem("last test", "false");
                 socket.emit("next domain");
@@ -149,7 +139,7 @@
                 event.returnValue = "Are you sure you want to leave? The task is incomplete.";
             }
             let simulation_rt = 0;
-            if (localStorage.getItem("game completed") === "false") {
+            if (localStorage.getItem("user input") === "{}") {
                 if (window.moves.length > 0) {
                     simulation_rt = performance.now() - window.start_time;
                 }
@@ -166,7 +156,7 @@
         });
 
         addEventListener("input", (event) => {
-            localStorage.setItem("survey completed", "true");
+            // localStorage.setItem("survey completed", "true");
             let radioValue = $("input[name='info']:checked").val();
             if(radioValue) {
                 localStorage.setItem("survey", radioValue);
@@ -599,7 +589,7 @@ var spaceship =
                 record_data()
             }
 
-            $("#survey").replaceWith(`
+            $("#survey").html(`
             <h3> This sequence improved my understanding of the game strategy.</h3>
         <ul class="likert">
             <li><input type="radio" name="info" value="1" />Strongly Disagree</li>
