@@ -16,12 +16,32 @@
   <body>
   <canvas id="game" width="800" height="500" ></canvas>
     <br></br>
+    <h2 id="debug">testing 123</h2>
 
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
 
     <script>
+    localStorage.setItem("group data", JSON.stringify([]));
+    localStorage.setItem("game completed", "false");
     // socket object
-    const socket = io();
+    var socket = io();
+
+    socket.on("connect", function() {
+        socket.emit("join room");
+    });
+    socket.on("incoming group data", function(data) {
+        let curr_array = JSON.parse(localStorage.getItem("group data"));
+        curr_array.push(JSON.stringify(data));
+        let stringified = JSON.stringify(curr_array);
+        console.log(stringified);
+        localStorage.setItem("group data", stringified);
+        console.log(curr_array.length);
+        if (curr_array.length === 2 && localStorage.getItem("game completed") === "true") {
+            $("#debug").html(stringified);
+        }
+    });
+
+    // socket.on("room joined")
 
     var canvas = document.getElementById("game");
     var context = canvas.getContext("2d");
@@ -371,21 +391,27 @@ var spaceship =
             'opt_response': same_traj
         });
 
-        // final_data = {
-        //     'simulation_rt': (end_time - start_time),
-        //     'moves': moves,
-        //     'opt_response': same_traj
-        //     };
+        final_data_JSON = {
+            'simulation_rt': (end_time - start_time),
+            'moves': moves,
+            'opt_response': same_traj
+            };
 
-        
-        socket.emit('my event', {data: 'I\'m connected!'});
+        localStorage.setItem("game completed", "true");
+        let curr_array = JSON.parse(localStorage.getItem("group data"));
+        let stringified = JSON.stringify(curr_array);
+        console.log(stringified);
+        if (curr_array.length === 2) {
+            $("#debug").html(stringified);
+        }
+        socket.emit('group comm', final_data_JSON);
 
-        socket.on('ping event', function(data){
-            console.log(data.test);
-        });
-        socket.on('join event', function(data){
-            console.log(data.test);
-        });
+        // socket.on('ping event', function(data){
+        //     console.log(data.test);
+        // });
+        // socket.on('join event', function(data){
+        //     console.log(data.test);
+        // });
 
         var event = new CustomEvent("game-completed", { "detail": "Demonstration has now ended." });
         document.dispatchEvent(event);

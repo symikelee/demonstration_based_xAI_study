@@ -1144,22 +1144,32 @@ def pass_trajectories():
     print(final_data)
     return json.dumps(send_signal(final_data["opt_response"]))
 
-@socketio.on('my event')
-def handle_message(data):
-    print('received message: ' + data['data'])
+@socketio.on('join room')
+def handle_message():
+    # print('received message: ' + data['data'])
     # session_id = request.sid
     # print('session_id is: ' + session_id)
     print(request.sid)
-    socketio.emit('ping event', {'test': 'sending to client'}, to=request.sid)
-    current_user.set_test_column(812)
-    db.session.commit()
-    curr_room = ""
-    if len(current_user.username) % 2 == 0:
-        curr_room = "room1"
+    if current_user.username[0] == "a":
+        current_user.group = "room1"
     else:
-        curr_room = "room2"
-    join_room(curr_room)
-    socketio.emit('join event', {"test":current_user.username + "just joined!"}, to=curr_room)
+        current_user.group = "room2"
+    # socketio.emit('ping event', {'test': 'sending to client'}, to=request.sid)
+    # current_user.set_test_column(812)
+    
+    # curr_room = ""
+    # if len(current_user.username) % 2 == 0:
+    #     curr_room = "room1"
+    # else:
+    #     curr_room = "room2"
+    join_room(current_user.group)
+    db.session.commit()
+    # socketio.emit('join event', {"test":current_user.username + "just joined!"}, to=curr_room)
+
+@socketio.on("group comm")
+def group_comm(data):
+    data["user"] = current_user.username
+    socketio.emit("incoming group data", data, to=current_user.group, include_self=False)
 
 @app.route("/intro", methods=["GET", "POST"])
 @login_required
