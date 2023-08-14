@@ -2,19 +2,19 @@
 <link rel="stylesheet" href="../../static/css/style.css" type="text/css" />
 <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
 
-<div id="container-instructions">
+<div id="container-instructions" class="text-center">
 
 	{{preamble | safe}}
 
 
     <div class="instructionsnav">
-        <div class="row">
-            <div class="col-xs-2">
-            	<!-- no previous button on first screen -->
+        <div class="row justify-content-between">
+            <div class="col-xs-3">
+            	<button type="button" id="prev" onclick="window.location.href='/sandbox'" value="previous" class="btn btn-primary btn-lg continue">
+                    Previous <span class="glyphicon glyphicon-arrow-left"></span>
+                    </button>
             </div>
-            <div class="col-xs-8">
-            </div>
-            <div class="col-xs-2">
+            <div class="col-xs-3">
                 <button type="button" id="next" value="next" 
                 onclick=start_study()
                 class="btn btn-primary btn-lg continue">
@@ -23,7 +23,6 @@
             </div>
         </div>
     </div>
-
 </div>
 
 <script>

@@ -1,6 +1,31 @@
-<!DOCTYPE html>
-<html>
-  <head>
+{% extends "base.html" %}{% block content %}
+<link rel="stylesheet" href="../../static/css/style.css" type="text/css" />
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js" crossorigin="anonymous"></script>
+
+<div id="container-instructions">
+
+	{{preamble | safe}}
+
+    <div class="instructionsnav">
+        <div class="row">
+            <div class="col-xs-2">
+            	<!-- no previous button on first screen -->
+            </div>
+            <div class="col-xs-8">
+            </div>
+            <div class="col-xs-2">
+                <button type="button" id="next" disabled
+                onclick="next()"
+                value="next" class="btn btn-primary btn-lg continue">
+                Next <span class="glyphicon glyphicon-arrow-right"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>  
+
+<!-- <head>
     <title>Simulation</title>
 
     <script src="/static/lib/jquery-min.js" type="text/javascript"> </script>
@@ -9,85 +34,23 @@
     <script src="/static/lib/d3.v3.min.js" type="text/javascript"> </script>
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
 
-
     <link rel="stylesheet" href="/static/css/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
     <link rel="stylesheet" href="/static/css/jspsych.css" type="text/css" />
-    <style type="text/css">
-        .likert ul
-    {
-        list-style-type: none;
-        margin: 0;
-        padding: 0;
-    }
 
-    .likert li
-    {
-        float: left;
-        text-align: left;
-        list-style-type: none;
-        padding:10px;
-    }
-    .table-info
-    {
-        float: right;
-        text-align: center;
-        padding: 50px;
-    }
-
-    .pre_info{
-        float: center;
-        text-align: center;
-    }
-    </style>
   </head>
   <body>
-    <div id="container-instructions" class="text-center">
-        <div id="preamble" class="pre_info">
-            <h1>Participant gameplay</h1> <hr/>
-            <div id = "info_main"></div>
-        </div>
-        <h2 id="debug"></h2><br><br><br>
-        <div class="row justify-content-around">
-            <div class="col"></div>
-            <div class="col"><canvas id="game" width="750" height="550"></canvas></div>
-            <div id="table_controlinfo"></div>
-            <div class="col"></div>
-        </div>
-        <div id="survey">
-        <!-- <h3> Did this sequence improve your understanding of the game strategy?</h3>
-        <ul class="likert">
-            <li> Not helpful/informative at all </li>
-            <li><input type="radio" name="info" value="1" /></li>
-            <li><input type="radio" name="info" value="2" /></li>
-            <li><input type="radio" name="info" value="3" /></li>
-            <li><input type="radio" name="info" value="4" /></li>
-            <li><input type="radio" name="info" value="5" /></li>
-            <li> Very helpful/informative </li>
-        </ul>
-        <br></br> -->
-    </div>
-    <hr>
-    <br>
-    
-    <div class="instructionsnav">
-        <div class="row justify-content-around">
-          <div class="col-xs-3">
-            <button type="button" id="prev" value="previous" class="btn btn-primary btn-lg continue"> Previous <span class="glyphicon glyphicon-arrow-left"></span>
-            </button>
-          </div>
-          <div class="col-xs-3">
-                <button type="button" id="next" disabled
-            onclick="next()"
-            value="next" class="btn btn-primary btn-lg continue">
-            Next <span class="glyphicon glyphicon-arrow-right"></span>
-            </button>
-          </div>
-        </div>
-    </div>
-    <br>
-    <br>
-    </div>
+    <div id="preamble"></div>
+    <h2 id="debug"></h2>
+    <canvas id="game" width="800" height="500" ></canvas>
+    <br></br>
+    <div class="col-xs-2">
+        <button type="button" id="next" disabled
+        onclick="next()"
+        value="next" class="btn btn-primary btn-lg continue">
+        Next <span class="glyphicon glyphicon-arrow-right"></span>
+        </button>
+    </div> -->
 
     <script>
         var socket = io();
@@ -114,79 +77,27 @@
 
         socket.on("settings configured", function (data) {
             mdp_parameters = data["params"]; 
-            interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
-
             $("#debug").html(data["debug string"]);
-            if (data["last test"]) {
-                localStorage.setItem("last test", "true");
-            }
             console.log(mdp_parameters);
-            console.log("Interaction: ");
-            console.log(interaction_type);
-            change_text(interaction_type);
             run_page(mdp_parameters);
         });
 
-        // Assign html for interaction type 
-        function change_text(interaction_type){  
-        console.log("changing text")
-        if (interaction_type == "diagnostic test" || interaction_type == "remedial test" || interaction_type == "final test") {
-            $("#table_controlinfo").replaceWith(`<div class="col"><div><br><br><br><br>
-        <table width="500">
-            <tr><th>Key</th><th>Action</th></tr>
-            <tr><td>up/down/left/right arrow keys</td><td>corresponding movement</td></tr>
-            <tr><td>p</td><td>pick up</td></tr>
-            <tr><td>d</td><td>drop</td></tr>
-            <tr><td>r</td><td>reset simulation</td></tr>
-        </table>
-        <br></div></div>`);
-            $("#info_main").replaceWith('<h3>Now its your turn to play six games! Please demonstrate how you would complete this games task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.<br> <h3>Please answer the question below on the confidence of your gameplay <b>after</b> providing your demonstration.</h3>');
-            }
-        else {
-            $("#table_controlinfo").replaceWith(`<div class="col"><div><br><br><br>
-        <table width="500">
-            <tr><th>Key</th><th>Action</th></tr>
-            <tr><td>space bar</td><td>next movement</td></tr>
-            <tr><td>p</td><td>pick up</td></tr>
-            <tr><td>d</td><td>drop</td></tr>
-            <tr><td>r</td><td>reset simulation</td></tr>
-        </table>
-        <br></div></div>`);
-            $("#info_main").replaceWith('<h3> Look at the demonstration on how you should complete this games task while minimizing Chips energy loss.</h3><h3>Please answer the question below on the confidence of your <b>understanding</b> of the demonstration.</h3>');
-        }
-        }
+        // socket.on("", function (data) {
+        //     if (data["passed"]) {
+        //         $("button").replaceWith(`<button type="button" id="next" 
+        //             onclick="make_sandbox()"
+        //             value="next" class="btn btn-primary btn-lg continue">
+        //             Next <span class="glyphicon glyphicon-arrow-right"></span>
+        //             </button>` );
+        //     }
+        // }
+        // );
 
         function next() {
-            if (localStorage.getItem("last test") === "true") {
-                localStorage.setItem("last test", "false");
-                socket.emit("next domain");
-                socket.on("next domain is", function(data) {
-                    console.log("I have received next domain");
-                    let url = "";
-                    if (data["domain"].length === 2){
-                        url = "/".concat(data["domain"], "_intro");
-                    }
-                    else {
-                        url = "final_survey";
-                    }
-                    window.location.href=url;
-                });
-            }
-            else {
-                window.location.href='/sb';
-            }
+            window.location.href='/at';
         }
 
-        addEventListener("input", (event) => {
-            localStorage.setItem("survey completed", "true");
-            $("#next").replaceWith(`<button type="button" id="next" 
-                    onclick="next()"
-                    value="next" class="btn btn-primary btn-lg continue">
-                    Next <span class="glyphicon glyphicon-arrow-right"></span>
-                    </button>` );
-        });
-
-        function run_page(mdp_parameters) {
+  function run_page(mdp_parameters) {
     var canvas = document.getElementById("game");
     var context = canvas.getContext("2d");
 
@@ -199,14 +110,15 @@
     var moves = [];
     var agent_history = [];
 
-
-    var offset_x = 1.25;
-    var offset_y = 0.75;
+    var offset_x = 1.5;
+    var offset_y = 1;
 
     // var mdp_parameters = window.parent.mdp_parameters;
 
+
     // var watched_vid_arr = window.parent.watched_vid_arr;
     // var current_page = window.parent.current_page;
+
 
     var text_color = "#394d7e";
 
@@ -222,12 +134,12 @@ var spaceship =
               x: 0,
               y: 0
           },
-          taxi_set: false
+          taxi_set: false,
       }
 
       var passenger =
       {
-          color: "#C88B66",
+          color: "#B395C4",
           width: 350,
           height: 350,
           grid_loc:
@@ -237,6 +149,19 @@ var spaceship =
           },
           picked: false,
           dropped: false
+      }
+
+    var hotswap_station =
+      {
+          color: "#58895F",
+          width: 350,
+          height: 350,
+          grid_loc:
+          {
+              x: 0,
+              y: 0
+          },
+          visited: false,
       }
 
       function build_grid(){
@@ -253,7 +178,7 @@ var spaceship =
         return temp;
       }
 
-    function set_grids()
+      function set_grids()
       {
           //set location of taxi
           spaceship.grid_loc.x =  (mdp_parameters.agent.x-1) + offset_x;
@@ -261,18 +186,18 @@ var spaceship =
           agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y])
           spaceship.taxi_set = true;
         //set location of passenger
-        if (mdp_parameters.agent.has_skateboard == 1){
+        if (mdp_parameters.agent.has_passenger == 1){
             passenger.picked = true;
             passenger.grid_loc.x = (mdp_parameters.agent.x-1) + offset_x;
             passenger.grid_loc.y = (mdp_parameters.height - mdp_parameters.agent.y) + offset_y;
         }
         else{
-            passenger.grid_loc.x = (mdp_parameters.skateboard[0].x-1) + offset_x;
-            passenger.grid_loc.y = (mdp_parameters.height - mdp_parameters.skateboard[0].y) + offset_y;
+            passenger.grid_loc.x = (mdp_parameters.passengers[0].x-1) + offset_x;
+            passenger.grid_loc.y = (mdp_parameters.height - mdp_parameters.passengers[0].y) + offset_y;
         }
         //set destination
         destination_grid = build_grid();
-        destination_grid[mdp_parameters.height - mdp_parameters.goal.y][mdp_parameters.goal.x-1] = 1;
+        destination_grid[mdp_parameters.height - mdp_parameters.passengers[0].dest_y][mdp_parameters.passengers[0].dest_x-1] = 1;
         map_layout.destination = destination_grid;
 
         //set walls
@@ -280,20 +205,42 @@ var spaceship =
         for (i = 0; i < mdp_parameters.walls.length; i++) {
             color_locs[mdp_parameters.height - mdp_parameters.walls[i].y][mdp_parameters.walls[i].x-1] = 1;
         }
-
-        //set paths
-        for (i = 0; i < mdp_parameters.paths.length; i++) {
-            color_locs[mdp_parameters.height - mdp_parameters.paths[i].y][mdp_parameters.paths[i].x-1] = 2;
+        for (j = 0; j < mdp_parameters.tolls.length; j++) {
+            color_locs[mdp_parameters.height - mdp_parameters.tolls[j].y][mdp_parameters.tolls[j].x-1] = 2;
         }
         map_layout.color_blocks = color_locs;
 
+        if (mdp_parameters.hotswap_station.length > 0) {
+            hotswap_station.grid_loc.x =  (mdp_parameters.hotswap_station[0].x-1) + offset_x;
+            hotswap_station.grid_loc.y =  (mdp_parameters.height - mdp_parameters.hotswap_station[0].y + offset_y);
+        } else {
+            hotswap_station.visited = true;
+        }
+
       }
+
+    //http://www.scienceprimer.com/drawing-regular-polygons-javascript-canvas
+      function drawHexagon(Xcenter, Ycenter, color) {
+            var numberOfSides = 6, size = 10;
+
+            context.beginPath();
+            context.moveTo (Xcenter +  size * Math.cos(0), Ycenter +  size *  Math.sin(0));
+
+            for (var i = 1; i <= numberOfSides;i += 1) {
+              context.lineTo (Xcenter + size * Math.cos(i * 2 * Math.PI / numberOfSides), Ycenter + size * Math.sin(i * 2 * Math.PI / numberOfSides));
+            }
+            context.fillStyle = color;
+            context.fill();
+            context.closePath()
+      }
+
 
       function drawTaxi()
       {
           if (spaceship.taxi_set == false){
             taxiSet();
           }
+
           context.save();
           context.beginPath();
           context.translate(100*(spaceship.grid_loc.x) + 50, 100*(spaceship.grid_loc.y) + 150);
@@ -305,6 +252,7 @@ var spaceship =
           context.fillStyle = spaceship.color;
           context.fill();
           context.closePath();
+
           context.restore();
       }
 
@@ -316,16 +264,14 @@ var spaceship =
           var j = 0;
 
           if (!passenger.picked){
-            context.beginPath();
-            context.rect(passenger.grid_loc.x*100 + 25, passenger.grid_loc.y*100 + 45, 50, 8);
+            context.arc(passenger.grid_loc.x*100 + 25, passenger.grid_loc.y*100 + 45, 9, 0, 2 * Math.PI);
             context.fillStyle = passenger.color;
             context.fill();
             context.closePath();
 
           }
           else{
-            context.beginPath();
-            context.rect(passenger.grid_loc.x*100 + 25, passenger.grid_loc.y*100 + 77, 50, 8);
+            context.arc(passenger.grid_loc.x*100 + 49, passenger.grid_loc.y*100 + 22, 9, 0, 2 * Math.PI);
             context.fillStyle = passenger.color;
             context.fill();
             context.closePath();
@@ -351,6 +297,16 @@ var spaceship =
         context.restore();
     }
 
+    function drawHotswapStation()
+      {
+          context.save();
+
+          if (!hotswap_station.visited){
+              drawHexagon(hotswap_station.grid_loc.x * 100 + 50, hotswap_station.grid_loc.y * 100 + 50, hotswap_station.color)
+          }
+          context.restore();
+      }
+
       function drawDestination()
       {
           context.save();
@@ -361,10 +317,9 @@ var spaceship =
           for (i = 0; i < mdp_parameters.height; i++) {
               for (j = 0; j < mdp_parameters.width; j++) {
                   if (map_layout.destination[i][j] == 1){
-
                       context.beginPath();
-                      context.rect(100*j + 15+offset_x*100+5, 100*i + 15 + offset_y*100+7, 60,55);
-                      context.fillStyle = "rgb(162, 167, 152)";
+                      context.rect(100*j + 15+offset_x*100, 100*i + 15 + offset_y*100, 19,15);
+                      context.fillStyle = passenger.color;
                       context.fill();
                       context.closePath();
                   }
@@ -373,31 +328,32 @@ var spaceship =
           context.restore();
       }
 
-    function drawMap()
-    {
-        context.save();
-        var i;
-        var j;
-        for (i = 0; i < mdp_parameters.height; i++) {
-            for (j = 0; j < mdp_parameters.width; j++) {
-                if (map_layout.color_blocks[i][j] == 2){
-                    context.beginPath();
-                    context.rect(4 + 100*j+offset_x*100, 4+100*i + offset_y*100, 92, 92);
-                    context.fillStyle = "#DCBBFC";
-                    context.fill();
-                    context.closePath();
-                }
-                if (map_layout.color_blocks[i][j] == 1){
-                    context.beginPath();
-                    context.rect(4 + 100*j+offset_x*100, 4+100*i + offset_y*100, 92, 92);
-                    context.fillStyle = "#2E3131";
-                    context.fill();
-                    context.closePath();
-                }
-            }
-        }
-        context.restore();
-    }
+
+      function drawMap()
+      {
+          context.save();
+              var i;
+              var j;
+              for (i = 0; i < mdp_parameters.height; i++) {
+                  for (j = 0; j < mdp_parameters.width; j++) {
+                      if (map_layout.color_blocks[i][j] == 2){
+                          context.beginPath();
+                          context.rect(4 + 100*j+offset_x*100, 4+100*i + offset_y*100, 92, 92);
+                          context.fillStyle = "#E0E644";
+                          context.fill();
+                          context.closePath();
+                      }
+                      if (map_layout.color_blocks[i][j] == 1){
+                          context.beginPath();
+                          context.rect(4 + 100*j+offset_x*100, 4+100*i + offset_y*100, 92, 92);
+                          context.fillStyle = "#2E3131";
+                          context.fill();
+                          context.closePath();
+                      }
+                  }
+              }
+          context.restore();
+      }
 
     function start_screen() {
         if (!map_layout.set){
@@ -414,7 +370,7 @@ var spaceship =
         context.font = "30px Arial";
         context.fillStyle = text_color;
         context.textAlign = "center";
-        context.fillText("Click on the game below to start controlling Chip", offset_x*100+305, 50);
+        context.fillText("Click on the game below to start controlling Chip", offset_x*100+200, 50);
 
         //draw grid
         for (i = 0; i <= mdp_parameters.height; i++) {
@@ -442,9 +398,10 @@ var spaceship =
         // Begin drawing
         drawMap();
         drawDestination();
+        drawHotswapStation();
         drawTaxi();
         drawPassenger();
-    }
+}
 
     function record_data(){
         var end_time = performance.now();
@@ -469,17 +426,16 @@ var spaceship =
             }
         }
 
-        //console.log('skateboard2_' + mdp_parameters.test_difficulty + '_' + mdp_parameters.tag.toString());
+        //console.log('augmented_taxi2_' + mdp_parameters.test_difficulty + '_' + mdp_parameters.tag.toString());
         //console.log(same_traj);
 
         // the two test demonstrations at each level of difficulty are always pairs of an even and odd number
         if (mdp_parameters.tag % 2 == 0) {
-            sessionStorage.setItem('skateboard2_' + mdp_parameters.test_difficulty + '_a', same_traj)
+            sessionStorage.setItem('augmented_taxi2_' + mdp_parameters.test_difficulty + '_a', same_traj)
         }
         else {
-            sessionStorage.setItem('skateboard2_' + mdp_parameters.test_difficulty + '_b', same_traj)
+            sessionStorage.setItem('augmented_taxi2_' + mdp_parameters.test_difficulty + '_b', same_traj)
         }
-
 
         final_data = JSON.stringify({
             'simulation_rt': (end_time - start_time),
@@ -501,7 +457,6 @@ var spaceship =
               start_time = performance.now();
               start_time_set = true
           }
-
           if (!map_layout.set){
             set_grids();
             map_layout.set = true;
@@ -541,157 +496,172 @@ var spaceship =
           drawMap();
           drawDestination();
           drawAgentHistory()
+          drawHotswapStation();
           drawTaxi();
           drawPassenger();
 
-        if(map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] == 1) {
+        if(passenger.dropped)
+        {
             context.font = "bold 28px Arial";
             context.fillStyle = text_color;
             context.textAlign = "center";
-            context.fillText("Game completed!", (mdp_parameters.width * 100) / 2 + offset_x * 100, (mdp_parameters.height * 100) / 2 + offset_y * 100 + 250);
-            // watched_vid_arr[current_page] = true;
+            context.fillText("Game completed!", (mdp_parameters.width*100)/2+offset_x*100, (mdp_parameters.height*100)/2+offset_y*100+200);
+            
+            //requestAnimationFrame(draw);
+
             if (data_sent == false) {
                 record_data()
             }
 
-            $("#survey").replaceWith(`<h3> Did this sequence improve your understanding of the game strategy?</h3>
-        <ul class="likert">
-            <li> Not helpful/informative at all </li>
-            <li><input type="radio" name="info" value="1" /></li>
-            <li><input type="radio" name="info" value="2" /></li>
-            <li><input type="radio" name="info" value="3" /></li>
-            <li><input type="radio" name="info" value="4" /></li>
-            <li><input type="radio" name="info" value="5" /></li>
-            <li> Very helpful/informative </li>
-        </ul>
-        <br></br>` );
+            $("button").replaceWith(`<button type="button" id="next" 
+                    onclick="next()"
+                    value="next" class="btn btn-primary btn-lg continue">
+                    Next <span class="glyphicon glyphicon-arrow-right"></span>
+                    </button>` );
+            
         }
       }
 
-function onGoal()
-{
-    if (map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] == 1) {
-        return true
-    }
-    else {
-        return false
-    }
-}
-
-    function left() {
-        if (onGoal()){
-            return;
+      function left () {
+        if (passenger.dropped){
+           return;
         }
+
+        if (spaceship.grid_loc.x == hotswap_station.grid_loc.x && spaceship.grid_loc.y == hotswap_station.grid_loc.y) {
+            agent_on_hotswap_station = true;
+        }
+        else {
+            agent_on_hotswap_station = false;
+        }
+
         if (spaceship.grid_loc.x > offset_x && map_layout.color_blocks[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-1-offset_x] != 1){
-            if (passenger.picked) {
-                // don't allow the skateboard to go on the path
-                if (map_layout.color_blocks[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-1-offset_x] == 2) {
-                    return;
-                }
-            }
             spaceship.grid_loc.x -= 1;
             moves.push("left");
             if (passenger.picked){
                 passenger.grid_loc.x -= 1;
             }
+            if (agent_on_hotswap_station) {
+                hotswap_station.visited = true;
+            }
         }
-    }
+      }
 
-    function right() {
-        if (onGoal()){
+      function right() {
+        if (passenger.dropped){
             return;
         }
+
+        if (spaceship.grid_loc.x == hotswap_station.grid_loc.x && spaceship.grid_loc.y == hotswap_station.grid_loc.y) {
+            agent_on_hotswap_station = true;
+        }
+        else {
+            agent_on_hotswap_station = false;
+        }
+
         if (spaceship.grid_loc.x < mdp_parameters.width-1+offset_x && map_layout.color_blocks[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x+1-offset_x] != 1){
-            if (passenger.picked) {
-                // don't allow the skateboard to go on the path
-                if (map_layout.color_blocks[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x+1-offset_x] == 2) {
-                    return;
-                }
-            }
             spaceship.grid_loc.x += 1;
             moves.push("right");
             if (passenger.picked){
                 passenger.grid_loc.x += 1;
             }
+            if (agent_on_hotswap_station) {
+                hotswap_station.visited = true;
+            }
         }
-    }
+      }
 
-    function up() {
-        if (onGoal()){
+      function up() {
+        if (passenger.dropped){
             return;
         }
+
+        if (spaceship.grid_loc.x == hotswap_station.grid_loc.x && spaceship.grid_loc.y == hotswap_station.grid_loc.y) {
+            agent_on_hotswap_station = true;
+        }
+        else {
+            agent_on_hotswap_station = false;
+        }
+
         if (spaceship.grid_loc.y > offset_y && map_layout.color_blocks[spaceship.grid_loc.y-1-offset_y][spaceship.grid_loc.x-offset_x] != 1){
-            if (passenger.picked) {
-                // don't allow the skateboard to go on the path
-                if (map_layout.color_blocks[spaceship.grid_loc.y-1-offset_y][spaceship.grid_loc.x-offset_x] == 2) {
-                    return;
-                }
-            }
             spaceship.grid_loc.y -= 1;
             moves.push("up");
             if (passenger.picked){
                 passenger.grid_loc.y -= 1;
             }
+            if (agent_on_hotswap_station) {
+                hotswap_station.visited = true;
+            }
         }
-    }
+      }
 
-    function down() {
-        if (onGoal()){
+      function down() {
+        if (passenger.dropped){
             return;
         }
+
+        if (spaceship.grid_loc.x == hotswap_station.grid_loc.x && spaceship.grid_loc.y == hotswap_station.grid_loc.y) {
+            agent_on_hotswap_station = true;
+        }
+        else {
+            agent_on_hotswap_station = false;
+        }
+
         if (spaceship.grid_loc.y < mdp_parameters.height-1+offset_y && map_layout.color_blocks[spaceship.grid_loc.y+1-offset_y][spaceship.grid_loc.x-offset_x] != 1){
-            if (passenger.picked) {
-            if(map_layout.color_blocks[spaceship.grid_loc.y+1-offset_y][spaceship.grid_loc.x-offset_x] == 2) {
-                return;
-            }
-            }
             spaceship.grid_loc.y += 1;
             moves.push("down");
             if (passenger.picked){
                 passenger.grid_loc.y += 1;
             }
+            if (agent_on_hotswap_station) {
+                hotswap_station.visited = true;
+            }
         }
-    }
+      }
 
-    function pickup() {
-        if (onGoal()){
+      function pickup() {
+        if (passenger.dropped){
             return;
         }
         if (spaceship.grid_loc.x == passenger.grid_loc.x && spaceship.grid_loc.y == passenger.grid_loc.y && passenger.picked == false){
-            passenger.picked = true;
             moves.push("pickup");
+            passenger.picked = true;
         }
-    }
+      }
 
-    function dropoff() {
-        if (onGoal()){
+      function dropoff() {
+        if (passenger.dropped){
             return;
         }
-        if (passenger.picked == true) {
-            moves.push("dropoff");
+        if (passenger.picked) {
+            if (map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] == 1) {
+                passenger.dropped = true;
+                // watched_vid_arr[current_page] = true;
+            }
             passenger.picked = false;
+            moves.push("dropoff");
         }
-    }
+      }
 
-    function reset() {
-        if (onGoal()){
-            if (mdp_parameters.tag == - 1){
-                map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] = 0
+      function reset() {
+        if (passenger.dropped){
+            if (mdp_parameters.tag == - 1) {
+                passenger.dropped = false
             }
             else {
                 return;
-            }
+            }   
         }
         moves = [];
         map_layout.set = false;
         passenger.picked = false;
+        hotswap_station.visited = false;
         agent_history = [];
-    }
+      }
 
-    var idx = 0;
+      var idx = 0;
 
-    function keyPressed(event)
-    {
+      function keyPressed(event)
+      {
         if (mdp_parameters.tag == - 1) {
             //training case, just pushing move from opt_actions           
             if (event.keyCode == 32) {
@@ -774,7 +744,7 @@ function onGoal()
     start_screen();
     canvas.addEventListener('click', draw);
     context.restore();
-        }
+    return "finished execution";
+  }
     </script>
-  </body>
-</html>
+{% endblock %}
