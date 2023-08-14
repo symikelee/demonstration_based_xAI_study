@@ -1,6 +1,31 @@
-<!DOCTYPE html>
-<html>
-  <head>
+{% extends "base.html" %}{% block content %}
+<link rel="stylesheet" href="../../static/css/style.css" type="text/css" />
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js" crossorigin="anonymous"></script>
+
+<div id="container-instructions">
+
+	{{preamble | safe}}
+
+    <div class="instructionsnav">
+        <div class="row">
+            <div class="col-xs-2">
+            	<!-- no previous button on first screen -->
+            </div>
+            <div class="col-xs-8">
+            </div>
+            <div class="col-xs-2">
+                <button type="button" id="next" disabled
+                onclick="next()"
+                value="next" class="btn btn-primary btn-lg continue">
+                Next <span class="glyphicon glyphicon-arrow-right"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>  
+
+<!-- <head>
     <title>Simulation</title>
 
     <script src="/static/lib/jquery-min.js" type="text/javascript"> </script>
@@ -9,89 +34,23 @@
     <script src="/static/lib/d3.v3.min.js" type="text/javascript"> </script>
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
 
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
     <link rel="stylesheet" href="/static/css/jspsych.css" type="text/css" />
-    <style type="text/css">
-        .likert ul
-    {
-        list-style-type: none;
-        margin: 0;
-        padding: 0;
-    }
-    .likert li
-    {
-        float: left;
-        text-align: left;
-        list-style-type: none;
-        padding:10px;
-    }
-    input[type="radio"] {
-        margin-right: 5px;
-    }
 
-    .table-info
-    {
-        float: right;
-        text-align: center;
-        padding: 50px;
-    }
-
-    .pre_info{
-        float: center;
-        text-align: center;
-    }
-
-    </style>
   </head>
-  
   <body>
-    <div id="container-instructions" class="text-center">
-    <div id="preamble" class="pre_info">
-        <h1>Participant gameplay</h1> <hr/>
-        <div id = "info_main"></div>
-    </div>
-    <h2 id="debug"></h2><br><br><br>
-    <div class="row justify-content-around">
-        <div class="col"></div>
-        <div class="col"><canvas id="game" width="850" height="500"></canvas></div>
-        <div id="table_controlinfo"></div>
-        <div class="col"></div>
-    </div>
-    <div id="survey">
-        <!-- <h3> Did this sequence improve your understanding of the game strategy?</h3>
-        <ul class="likert">
-            <li> Not helpful/informative at all </li>
-            <li><input type="radio" name="info" value="1" /></li>
-            <li><input type="radio" name="info" value="2" /></li>
-            <li><input type="radio" name="info" value="3" /></li>
-            <li><input type="radio" name="info" value="4" /></li>
-            <li><input type="radio" name="info" value="5" /></li>
-            <li> Very helpful/informative </li>
-        </ul>
-        <br></br> -->
-    </div>
-    <hr>
-    <br>
-    
-    <div class="instructionsnav">
-        <div class="row justify-content-around">
-          <div class="col-xs-3">
-            <button type="button" id="prev" value="previous" class="btn btn-primary btn-lg continue"> Previous <span class="glyphicon glyphicon-arrow-left"></span>
-            </button>
-          </div>
-          <div class="col-xs-3">
-                <button type="button" id="next" disabled
-            onclick="next()"
-            value="next" class="btn btn-primary btn-lg continue">
-            Next <span class="glyphicon glyphicon-arrow-right"></span>
-            </button>
-          </div>
-        </div>
-    </div>
-    <br>
-    <br>
-    </div>
+    <div id="preamble"></div>
+    <h2 id="debug"></h2>
+    <canvas id="game" width="800" height="500" ></canvas>
+    <br></br>
+    <div class="col-xs-2">
+        <button type="button" id="next" disabled
+        onclick="next()"
+        value="next" class="btn btn-primary btn-lg continue">
+        Next <span class="glyphicon glyphicon-arrow-right"></span>
+        </button>
+    </div> -->
 
     <script>
         var socket = io();
@@ -109,7 +68,7 @@
             // }
             let data = {};
             // data["domain"] = localStorage.getItem("domain");
-            data["interaction type"] = localStorage.getItem("interaction type");
+            // data["interaction type"] = localStorage.getItem("interaction type");
             // data["iteration"] = Number(localStorage.getItem("iteration"));
             // data["subiteration"] = Number(localStorage.getItem("subiteration"));
             data["user input"] = JSON.parse(localStorage.getItem("user input"));
@@ -118,44 +77,11 @@
 
         socket.on("settings configured", function (data) {
             mdp_parameters = data["params"]; 
-            interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
             $("#debug").html(data["debug string"]);
-            if (data["last test"]) {
-                localStorage.setItem("last test", "true");
-            }
-            console.log(window.mdp_parameters);
-                        change_text(interaction_type);
-            run_page(window.mdp_parameters);
+            console.log(mdp_parameters);
+            run_page(mdp_parameters);
         });
-        
-        // Assign html for interaction type
-        function change_text(interaction_type){  
-        console.log("changing text")
-        if (interaction_type == "diagnostic test" || interaction_type == "remedial test" || interaction_type == "final test") {
-            $("#table_controlinfo").replaceWith(`<div class="col"><div><br><br><br><br>
-        <table width="500">
-            <tr><th>Key</th><th>Action</th></tr>
-            <tr><td>up/down/left/right arrow keys</td><td>corresponding movement</td></tr>
-            <tr><td>p</td><td>pick up</td></tr>
-            <tr><td>d</td><td>drop</td></tr>
-            <tr><td>r</td><td>reset simulation</td></tr>
-        </table>
-        <br></div></div>`);
-            $("#info_main").replaceWith('<h3>Now its your turn to play six games! Please demonstrate how you would complete this games task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.<br> <h3>Please answer the question below on the confidence of your gameplay <b>after</b> providing your demonstration.</h3>');
-            }
-        else {
-            $("#table_controlinfo").replaceWith(`<div class="col"><div><br><br><br>
-        <table width="500">
-            <tr><th>Key</th><th>Action</th></tr>
-            <tr><td>space bar</td><td>next movement</td></tr>
-            <tr><td>p</td><td>pick up</td></tr>
-            <tr><td>d</td><td>drop</td></tr>
-            <tr><td>r</td><td>reset simulation</td></tr>
-        </table>
-        <br></div></div>`);
-            $("#info_main").replaceWith('<h3> Look at the demonstration on how you should complete this games task while minimizing Chips energy loss.</h3><h3>Please answer the question below on the confidence of your <b>understanding</b> of the demonstration.</h3>');
-        }
-        }
+
         // socket.on("", function (data) {
         //     if (data["passed"]) {
         //         $("button").replaceWith(`<button type="button" id="next" 
@@ -167,56 +93,9 @@
         // }
         // );
 
-        function prev() {
-            localStorage.setItem("movement", "prev");
-            window.location.href="/ct";
-        }
-
-
         function next() {
-            // reset()
-            localStorage.setItem("survey completed", "false");
-            if (localStorage.getItem("last test") === "true") {
-                localStorage.setItem("last test", "false");
-                socket.emit("next domain");
-                socket.on("next domain is", function(data) {
-                    console.log("I have received next domain");
-                    let url = "";
-                    if (data["domain"].length === 2){
-                        url = "/".concat(data["domain"], "_intro");
-                    }
-                    else {
-                        url = "final_survey";
-                    }
-                    window.location.href=url;
-                });
-            }
-            else {
-                window.location.href='/at';
-            //     let data = {};
-            // // data["domain"] = localStorage.getItem("domain");
-            // // data["interaction type"] = localStorage.getItem("interaction type");
-            // // data["iteration"] = Number(localStorage.getItem("iteration"));
-            // // data["subiteration"] = Number(localStorage.getItem("subiteration"));
-            // data["user input"] = JSON.parse(localStorage.getItem("user input"));
-            // socket.emit("settings", data);
-            }
-            
+            window.location.href='/at';
         }
-
-        addEventListener("input", (event) => {
-            localStorage.setItem("survey completed", "true");
-            // localStorage.setItem("survey completed", "true");
-            let radioValue = $("input[name='info']:checked").val();
-            if(radioValue) {
-                localStorage.setItem("survey", radioValue);
-            }
-            $("#next").replaceWith(`<button type="button" id="next" 
-                    onclick="next()"
-                    value="next" class="btn btn-primary btn-lg continue">
-                    Next <span class="glyphicon glyphicon-arrow-right"></span>
-                    </button>` );
-        });
 
   function run_page(mdp_parameters) {
     var canvas = document.getElementById("game");
@@ -233,7 +112,6 @@
 
     var offset_x = 1.5;
     var offset_y = 1;
-    change_text();
 
     // var mdp_parameters = window.parent.mdp_parameters;
 
@@ -245,7 +123,6 @@
     var text_color = "#394d7e";
 
     var map_layout = {};
-        
 
 var spaceship =
       {
@@ -490,7 +367,7 @@ var spaceship =
         context.fill();
         context.closePath();
 
-        context.font = "25px Arial";
+        context.font = "30px Arial";
         context.fillStyle = text_color;
         context.textAlign = "center";
         context.fillText("Click on the game below to start controlling Chip", offset_x*100+200, 50);
@@ -636,17 +513,11 @@ var spaceship =
                 record_data()
             }
 
-            $("#survey").replaceWith(`<h3> Did this sequence improve your understanding of the game strategy?</h3>
-        <ul class="likert">
-            <li> Not helpful/informative at all </li>
-            <li><input type="radio" name="info" value="1" /></li>
-            <li><input type="radio" name="info" value="2" /></li>
-            <li><input type="radio" name="info" value="3" /></li>
-            <li><input type="radio" name="info" value="4" /></li>
-            <li><input type="radio" name="info" value="5" /></li>
-            <li> Very helpful/informative </li>
-        </ul>
-        <br></br>` );
+            $("button").replaceWith(`<button type="button" id="next" 
+                    onclick="next()"
+                    value="next" class="btn btn-primary btn-lg continue">
+                    Next <span class="glyphicon glyphicon-arrow-right"></span>
+                    </button>` );
             
         }
       }
@@ -869,7 +740,6 @@ var spaceship =
       }
     }
 
-    // reset();
     document.addEventListener('keydown', _.debounce(keyPressed, 200))
     start_screen();
     canvas.addEventListener('click', draw);
@@ -877,5 +747,4 @@ var spaceship =
     return "finished execution";
   }
     </script>
-  </body>
-</html>
+{% endblock %}

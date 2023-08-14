@@ -1,9 +1,8 @@
+{% extends "base.html" %}{% block content %}
 <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
 
-<div id="container-instructions">
+<div id="container-instructions" class="text-center">
     <hr />
-
-    <div class="instructions well">
         <h2>Welcome to a new game!</h2> <br>
         <h3> Here are a few configurations that you may see in this section.</h3>
 
@@ -22,7 +21,7 @@
           </tr>
           <tr>
             <td>Moving into the grey square</td>
-            <td><img src = 'static/img/skateboard2_goal1.png' width="150" height=auto />
+            <td><img src= 'static/img/skateboard2_goal1.png' width="150" height=auto />
             <img src = 'static/img/arrow.png' width="30" height=auto />
             <img src = 'static/img/skateboard2_goal2.png' width="150" height=auto />
             </td>
@@ -75,35 +74,30 @@
         </table>
         <br>
         **Note that you <b>cannot</b> move into a purple square while having picked up the orange rectangle.
-<img src = 'static/img/skateboard2_invalid1.png' width="150" height=auto />
+        <img src = 'static/img/skateboard2_invalid1.png' width="150" height=auto />
         <img src = 'static/img/arrow-overlay.png' width="40" height=auto />
         <img src = 'static/img/skateboard2_invalid2.png' width="150" height=auto />
         <br><br>
         <h3>Chip will now provide a few demonstrations of the best strategy for this game.</h3>
-
-
-    </div>
-
     <hr />
 
-
     <div class="instructionsnav">
-        <div class="row">
-            <div class="col-xs-2">
-                <!-- no previous button on first screen -->
-            </div>
-            <div class="col-xs-8">
-            </div>
-            <div class="col-xs-2">
-              <button type="button" id="next" 
+      <div class="row justify-content-between">
+        <div class="col-xs-3">
+          <button type="button" id="prev" onclick="window.location.href='/ct'" value="previous" class="btn btn-primary btn-lg continue"> Previous <span class="glyphicon glyphicon-arrow-left"></span>
+          </button>
+        </div>
+        <div class="col-xs-3">
+          <button type="button" id="next" 
               onclick="window.location.href='/sb'" value="next" class="btn btn-primary btn-lg continue">
               Next <span class="glyphicon glyphicon-arrow-right"></span>
-              </button>
-            </div>
+          </button>
         </div>
-    </div>
+      </div>
+    </div>  
 
 </div>
 
 <script>
 </script>
+{% endblock %}

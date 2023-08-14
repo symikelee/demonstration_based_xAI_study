@@ -649,10 +649,8 @@ def sandbox():
     print(version)
     if version == "sandbox_1":
         preamble = ''' <h1>Free play</h1> <hr/> 
-        <h4>A subset of the following keys will be available to control Chip in each game:</h4>
-        <table class=\"center\"><tr><th>Key</th><th>Action</th></tr><tr><td>up/down/left/right arrow keys</td><td>corresponding movement</td></tr><tr><td>p</td><td>pick up</td></tr><tr><td>d</td><td>drop</td></tr><tr><td>r</td><td>reset simulation</td></tr></table><br>
-        <h4>If you accidentally take a wrong action, you may reset the simulation and start over.</h4> <br>
-        <h3>Feel free to play around in the game below and get used to the controls. </h3> <h4>You can click the continue button whenever you feel ready to move on.</h4>
+        <h3>Feel free to play around in the game below and get used to the controls. </h3> <h4>You can click the continue button whenever you feel ready to move on.</h4><br>
+        <h4>If you accidentally take a wrong action, you may reset the simulation and start over.</h4><h4>A subset of the following keys will be available to control Chip in each game:</h4><br>
         '''
         # params = {
         #     'agent': {'x': 4, 'y': 3, 'has_passenger': 0},
@@ -923,6 +921,7 @@ def settings(data):
     }
     print(loop_cond)
     print(domain)
+    print(it)
 
     trial = Trial(
         user_id = current_user.id,

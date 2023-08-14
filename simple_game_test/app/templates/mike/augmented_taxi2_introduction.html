@@ -1,9 +1,9 @@
+{% extends "base.html" %}{% block content %}
 <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
 
-<div id="container-instructions">
+<div id="container-instructions" class="text-center">
     <hr />
 
-    <div class="instructions well">
         <h2>Welcome to a new game!</h2> <br>
         <h3> Here are a few configurations that you may see in this section.</h3>
 
@@ -73,28 +73,27 @@
         <br><br>
         <h3>Chip will now provide a few demonstrations of the best strategy for this game.</h3>
 
-    </div>
-
     <hr />
 
 
     <div class="instructionsnav">
-        <div class="row">
-            <div class="col-xs-2">
-                <!-- no previous button on first screen -->
-            </div>
-            <div class="col-xs-8">
-            </div>
-            <div class="col-xs-2">
-                <button type="button" id="next" 
-                onclick="window.location.href='/at'" value="next" class="btn btn-primary btn-lg continue">
-                Next <span class="glyphicon glyphicon-arrow-right"></span>
-                </button>
-            </div>
-        </div>
-    </div>
+      <div class="row justify-content-between">
+          <div class="col-xs-3">
+            <button type="button" id="prev" onclick="window.location.href='/post_practice'" value="previous" class="btn btn-primary btn-lg continue">
+                  Previous <span class="glyphicon glyphicon-arrow-left"></span>
+                  </button>
+          </div>
+          <div class="col-xs-3">
+            <button type="button" id="next" 
+            onclick="window.location.href='/at'" value="next" class="btn btn-primary btn-lg continue">
+            Next <span class="glyphicon glyphicon-arrow-right"></span>
+            </button>
+          </div>
+      </div>
+  </div>
 
 </div>
 
 <script>
 </script>
+{% endblock %}
