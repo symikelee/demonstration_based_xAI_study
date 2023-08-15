@@ -16,8 +16,8 @@ from learner import Learner
 
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'augmented_taxi'))
-# from .augmented_taxi.policy_summarization import particle_filter as pf
-# from .augmented_taxi.main import run_scripts
+#from .augmented_taxi.policy_summarization import particle_filter as pf
+#from .augmented_taxi.main import run_scripts
 
 from app.backend_test import send_signal
 from app import socketio
@@ -648,9 +648,8 @@ def sandbox():
     version = current_user.curr_progress
     print(version)
     if version == "sandbox_1":
-        preamble = ''' <h1>Free play</h1> <hr/> 
-        <h3>Feel free to play around in the game below and get used to the controls. </h3> <h4>You can click the continue button whenever you feel ready to move on.</h4><br>
-        <h4>If you accidentally take a wrong action, you may reset the simulation and start over.</h4><h4>A subset of the following keys will be available to control Chip in each game:</h4><br>
+        preamble = ''' <<h3>Feel free to play around in the game below and get used to the controls. </h3> <h4>You can click the continue button whenever you feel ready to move on.</h4><br>
+        <table class=\"center\"><tr><th>Key</th><th>Action</th></tr><tr><td>up/down/left/right arrow keys</td><td>corresponding movement</td></tr><tr><td>p</td><td>pick up</td></tr><tr><td>d</td><td>drop</td></tr><tr><td>r</td><td>reset simulation</td></tr></table><br>	        <h4>If you accidentally take a wrong action, you may reset the simulation and start over.</h4><h4>A subset of the following keys will be available to control Chip in each game:</h4><br>
         '''
         # params = {
         #     'agent': {'x': 4, 'y': 3, 'has_passenger': 0},
@@ -785,6 +784,7 @@ def settings(data):
     elif curr_domain == "3":
         domain = current_user.domain_3
     it = current_user.interaction_type
+    print("CURRENT interaction: {}".format(it))
     iter = current_user.iteration
     subiter = current_user.subiteration
     response = {}
@@ -921,21 +921,20 @@ def settings(data):
     }
     print(loop_cond)
     print(domain)
-    print(it)
 
     trial = Trial(
         user_id = current_user.id,
-        duration_ms = data["user input"]["simulation_rt"],
         domain = domain,
         interaction_type = it,
         iteration = iter,
         subiteration = subiter,
-        likert = data["survey"],
-        moves = data["user input"]["moves"],
-        coordinates = data["user input"]["agent_history_nonoffset"],
-        is_opt_response = data["user input"]["opt_response"],
+        #likert = data["survey"],
+        #moves = data["user input"]["moves"],
+        #coordinates = data["user input"]["agent_history_nonoffset"],
+        #is_opt_response = data["user input"]["opt_response"],
         percent_seen = -1, #TODO: later?
-        mdp_parameters = data["user input"]["mdp_parameters"],
+        #mdp_parameters = data["user input"]["mdp_parameters"],
+        #duration_ms = data["user input"]["simulation_rt"],
         human_model = None #TODO: later?
     )
     db.session.add(trial)
@@ -961,8 +960,6 @@ def settings(data):
         current_user.curr_trial_idx = new_idx
     elif data["movement"] == "next":
         
-
-
         if key not in current_user.control_stack:
             current_user.stack_push(key)
             seen = "false"
@@ -996,17 +993,17 @@ def settings(data):
         current_user.interaction_type = arr[idx + 1][0]
         current_user.iteration = arr[idx + 1][1]
     elif loop_cond == "pl":
-        if it == "diagnostic test" and data["user input"]["opt_response"]:
+        if it == "diagnostic test": #and data["user input"]["opt_response"]:
             current_user.interaction_type = arr[idx + 2][0]
             current_user.iteration = arr[idx + 2][1]
         else:
             current_user.interaction_type = arr[idx + 1][0]
             current_user.iteration = arr[idx + 1][1]
     elif loop_cond == "cl":
-        if it == "diagnostic test" and data["user input"]["opt_response"]:
+        if it == "diagnostic test": #and data["user input"]["opt_response"]:
             current_user.interaction_type = arr[idx + 11][0]
             current_user.iteration = arr[idx + 11][1]
-        elif it == "remedial test" and data["user input"]["opt_response"]:
+        elif it == "remedial test": #and data["user input"]["opt_response"]:
             jump = 2 * (4 - subiter)
             current_user.interaction_type = arr[idx + jump][0]
             current_user.iteration = arr[idx + jump][1]
@@ -1033,6 +1030,9 @@ def settings(data):
         domain_key = "skateboard2"
 
     #TODO: set up dummy function for taxi call
+    print("heree")
+    print(current_user.interaction_type)
+    print(current_user.iteration)
     if loop_cond == "cl":
         if current_user.interaction_type == "final test":
             # todo: randomize the order of the tests and also potentially account for train_test_set (currently only using the first set)

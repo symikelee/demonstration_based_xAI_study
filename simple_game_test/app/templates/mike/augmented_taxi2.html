@@ -58,19 +58,7 @@
         <div id="table_controlinfo"></div>
         <div class="col"></div>
     </div>
-    <div id="survey">
-        <!-- <h3> Did this sequence improve your understanding of the game strategy?</h3>
-        <ul class="likert">
-            <li> Not helpful/informative at all </li>
-            <li><input type="radio" name="info" value="1" /></li>
-            <li><input type="radio" name="info" value="2" /></li>
-            <li><input type="radio" name="info" value="3" /></li>
-            <li><input type="radio" name="info" value="4" /></li>
-            <li><input type="radio" name="info" value="5" /></li>
-            <li> Very helpful/informative </li>
-        </ul>
-        <br></br> -->
-    </div>
+    <div id="survey"></div>
     <hr>
     <br>
     
@@ -113,25 +101,32 @@
             // data["iteration"] = Number(localStorage.getItem("iteration"));
             // data["subiteration"] = Number(localStorage.getItem("subiteration"));
             data["user input"] = JSON.parse(localStorage.getItem("user input"));
+            data["movement"] = localStorage.getItem("movement");
             socket.emit("settings", data);
         });
-
         socket.on("settings configured", function (data) {
-            mdp_parameters = data["params"]; 
-            interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
+            localStorage.setItem("movement", "false");
+            localStorage.setItem("user input", "{}");
+            // localStorage.setItem("game completed", "false"); 
+            // localStorage.setItem("survey completed", "false");
+            localStorage.setItem("survey", "-1");
+            window.mdp_parameters = data["params"]; 
+            window.interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
+            localStorage.setItem("seen", data["seen"]);
             $("#debug").html(data["debug string"]);
             if (data["last test"]) {
                 localStorage.setItem("last test", "true");
             }
+            console.log(window.interaction_type);
             console.log(window.mdp_parameters);
-                        change_text(interaction_type);
+            change_text(window.interaction_type);
             run_page(window.mdp_parameters);
         });
         
         // Assign html for interaction type
         function change_text(interaction_type){  
         console.log("changing text")
-        if (interaction_type == "diagnostic test" || interaction_type == "remedial test" || interaction_type == "final test") {
+        if ((interaction_type == "diagnostic test") || (interaction_type == "remedial test") || (interaction_type == "final test")) {
             $("#table_controlinfo").replaceWith(`<div class="col"><div><br><br><br><br>
         <table width="500">
             <tr><th>Key</th><th>Action</th></tr>
@@ -148,8 +143,6 @@
         <table width="500">
             <tr><th>Key</th><th>Action</th></tr>
             <tr><td>space bar</td><td>next movement</td></tr>
-            <tr><td>p</td><td>pick up</td></tr>
-            <tr><td>d</td><td>drop</td></tr>
             <tr><td>r</td><td>reset simulation</td></tr>
         </table>
         <br></div></div>`);
@@ -174,8 +167,8 @@
 
 
         function next() {
-            // reset()
-            localStorage.setItem("survey completed", "false");
+            localStorage.setItem("movement", "next");
+            //localStorage.setItem("survey completed", "false");
             if (localStorage.getItem("last test") === "true") {
                 localStorage.setItem("last test", "false");
                 socket.emit("next domain");
@@ -203,6 +196,28 @@
             }
             
         }
+        addEventListener("beforeunload", (event) => {
+            if (localStorage.getItem("movement") === "false") {
+                event.preventDefault();
+                event.returnValue = "Are you sure you want to leave? The task is incomplete.";
+            }
+            let simulation_rt = 0;
+            if (localStorage.getItem("user input") === "{}") {
+                if (window.moves.length > 0) {
+                    simulation_rt = performance.now() - window.start_time;
+                }
+                final_data = JSON.stringify({
+                    'moves': window.moves,
+                    'opt_response': false,
+                    'agent_history_nonoffset': window.agent_history_nonoffset,
+                    'mdp_parameters': window.mdp_parameters,
+                    'simulation_rt': simulation_rt,
+                });
+                localStorage.setItem("user input", final_data);
+            }
+                             
+        });
+
 
         addEventListener("input", (event) => {
             localStorage.setItem("survey completed", "true");
@@ -636,17 +651,16 @@ var spaceship =
                 record_data()
             }
 
-            $("#survey").replaceWith(`<h3> Did this sequence improve your understanding of the game strategy?</h3>
-        <ul class="likert">
-            <li> Not helpful/informative at all </li>
-            <li><input type="radio" name="info" value="1" /></li>
-            <li><input type="radio" name="info" value="2" /></li>
-            <li><input type="radio" name="info" value="3" /></li>
-            <li><input type="radio" name="info" value="4" /></li>
-            <li><input type="radio" name="info" value="5" /></li>
-            <li> Very helpful/informative </li>
-        </ul>
-        <br></br>` );
+            $("#survey").html(`<h3> This sequence improved my understanding of the game strategy.</h3>
+            <div class="text-center">
+            <ul class="likert">
+            <li><input type="radio" name="info" value="1" />Strongly Disagree</li>
+            <li><input type="radio" name="info" value="2" />Disagree</li>
+            <li><input type="radio" name="info" value="3" />Neither agree nor disagree</li>
+            <li><input type="radio" name="info" value="4" />Agree</li>
+            <li><input type="radio" name="info" value="5" />Strongly Agree</li>
+            </ul></div>
+            <br></br>` );
             
         }
       }
