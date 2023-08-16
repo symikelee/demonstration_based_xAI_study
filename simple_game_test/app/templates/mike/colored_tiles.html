@@ -217,17 +217,20 @@ x
     var map_layout = {};
 
 var spaceship =
-      {
-          color: "#628dbe",
-          width: 65,
-          height: 130,
-          grid_loc:
-          {
-              x: 0,
-              y: 0
-          },
-          taxi_set: false
-      }
+    {   
+        color: "#628dbe",
+        color_light: "#7cb8fc",
+        width: 65,
+        height: 130,
+        grid_loc:
+        {
+            x: 0.0,
+            y: 0.0,
+            human_x: 0.0,
+            human_y: 0.0
+        },
+        taxi_set: false
+    }
 
       function build_grid(){
         //create a grid
@@ -243,13 +246,13 @@ var spaceship =
         return temp;
       }
 
-    function set_grids()
+      function set_grids()
       {
         //set location of taxi
         spaceship.grid_loc.x =  (mdp_parameters.agent.x-1) + offset_x;
         spaceship.grid_loc.y =  (mdp_parameters.height - mdp_parameters.agent.y) + offset_y;
-        spaceship.grid_loc.x =  (mdp_parameters.agent.x-1) + offset_x;
-        spaceship.grid_loc.y =  (mdp_parameters.height - mdp_parameters.agent.y) + offset_y;
+        spaceship.grid_loc.human_x =  (mdp_parameters.agent.x-1) + offset_x + agent_human_spacer;
+        spaceship.grid_loc.human_y =  (mdp_parameters.height - mdp_parameters.agent.y) + offset_y;
         agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y])
         spaceship.taxi_set = true;
         //set destination
@@ -270,23 +273,26 @@ var spaceship =
         map_layout.color_blocks = color_locs;
       }
 
-      function drawTaxi()
+      function drawTaxi(x,y,color)
       {
-          if (spaceship.taxi_set == false){
+        if (spaceship.taxi_set == false){
             taxiSet();
-          }
-          context.save();
-          context.beginPath();
-          context.translate(100*(spaceship.grid_loc.x) + 50, 100*(spaceship.grid_loc.y) + 150);
-
-              context.lineTo(-spaceship.width * 0.5 , -spaceship.height * 0.5);
-              context.lineTo(0, -spaceship.height);
-              context.lineTo(-spaceship.width * -0.5, -spaceship.height * 0.5);
-
-          context.fillStyle = spaceship.color;
-          context.fill();
-          context.closePath();
-          context.restore();
+        }
+        context.save();
+        context.beginPath();
+        context.translate(100*(x) + 50 + translate_draw, 100*(y) + 150);
+            context.lineTo(-spaceship.width * 0.5 , -spaceship.height * 0.5);
+            context.lineTo(0, -spaceship.height);
+            context.lineTo(-spaceship.width * -0.5, -spaceship.height * 0.5);
+        if (color == "light"){
+            context.fillStyle = spaceship.color_light;
+        }
+        else {
+            context.fillStyle = spaceship.color;
+        }
+        context.fill();
+        context.closePath();
+        context.restore();
       }
 
       function drawDestination()
@@ -406,7 +412,14 @@ var spaceship =
         // Begin drawing
         drawMap();
         drawDestination();
-        drawTaxi();
+        if (mdp_parameters.tag  == -2){
+            drawTaxi(spaceship.grid_loc.human_x,spaceship.grid_loc.human_y,"light");
+        }
+        drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
+        if (mdp_parameters.tag  == -1){
+            //Not needed unless single agents
+            drawAgentHistory();
+        }
     }
 
     function record_data(){
@@ -500,10 +513,16 @@ var spaceship =
 
           context.beginPath();
           // Begin drawing
-          drawMap();
-          drawAgentHistory()
-          drawDestination();
-          drawTaxi();
+        drawMap();
+        drawDestination();
+        if (mdp_parameters.tag  == -2){
+            drawTaxi(spaceship.grid_loc.human_x,spaceship.grid_loc.human_y,"light");
+        }
+        drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
+        if (mdp_parameters.tag  == -1){
+            //Not needed unless single agents
+            drawAgentHistory();
+        }
 
         if(map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] == 1)
         {
@@ -529,59 +548,112 @@ var spaceship =
         <br></br>` );
         }
       }
-
-function onGoal()
+      function onGoal(version)
 {
-    if (map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] == 1) {
-        return true
+    if (version=="agent"){
+        if (map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] == 1) {
+            console.log("agent here");
+            return true
+        }
+        else {
+            return false
+        }
     }
-    else {
-        return false
+    else{
+        if (map_layout.destination[spaceship.grid_loc.human_y-offset_y][spaceship.grid_loc.human_x-offset_x-agent_human_spacer] == 1) {
+            console.log("human here");
+            return true
+        }
+        else {
+            return false
+        }
     }
+    
 }
-    function left () {
-        if (onGoal()){
-            return;
+    function left(version) {
+        if (version == "agent"){
+            if (onGoal("agent")){
+                return;
+            }
+            if (spaceship.grid_loc.x > offset_x){
+                spaceship.grid_loc.x -= 1;
+                moves.push("left");
+            }
         }
-        if (spaceship.grid_loc.x > offset_x){
-            spaceship.grid_loc.x -= 1;
-            moves.push("left");
+        else{
+            if (onGoal("human")){
+                return;
+            }
+            if (spaceship.grid_loc.human_x > offset_x){
+                spaceship.grid_loc.human_x -= 1;
+            }
+        }
+      }
+
+    function right(version) {
+        if (version == "agent"){
+            if (onGoal("agent")){
+                return;
+            }
+            if (spaceship.grid_loc.x < mdp_parameters.width-1+offset_x){
+                spaceship.grid_loc.x += 1;
+                moves.push("right");
+            }
+        }
+        else{
+            if (onGoal("human")){
+                return;
+            }
+            if (spaceship.grid_loc.human_x < mdp_parameters.width-1+offset_x){
+                spaceship.grid_loc.human_x += 1;
+            }
         }
     }
 
-    function right () {
-        if (onGoal()){
-            return;
+    function up(version) {
+        if (version == "agent"){
+            if (onGoal("agent")){
+                return;
+            }
+            if (spaceship.grid_loc.y > offset_y){
+                spaceship.grid_loc.y -= 1;
+                moves.push("up");
+            }
         }
-        if (spaceship.grid_loc.x < mdp_parameters.width-1+offset_x){
-            spaceship.grid_loc.x += 1;
-            moves.push("right");
-        }
-    }
-
-    function up() {
-        if (onGoal()){
-            return;
-        }
-        if (spaceship.grid_loc.y > offset_y){
-            spaceship.grid_loc.y -= 1;
-            moves.push("up");
-        }
-    }
-
-    function down() {
-        if (onGoal()){
-            return;
-        }
-        if (spaceship.grid_loc.y < mdp_parameters.height-1+offset_y){
-            spaceship.grid_loc.y += 1;
-            moves.push("down");
+        else{
+            if (onGoal("human")){
+                return;
+            }
+            if (spaceship.grid_loc.human_y > offset_y){
+                spaceship.grid_loc.human_y -= 1;
+            }
         }
     }
 
-    function reset () {
+    function down(version) {
+        if (version == "agent"){
+            if (onGoal("agent")){
+                console.log(moves);
+                return;
+            }
+            if (spaceship.grid_loc.y < mdp_parameters.height-1+offset_y){
+                spaceship.grid_loc.y += 1;
+                moves.push("down");
+            }
+        }
+        else{
+            if (onGoal("human")){
+                return;
+            }
+            if (spaceship.grid_loc.human_y < mdp_parameters.height-1+offset_y){
+                spaceship.grid_loc.human_y += 1;
+            }
+        }
+    }
+
+    function reset() {
         if (onGoal()){
-            if (mdp_parameters.tag == - 1) {
+            if ((mdp_parameters.tag == - 1)||(mdp_parameters.tag == - 2)){
                 map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] = 0;
             }
             else {
@@ -593,28 +665,86 @@ function onGoal()
         agent_history = [];
     }
 
+    function no_op(){
+        return;
+    }
+
     var idx = 0;
+    var translate_draw = 10;
+    var agent_human_spacer = -0.2;
 
     function keyPressed(event)
-    {
-        if (mdp_parameters.tag == - 1) {
-            //training case, just pushing move from opt_actions           
+      {
+        if (mdp_parameters.tag == -2) {
+            //training case, agent & human          
             if (event.keyCode == 32) {
                 //space bar pressed, advance demo
-                var next_action = mdp_parameters.opt_actions[idx];
+                var next_action_agent = mdp_parameters.normalized_opt_actions[idx];
+                var next_action_human = mdp_parameters.normalized_human_actions[idx];
+                console.log("agent:" + next_action_agent);
+                console.log("human:" + next_action_human);
                 idx++;
-                switch(next_action) {
+                switch(next_action_human) {
                     case "left":
-                        left();
+                        left("human");
                         break;
                     case "right":
-                        right();
+                        right("human");
                         break;
                     case "up":
-                        up();
+                        up("human");
                         break;
                     case "down":
-                        down();
+                        down("human");
+                        break;
+                    case "no-op":
+                        no_op();
+                        break;
+                }
+                switch(next_action_agent) {
+                    case "left":
+                        left("agent");
+                        break;
+                    case "right":
+                        right("agent");
+                        break;
+                    case "up":
+                        up("agent");
+                        break;
+                    case "down":
+                        down("agent");
+                        break;
+                    case "no-op":
+                        no_op();
+                        break;
+                }
+                //agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
+                requestAnimationFrame(draw);
+            }
+            else if (event.keyCode == 82) {
+                idx = 0;
+                reset();
+                requestAnimationFrame(draw);
+            }
+        } 
+        else if (mdp_parameters.tag == -1){
+            //training case, just agent         
+            if (event.keyCode == 32) {
+                //space bar pressed, advance demo
+                var next_action_agent = mdp_parameters.normalized_opt_actions[idx];
+                idx++;
+                switch(next_action_agent) {
+                    case "left":
+                        left("agent");
+                        break;
+                    case "right":
+                        right("agent");
+                        break;
+                    case "up":
+                        up("agent");
+                        break;
+                    case "down":
+                        down("agent");
                         break;
                 }
                 agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
@@ -625,8 +755,7 @@ function onGoal()
                 reset();
                 requestAnimationFrame(draw);
             }
-        }
-        
+        } 
         else {
             //testing case
             // prevent arrow keys from simultaneously moving the window
@@ -637,28 +766,29 @@ function onGoal()
             {
                 case 37:
                     // Left Arrow key
-                    left();
+                    left("agent");
                     break;
                 case 39:
                     // Right Arrow key
-                    right();
+                    right("agent");
                     break;
                 case 38:
                     // Up Arrow key
-                    up();
+                    up("agent");
                     break;
                 case 40:
                     // down Arrow key
-                    down();
+                    down("agent");
                     break;
                 case 82:
                     //r key
-                    reset();
+                    reset("agent");
                     break;
             }
             if (event.keyCode != 82) agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
             requestAnimationFrame(draw);
-        }
+      }
+      console.log(moves);
     }
     // document.addEventListener('keydown', _.debounce(keyPressed, 200)) // prevent quick key presses
     document.addEventListener('keydown', keyPressed);

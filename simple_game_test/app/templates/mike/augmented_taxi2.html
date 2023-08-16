@@ -400,7 +400,7 @@
         }
         context.save();
         context.beginPath();
-        context.translate(100*(x) + 50 + tranlate_draw, 100*(y) + 150);
+        context.translate(100*(x) + 50 + translate_draw, 100*(y) + 150);
             context.lineTo(-spaceship.width * 0.5 , -spaceship.height * 0.5);
             context.lineTo(0, -spaceship.height);
             context.lineTo(-spaceship.width * -0.5, -spaceship.height * 0.5);
@@ -425,12 +425,12 @@
             context.fillStyle = passenger.color_light;
             condition = !passenger.picked_human;
             if (!passenger.picked_human){
-                context.arc(x*100 + 25 + tranlate_draw, y*100 + 45, 9, 0, 2 * Math.PI);
+                context.arc(x*100 + 25 + translate_draw, y*100 + 45, 9, 0, 2 * Math.PI);
                 context.fill();
                 context.closePath();
             }
             else{
-                context.arc(x*100 + 49 + tranlate_draw, y*100 + 22, 9, 0, 2 * Math.PI);
+                context.arc(x*100 + 49 + translate_draw, y*100 + 22, 9, 0, 2 * Math.PI);
                 context.fill();
                 context.closePath();
             }
@@ -439,13 +439,13 @@
             context.fillStyle = passenger.color;
             condition = !passenger.picked;
             if (!passenger.picked){
-            context.arc(x*100 + 25 + tranlate_draw, y*100 + 45, 9, 0, 2 * Math.PI);
+            context.arc(x*100 + 25 + translate_draw, y*100 + 45, 9, 0, 2 * Math.PI);
             context.fill();
             context.closePath();
 
             }
             else{
-                context.arc(x*100 + 49 + tranlate_draw, y*100 + 22, 9, 0, 2 * Math.PI);
+                context.arc(x*100 + 49 + translate_draw, y*100 + 22, 9, 0, 2 * Math.PI);
                 context.fill();
                 context.closePath();
             }
@@ -474,11 +474,11 @@
         context.save();
         if (version == "agent"){        
             if (!hotswap_station.visited){
-            drawHexagon(x * 100 + 50 + tranlate_draw, y * 100 + 50, hotswap_station.color)
+            drawHexagon(x * 100 + 50 + translate_draw, y * 100 + 50, hotswap_station.color)
         }}
         else{
             if (!hotswap_station.visited_human){
-            drawHexagon(x * 100 + 50 + tranlate_draw, y * 100 + 50, hotswap_station.color_light)
+            drawHexagon(x * 100 + 50 + translate_draw, y * 100 + 50, hotswap_station.color_light)
         }
         }
         context.restore();
@@ -925,7 +925,7 @@
 
       var idx = 0;
       var agent_human_spacer = -0.2;
-      var tranlate_draw = 10;
+      var translate_draw = 10;
       
       //Testing
       //mdp_parameters.tag = -2;
