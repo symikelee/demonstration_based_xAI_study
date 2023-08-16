@@ -16,8 +16,10 @@ from learner import Learner
 
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'augmented_taxi'))
-#from .augmented_taxi.policy_summarization import particle_filter as pf
-#from .augmented_taxi.main import run_scripts
+# from .augmented_taxi.policy_summarization import particle_filter as pf
+# from .augmented_taxi.main import run_scripts
+from .augmented_taxi.policy_summarization.flask_user_study_utils import normalize_trajectories
+print(os.path.join(os.path.dirname(__file__)))
 
 from app.backend_test import send_signal
 from app import socketio
@@ -931,7 +933,7 @@ def settings(data):
         #likert = data["survey"],
         #moves = data["user input"]["moves"],
         #coordinates = data["user input"]["agent_history_nonoffset"],
-        #is_opt_response = data["user input"]["opt_response"],
+        # is_opt_response = data["user input"]["opt_response"],
         percent_seen = -1, #TODO: later?
         #mdp_parameters = data["user input"]["mdp_parameters"],
         #duration_ms = data["user input"]["simulation_rt"],
@@ -1042,6 +1044,36 @@ def settings(data):
                 response["params"] = jsons[domain_key][current_user.interaction_type]["medium"][0][current_user.iteration - 2]
             else:
                 response["params"] = jsons[domain_key][current_user.interaction_type]["high"][0][current_user.iteration - 4]
+        elif current_user.interaction_type == "diagnostic feedback":
+            # normalize the actions of the optimal and (incorrect) human trajectory such that they're the same length
+            # (by causing the longer trajectory to wait at overlapping states)
+            opt_actions = data['user input']['mdp_parameters']['opt_actions']
+            opt_locations = data['user input']['mdp_parameters']['opt_locations']
+            opt_locations_tuple = [tuple(opt_location) for opt_location in opt_locations]
+
+            human_actions = data["user input"]["moves"]
+            human_locations = data["user input"]["agent_history_nonoffset"]
+            human_locations_tuple = [(human_location[0], human_location[1], int(human_location[2])) for human_location in human_locations]
+
+            normalized_opt_actions, normalized_human_actions = normalize_trajectories(opt_locations_tuple, opt_actions, human_locations_tuple, human_actions)
+            print(normalized_opt_actions)
+            print(normalized_human_actions)
+
+            # update the relevant mdp_parameter with the normalized versions of the trajectories
+            updated_data = data['user input']['mdp_parameters'].copy()
+            updated_data['normalized_opt_actions'] = normalized_opt_actions
+            updated_data['normalized_human_actions'] = normalized_human_actions
+            updated_data['tag'] = -2 # indicate that this is trajectory visualization
+            response["params"] = updated_data
+        elif current_user.interaction_type == "remedial demo" or current_user.interaction_type == "remedial test":
+            a = 2
+            # todo: im here
+            # obtain_remedial_demonstrations_flask(data_loc, pool, particles, n_human_models, BEC_constraints, traj_record, traj_features_record,
+            #  previous_demonstrations, visited_env_traj_idxs, variable_filter, mdp_features_record, weights,
+            #  step_cost_flag, type='training', n_human_models_precomputed=0):
+
+            # todo: I need a way to be able to obtain constraints
+
         else:
             response["params"] = jsons[domain_key][current_user.interaction_type][str(current_user.iteration)]
             # check if it's already been seen. if so, and interaction type is test, then change the tag to be -2

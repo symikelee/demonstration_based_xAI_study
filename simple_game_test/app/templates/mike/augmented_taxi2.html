@@ -241,10 +241,11 @@
     var final_data = [];
     var data_sent = false;
 
-    var start_time = 0;
-    var start_time_set = false;
-    var moves = [];
-    var agent_history = [];
+    window.start_time = 0;
+    window.start_time_set = false;
+    window.moves = [];
+    window.agent_history = [];
+    window.agent_history_nonoffset = [];  // this is for keep track of the agent's location in gridworld integers
 
     var offset_x = 1.5;
     var offset_y = 1;
@@ -334,7 +335,8 @@
           spaceship.grid_loc.y =  (mdp_parameters.height - mdp_parameters.agent.y) + offset_y;
           spaceship.grid_loc.human_x =  (mdp_parameters.agent.x-1) + offset_x + agent_human_spacer;
           spaceship.grid_loc.human_y =  (mdp_parameters.height - mdp_parameters.agent.y) + offset_y;
-          agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y])
+          window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y])
+          window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y, passenger.picked])
           spaceship.taxi_set = true;
         //set location of passenger
         if (mdp_parameters.agent.has_passenger == 1){
@@ -580,12 +582,12 @@
             drawHotswapStation(hotswap_station.grid_loc.human_x,hotswap_station.grid_loc.human_y,"human");
         }
         drawHotswapStation(hotswap_station.grid_loc.x,hotswap_station.grid_loc.y,"agent");
-        drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
-        drawPassenger(passenger.grid_loc.x,passenger.grid_loc.y,"normal");
         if (mdp_parameters.tag  == -1){
             //Not needed unless single agents
             drawAgentHistory();
         }
+        drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
+        drawPassenger(passenger.grid_loc.x,passenger.grid_loc.y,"normal");
 }
 
     function record_data(){
@@ -623,9 +625,11 @@
         }
 
         final_data = JSON.stringify({
-            'simulation_rt': (end_time - start_time),
-            'moves': moves,
-            'opt_response': same_traj
+            'simulation_rt': (end_time - window.start_time),
+            'moves': window.moves,
+            'opt_response': same_traj,
+            'agent_history_nonoffset': window.agent_history_nonoffset,
+            'mdp_parameters': mdp_parameters,
         });
 
         var event = new CustomEvent("game-completed", { "detail": "Demonstration has now ended." });
@@ -687,12 +691,12 @@
             drawHotswapStation(hotswap_station.grid_loc.human_x,hotswap_station.grid_loc.human_y,"human");
         }
         drawHotswapStation(hotswap_station.grid_loc.x,hotswap_station.grid_loc.y,"agent");
-        drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
-        drawPassenger(passenger.grid_loc.x,passenger.grid_loc.y,"normal");
         if (mdp_parameters.tag  == -1){
             //Not needed unless single agents
             drawAgentHistory();
         }
+        drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
+        drawPassenger(passenger.grid_loc.x,passenger.grid_loc.y,"normal");
 
         if(passenger.dropped)
         {
@@ -732,7 +736,9 @@
         if (version == "agent"){
             if (spaceship.grid_loc.x > offset_x && map_layout.color_blocks[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-1-offset_x] != 1){
             spaceship.grid_loc.x -= 1;
-            moves.push("left");
+            window.moves.push("left");
+            // agent_history_nonoffset needs to be updated within movement functions to ignore stray key presses that don't change the state
+            window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y, passenger.picked])
             if (passenger.picked){
                 passenger.grid_loc.x -= 1;
             }
@@ -765,7 +771,8 @@
         if (version == "agent"){
             if (spaceship.grid_loc.x < mdp_parameters.width-1+offset_x && map_layout.color_blocks[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x+1-offset_x] != 1){
             spaceship.grid_loc.x += 1;
-            moves.push("right");
+            window.moves.push("right");
+            window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y, passenger.picked])
             if (passenger.picked){
                 passenger.grid_loc.x += 1;
             }
@@ -798,7 +805,8 @@
         if (version == "agent"){
             if (spaceship.grid_loc.y > offset_y && map_layout.color_blocks[spaceship.grid_loc.y-1-offset_y][spaceship.grid_loc.x-offset_x] != 1){
             spaceship.grid_loc.y -= 1;
-            moves.push("up");
+            window.moves.push("up");
+            window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y, passenger.picked])
             if (passenger.picked){
                 passenger.grid_loc.y -= 1;
             }
@@ -832,7 +840,8 @@
         if (version == "agent"){
             if (spaceship.grid_loc.y < mdp_parameters.height-1+offset_y && map_layout.color_blocks[spaceship.grid_loc.y+1-offset_y][spaceship.grid_loc.x-offset_x] != 1){
             spaceship.grid_loc.y += 1;
-            moves.push("down");
+            window.moves.push("down");
+            window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y, passenger.picked])
             if (passenger.picked){
                 passenger.grid_loc.y += 1;
             }
@@ -861,6 +870,7 @@
         if (version == "agent"){
             if (Math.floor(spaceship.grid_loc.x) == Math.floor(passenger.grid_loc.x) && spaceship.grid_loc.y == passenger.grid_loc.y && passenger.picked == false){
                 moves.push("pickup");
+                window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y, passenger.picked])
                 passenger.picked = true;
         }}
         else{
@@ -883,8 +893,9 @@
             //watched_vid_arr[current_page] = true;
             passenger.picked = false;
             passenger.picked_human = false;
-            moves.push("dropoff");
             console.log(moves);
+            window.moves.push("dropoff");
+            window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y, passenger.picked])
         }
       }
 
@@ -901,7 +912,8 @@
         map_layout.set = false;
         passenger.picked = false;
         hotswap_station.visited = false;
-        agent_history = [];
+        window.agent_history = [];
+        window.agent_history_nonoffset = [];
       }
 
       function checkHotswap(version){
@@ -925,10 +937,12 @@
 
       var idx = 0;
       var agent_human_spacer = -0.2;
-      var translate_draw = 10;
-      
-      //Testing
-      //mdp_parameters.tag = -2;
+      if (mdp_parameters.tag == -2) {
+          var translate_draw = 10;
+      }
+      else {
+          var translate_draw = 0;
+      }
 
       function keyPressed(event)           
       {
@@ -936,10 +950,6 @@
             //training case, agent & human          
             if (event.keyCode == 32) {
                 //space bar pressed, advance demo
-
-                //Testing
-                // mdp_parameters.normalized_opt_actions = ['right', 'up', 'up', 'left', 'left', 'pickup', 'down', 'down', 'no-op', 'no-op', 'no-op', 'no-op', 'left', 'dropoff'];
-                // mdp_parameters.normalized_human_actions = ['right', 'up', 'up', 'left', 'left', 'pickup', 'right', 'right', 'down', 'down', 'left', 'left', 'left', 'dropoff'];
 
                 var next_action_agent = mdp_parameters.normalized_opt_actions[idx];
                 var next_action_human = mdp_parameters.normalized_human_actions[idx];
@@ -1030,7 +1040,7 @@
                         dropoff("agent");
                         break;
                 }
-                agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
+                window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
                 requestAnimationFrame(draw);
             }
             else if (event.keyCode == 82) {
@@ -1076,13 +1086,16 @@
                     reset("agent");
                     break;
             }
-            if (event.keyCode != 82) agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
+            if (event.keyCode != 82) {
+                window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
+            }
             requestAnimationFrame(draw);
       }
     }
 
     // reset();
-    document.addEventListener('keydown', _.debounce(keyPressed, 200))
+    // document.addEventListener('keydown', _.debounce(keyPressed, 200))
+    document.addEventListener('keydown', keyPressed)
     start_screen();
     canvas.addEventListener('click', draw);
     context.restore();
