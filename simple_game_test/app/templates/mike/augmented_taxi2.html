@@ -47,6 +47,7 @@
         <canvas id="game" width="850" height="500"></canvas>
         <div id="table_controlinfo"></div>
     </div>
+    <div id="score"></div>
     <div id="survey"></div>
     <hr>
     <br>
@@ -208,14 +209,11 @@
                              
         });
 
-
         addEventListener("input", (event) => {
             localStorage.setItem("survey completed", "true");
-            // localStorage.setItem("survey completed", "true");
+            //localStorage.setItem("survey completed", "true");
             let radioValue = $("input[name='info']:checked").val();
-            console.log(radioValue);
             if(radioValue) {
-                console.log("okkkkk");
                 localStorage.setItem("survey", radioValue);
             }
             $("#next").replaceWith(`<button type="button" id="next" 
@@ -223,7 +221,8 @@
                     value="next" class="btn btn-primary btn-lg continue">
                     Next <span class="glyphicon glyphicon-arrow-right"></span>
                     </button>` );
-        });
+            });
+    
 
   function run_page(mdp_parameters) {
     var canvas = document.getElementById("game");
@@ -241,7 +240,6 @@
 
     var offset_x = 1.5;
     var offset_y = 1;
-    change_text();
     disableScroll();
 
     // var mdp_parameters = window.parent.mdp_parameters;
@@ -715,8 +713,20 @@
             if (data_sent == false) {
                 record_data()
             }
-
-            $("#survey").html(`<h3> This sequence improved my understanding of the game strategy.</h3>
+            it = window.interaction_type;
+            last_test = localStorage.getItem("last test");
+            if (it == "final test"){
+                if(last_test){
+                    $("#score").html('<div class="text-center"><h1>Score Results</h1><p>You scored <p id="score_val"></p>times correctly.</p></div>')
+                } 
+                $("#next").replaceWith(`<button type="button" id="next" 
+                    onclick="next()"
+                    value="next" class="btn btn-primary btn-lg continue">
+                    Next <span class="glyphicon glyphicon-arrow-right"></span>
+                    </button>` );
+            }
+            else{
+                $("#survey").html(`<h3> This sequence improved my understanding of the game strategy.</h3>
                 <div class="likert">
                 <label><input name="info" type="radio" value="1"/><span>Strongly Disagree</span></label>
                 <label><input name="info" type="radio" value="2"/><span>Disagree</span></label>
@@ -725,6 +735,8 @@
                 <label><input name="info" type="radio" value="5"/><span>Strongly Agree</span></label>
                 </div>
                 <br></br>` );
+            }
+            
             
         }
       }
@@ -902,15 +914,17 @@
         }
         condition_goal = ((Math.floor(x) == goal.grid_loc.x) && (y == goal.grid_loc.y));
         if (passenger.picked){
+            window.moves.push("dropoff");
+            passenger.picked = false;
+            passenger.picked_human = false;
             if (condition_goal){
                 passenger.dropped = true;
                 //watched_vid_arr[current_page] = true;
                 console.log(moves);
                 window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y, passenger.picked])
             }
-            passenger.picked = false;
-            passenger.picked_human = false;
-            window.moves.push("dropoff");
+
+            
         }
         
       }

@@ -799,14 +799,14 @@
         }
         condition_goal = ((Math.floor(x) == goal.grid_loc.x) && (y == goal.grid_loc.y));
         if (passenger.picked){
+            window.moves.push("dropoff");
+            passenger.picked = false;
+            passenger.picked_human = false;
             if (condition_goal){
                 passenger.dropped = true;
                 console.log(moves);
                 window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y, passenger.picked])
             }
-            passenger.picked = false;
-            passenger.picked_human = false;
-            window.moves.push("dropoff");
         }
     }
 
