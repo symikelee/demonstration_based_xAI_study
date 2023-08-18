@@ -18,7 +18,7 @@ import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'augmented_taxi'))
 # from .augmented_taxi.policy_summarization import particle_filter as pf
 # from .augmented_taxi.main import run_scripts
-from .augmented_taxi.policy_summarization.flask_user_study_utils import normalize_trajectories
+#from .augmented_taxi.policy_summarization.flask_user_study_utils import normalize_trajectories
 print(os.path.join(os.path.dirname(__file__)))
 
 from app.backend_test import send_signal
@@ -650,8 +650,8 @@ def sandbox():
     version = current_user.curr_progress
     print(version)
     if version == "sandbox_1":
-        preamble = ''' <<h3>Feel free to play around in the game below and get used to the controls. </h3> <h4>You can click the continue button whenever you feel ready to move on.</h4><br>
-        <table class=\"center\"><tr><th>Key</th><th>Action</th></tr><tr><td>up/down/left/right arrow keys</td><td>corresponding movement</td></tr><tr><td>p</td><td>pick up</td></tr><tr><td>d</td><td>drop</td></tr><tr><td>r</td><td>reset simulation</td></tr></table><br>	        <h4>If you accidentally take a wrong action, you may reset the simulation and start over.</h4><h4>A subset of the following keys will be available to control Chip in each game:</h4><br>
+        preamble = ''' <h3>Feel free to play around in the game below and get used to the controls. </h3> <h4>You can click the continue button whenever you feel ready to move on.</h4><br>
+        <h4>If you accidentally take a wrong action, you may reset the simulation and start over.</h4><h4>A subset of the following keys will be available to control Chip in each game:</h4><br>
         '''
         # params = {
         #     'agent': {'x': 4, 'y': 3, 'has_passenger': 0},

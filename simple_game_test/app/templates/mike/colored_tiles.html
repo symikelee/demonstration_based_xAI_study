@@ -42,6 +42,7 @@ x
     </style>
   </head>
   <body>
+    <div class="container-fluid" style="padding-left: 5%; padding-right: 5%">
     <div id="container-instructions" class="text-center">
     <div id="preamble" class="pre_info">
         <h1>Participant gameplay</h1> <hr/>
@@ -49,10 +50,8 @@ x
     </div>
     <h2 id="debug"></h2><br><br><br>
     <div class="row justify-content-around">
-        <div class="col"></div>
-        <div class="col"><canvas id="game" width="750" height="650"></canvas></div>
+        <canvas id="game" width="750" height="650"></canvas>
         <div id="table_controlinfo"></div>
-        <div class="col"></div>
     </div>
     <div id="survey">
         <!-- <h3> Did this sequence improve your understanding of the game strategy?</h3>
@@ -70,7 +69,7 @@ x
     <hr>
     <br>
     <div class="instructionsnav">
-        <div class="row justify-content-around">
+        <div class="row justify-content-between">
           <div class="col-xs-3">
             <button type="button" id="prev" onclick="prev()" value="previous" class="btn btn-primary btn-lg continue"> Previous <span class="glyphicon glyphicon-arrow-left"></span>
             </button>
@@ -87,6 +86,7 @@ x
     <br>
     <br>
     </div>
+    </div>  
 
     <script>
         var socket = io();
@@ -131,7 +131,7 @@ x
         function change_text(interaction_type){  
         console.log("changing text")
         if (interaction_type == "diagnostic test" || interaction_type == "remedial test" || interaction_type == "final test") {
-            $("#table_controlinfo").replaceWith(`<div class="col"><div><br><br><br><br>
+            $("#table_controlinfo").replaceWith(`<div><br><br><br><br>
         <table width="500">
             <tr><th>Key</th><th>Action</th></tr>
             <tr><td>up/down/left/right arrow keys</td><td>corresponding movement</td></tr>
@@ -139,11 +139,11 @@ x
             <tr><td>d</td><td>drop</td></tr>
             <tr><td>r</td><td>reset simulation</td></tr>
         </table>
-        <br></div></div>`);
+        <br></div>`);
             $("#info_main").replaceWith('<h3>Now its your turn to play six games! Please demonstrate how you would complete this games task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.<br> <h3>Please answer the question below on the confidence of your gameplay <b>after</b> providing your demonstration.</h3>');
             }
         else {
-            $("#table_controlinfo").replaceWith(`<div class="col"><div><br><br><br>
+            $("#table_controlinfo").replaceWith(`<div><br><br><br>
         <table width="500">
             <tr><th>Key</th><th>Action</th></tr>
             <tr><td>space bar</td><td>next movement</td></tr>
@@ -151,7 +151,7 @@ x
             <tr><td>d</td><td>drop</td></tr>
             <tr><td>r</td><td>reset simulation</td></tr>
         </table>
-        <br></div></div>`);
+        <br></div>`);
             $("#info_main").replaceWith('<h3> Look at the demonstration on how you should complete this games task while minimizing Chips energy loss.</h3><h3>Please answer the question below on the confidence of your <b>understanding</b> of the demonstration.</h3>');
         }
         }        function prev() {
@@ -415,11 +415,11 @@ var spaceship =
         if (mdp_parameters.tag  == -2){
             drawTaxi(spaceship.grid_loc.human_x,spaceship.grid_loc.human_y,"light");
         }
-        drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
         if (mdp_parameters.tag  == -1){
             //Not needed unless single agents
             drawAgentHistory();
         }
+        drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
     }
 
     function record_data(){
@@ -518,11 +518,11 @@ var spaceship =
         if (mdp_parameters.tag  == -2){
             drawTaxi(spaceship.grid_loc.human_x,spaceship.grid_loc.human_y,"light");
         }
-        drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
         if (mdp_parameters.tag  == -1){
             //Not needed unless single agents
             drawAgentHistory();
         }
+        drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
 
         if(map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] == 1)
         {
@@ -535,17 +535,15 @@ var spaceship =
                 record_data()
             }
 
-            $("#survey").replaceWith(`<h3> Did this sequence improve your understanding of the game strategy?</h3>
-        <ul class="likert">
-            <li> Not helpful/informative at all </li>
-            <li><input type="radio" name="info" value="1" /></li>
-            <li><input type="radio" name="info" value="2" /></li>
-            <li><input type="radio" name="info" value="3" /></li>
-            <li><input type="radio" name="info" value="4" /></li>
-            <li><input type="radio" name="info" value="5" /></li>
-            <li> Very helpful/informative </li>
-        </ul>
-        <br></br>` );
+            $("#survey").replaceWith(`<h3> This sequence improved my understanding of the game strategy.</h3>
+                <div class="likert">
+                <label><input name="l" type="radio" value="1"/><span>Strongly Disagree</span></label>
+                <label><input name="l" type="radio" value="2"/><span>Disagree</span></label>
+                <label><input name="l" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
+                <label><input name="l" type="radio" value="4"/><span>Agree</span></label>
+                <label><input name="l" type="radio" value="5"/><span>Strongly Agree</span></label>
+                </div>
+                <br></br>` );
         }
       }
       function onGoal(version)
@@ -670,7 +668,13 @@ var spaceship =
     }
 
     var idx = 0;
-    var translate_draw = 10;
+    if (mdp_parameters.tag == -2) {
+          var translate_draw = 10;
+      }
+    else {
+        var translate_draw = 0;
+    }
+
     var agent_human_spacer = -0.2;
 
     function keyPressed(event)

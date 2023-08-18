@@ -14,34 +14,16 @@
     <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
     <link rel="stylesheet" href="/static/css/jspsych.css" type="text/css" />
     <style type="text/css">
-        .likert ul
-    {
-        list-style-type: none;
-        margin: 0;
-        padding: 0;
-    }
-
-    .likert li
-    {
-        float: left;
-        text-align: left;
-        list-style-type: none;
-        padding:10px;
-    }
-    .table-info
-    {
-        float: right;
-        text-align: center;
-        padding: 50px;
-    }
 
     .pre_info{
         float: center;
         text-align: center;
     }
+
     </style>
   </head>
   <body>
+    <div class="container-fluid" style="padding-left: 5%; padding-right: 5%">
     <div id="container-instructions" class="text-center">
         <div id="preamble" class="pre_info">
             <h1>Participant gameplay</h1> <hr/>
@@ -49,10 +31,8 @@
         </div>
         <h2 id="debug"></h2><br><br><br>
         <div class="row justify-content-around">
-            <div class="col"></div>
-            <div class="col"><canvas id="game" width="750" height="550"></canvas></div>
+            <canvas id="game" width="750" height="550"></canvas>
             <div id="table_controlinfo"></div>
-            <div class="col"></div>
         </div>
         <div id="survey">
         <!-- <h3> Did this sequence improve your understanding of the game strategy?</h3>
@@ -87,6 +67,7 @@
     </div>
     <br>
     <br>
+    </div>
     </div>
 
     <script>
@@ -131,7 +112,7 @@
         function change_text(interaction_type){  
         console.log("changing text")
         if (interaction_type == "diagnostic test" || interaction_type == "remedial test" || interaction_type == "final test") {
-            $("#table_controlinfo").replaceWith(`<div class="col"><div><br><br><br><br>
+            $("#table_controlinfo").replaceWith(`<div><br><br><br><br>
         <table width="500">
             <tr><th>Key</th><th>Action</th></tr>
             <tr><td>up/down/left/right arrow keys</td><td>corresponding movement</td></tr>
@@ -139,11 +120,11 @@
             <tr><td>d</td><td>drop</td></tr>
             <tr><td>r</td><td>reset simulation</td></tr>
         </table>
-        <br></div></div>`);
+        <br></div>`);
             $("#info_main").replaceWith('<h3>Now its your turn to play six games! Please demonstrate how you would complete this games task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.<br> <h3>Please answer the question below on the confidence of your gameplay <b>after</b> providing your demonstration.</h3>');
             }
         else {
-            $("#table_controlinfo").replaceWith(`<div class="col"><div><br><br><br>
+            $("#table_controlinfo").replaceWith(`<div><br><br><br>
         <table width="500">
             <tr><th>Key</th><th>Action</th></tr>
             <tr><td>space bar</td><td>next movement</td></tr>
@@ -151,7 +132,7 @@
             <tr><td>d</td><td>drop</td></tr>
             <tr><td>r</td><td>reset simulation</td></tr>
         </table>
-        <br></div></div>`);
+        <br></div>`);
             $("#info_main").replaceWith('<h3> Look at the demonstration on how you should complete this games task while minimizing Chips energy loss.</h3><h3>Please answer the question below on the confidence of your <b>understanding</b> of the demonstration.</h3>');
         }
         }
@@ -186,7 +167,7 @@
                     </button>` );
         });
 
-        function run_page(mdp_parameters) {
+    function run_page(mdp_parameters) {
     var canvas = document.getElementById("game");
     var context = canvas.getContext("2d");
 
@@ -213,38 +194,47 @@
     var map_layout = {};
 
     var spaceship =
-      {
-          color: "#628dbe",
-          color_light: "#7cb8fc",
-          width: 65,
-          height: 130,
-          grid_loc:
-          {
-            x: 0,
-              y: 0,
-              human_x: 0,
-              human_y: 0
-          },
-          taxi_set: false
-      }
+    {
+        color: "#628dbe",
+        color_light: "#7cb8fc",
+        width: 65,
+        height: 130,
+        grid_loc:
+        {
+        x: 0,
+            y: 0,
+            human_x: 0,
+            human_y: 0
+        },
+        taxi_set: false
+    }
 
-      var passenger =
-      {
-          color: "#C88B66",
-          color_light: "#fcae7e",
-          width: 350,
-          height: 350,
-          grid_loc:
-          {
-              x: 0,
-              y: 0,
-              human_x: 0,
-              human_y: 0
-          },
-          picked: false,
-          picked_human: false,
-          dropped: false
-      }
+    var passenger =
+    {
+        color: "#C88B66",
+        color_light: "#fcae7e",
+        width: 350,
+        height: 350,
+        grid_loc:
+        {
+            x: 0,
+            y: 0,
+            human_x: 0,
+            human_y: 0
+        },
+        picked: false,
+        picked_human: false,
+        dropped: false
+    }
+
+    var goal = 
+    {
+        grid_loc:
+        {
+            x: 0,
+            y: 0 
+        }
+    }
 
       function build_grid(){
         //create a grid
@@ -361,7 +351,7 @@
                 }
             context.restore();
         }
-      }
+      }}
 
     function drawAgentHistory()
     {
@@ -475,11 +465,11 @@
             drawTaxi(spaceship.grid_loc.human_x,spaceship.grid_loc.human_y,"light");
             drawPassenger(passenger.grid_loc.human_x,passenger.grid_loc.human_y,"light");
         }
-        drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
-        drawPassenger(passenger.grid_loc.x,passenger.grid_loc.y,"normal");
         if (mdp_parameters.tag  == -1){
             drawAgentHistory();
         }
+        drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
+        drawPassenger(passenger.grid_loc.x,passenger.grid_loc.y,"normal");
     }
 
     function record_data(){
@@ -531,7 +521,7 @@
         data_sent = true
     }
 
-      function draw()
+    function draw()
       {
           if (!start_time_set) {
               start_time = performance.now();
@@ -580,13 +570,13 @@
             drawTaxi(spaceship.grid_loc.human_x,spaceship.grid_loc.human_y,"light");
             drawPassenger(passenger.grid_loc.human_x,passenger.grid_loc.human_y,"light");
         }
-        drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
-        drawPassenger(passenger.grid_loc.x,passenger.grid_loc.y,"normal");
         if (mdp_parameters.tag  == -1){
             drawAgentHistory();
         }
+        drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
+        drawPassenger(passenger.grid_loc.x,passenger.grid_loc.y,"normal");
 
-        if(map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] == 1) {
+        if((map_layout.destination[spaceship.grid_loc.y-offset_y][Math.floor(spaceship.grid_loc.x.grid_loc.x-offset_x)] == 1) && (map_layout.destination[spaceship.grid_loc.human_y-offset_y][Math.floor(spaceship.grid_loc.human_x-offset_x)] == 1)){
             context.font = "bold 28px Arial";
             context.fillStyle = text_color;
             context.textAlign = "center";
@@ -596,21 +586,19 @@
                 record_data()
             }
 
-            $("#survey").replaceWith(`<h3> Did this sequence improve your understanding of the game strategy?</h3>
-        <ul class="likert">
-            <li> Not helpful/informative at all </li>
-            <li><input type="radio" name="info" value="1" /></li>
-            <li><input type="radio" name="info" value="2" /></li>
-            <li><input type="radio" name="info" value="3" /></li>
-            <li><input type="radio" name="info" value="4" /></li>
-            <li><input type="radio" name="info" value="5" /></li>
-            <li> Very helpful/informative </li>
-        </ul>
-        <br></br>` );
+            $("#survey").replaceWith(`<h3> This sequence improved my understanding of the game strategy.</h3>
+                <div class="likert">
+                <label><input name="l" type="radio" value="1"/><span>Strongly Disagree</span></label>
+                <label><input name="l" type="radio" value="2"/><span>Disagree</span></label>
+                <label><input name="l" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
+                <label><input name="l" type="radio" value="4"/><span>Agree</span></label>
+                <label><input name="l" type="radio" value="5"/><span>Strongly Agree</span></label>
+                </div>
+                <br></br>` );
         }
       }
 
-      function onGoal(version){
+    function onGoal(version){
         if (version=="agent"){
             if (map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] == 1) {
                 console.log("agent here");
@@ -801,13 +789,24 @@
         if (onGoal()){
             return;
         }
-        if (passenger.picked) {
-            passenger.dropped = true;
-            //watched_vid_arr[current_page] = true;
+        if (version == "agent"){
+            x = spaceship.grid_loc.x;
+            y = spaceship.grid_loc.y;
+        }
+        else{
+            x = spaceship.grid_loc.human_x;
+            y = spaceship.grid_loc.human_y;
+        }
+        condition_goal = ((Math.floor(x) == goal.grid_loc.x) && (y == goal.grid_loc.y));
+        if (passenger.picked){
+            if (condition_goal){
+                passenger.dropped = true;
+                console.log(moves);
+                window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y, passenger.picked])
+            }
             passenger.picked = false;
             passenger.picked_human = false;
-            moves.push("dropoff");
-            console.log(moves);
+            window.moves.push("dropoff");
         }
     }
 
@@ -831,7 +830,13 @@
       }
 
       var idx = 0;
-      var translate_draw = 10;
+      if (mdp_parameters.tag == -2) {
+          var translate_draw = 10;
+      }
+      else {
+          var translate_draw = 0;
+      }
+
       var agent_human_spacer = -0.2;
 
     function keyPressed(event)
@@ -981,7 +986,7 @@
     start_screen();
     canvas.addEventListener('click', draw);
     context.restore();
-        }
+    }
     </script>
   </body>
 </html>

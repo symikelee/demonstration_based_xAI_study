@@ -12,20 +12,10 @@
     <link rel="stylesheet" href="../../static/css/style.css" type="text/css" />
     <link rel="stylesheet" href="../../static/css/jspsych.css" type="text/css" />
     <style type="text/css">
-        .table-info
-        {
-            float: right;
-            text-align: center;
-            padding: 50px;
-        }
     
         .pre_info{
             float: center;
             text-align: center;
-        }
-
-        .fixed{
-            width: 100px;
         }
     
     </style>
@@ -37,43 +27,44 @@
         console.log(socket);
         window.socket = socket;
       </script> -->
-    <div id="container-instructions" class="text-center">
-    <div id="preamble" class="pre_info">{{preamble | safe}}</div>
-    <div class="row justify-content-around">
-        <div class="fixed"></div>
-        <div class="col"><canvas id="game" width="850" height="500"></canvas></div>
-        <div class="col"><div><br><br><br><br><br>
-            <table width="500">
-                <tr><th>Key</th><th>Action</th></tr>
-                <tr><td>up/down/left/right arrow keys</td><td>corresponding movement</td></tr>
-                <tr><td>p</td><td>pick up</td></tr>
-                <tr><td>d</td><td>drop</td></tr>
-                <tr><td>r</td><td>reset simulation</td></tr>
-            </table>
-            <br>
-        </div></div>
-            <div class="col"></div>
-    </div>
-    <br></br> 
-    <hr />
-    <div class="instructionsnav">
-        <div class="row justify-content-around">
-            <div class="col-xs-3">
-            	<button type="button" id="prev" onclick="window.location.href='/sandbox_introduction'" value="previous" class="btn btn-primary btn-lg continue">
-                    Previous <span class="glyphicon glyphicon-arrow-left"></span>
-                    </button>
+    <div class="container-fluid" style="padding-left: 5%; padding-right: 5%">
+        <div id="container-instructions" class="text-center">
+            <div id="preamble" class="pre_info">{{preamble | safe}}</div>
+            <div class="row justify-content-around">
+                <canvas id="game" width="850" height="500"></canvas>
+                <div><br><br><br><br><br>
+                    <table width="500">
+                        <tr><th>Key</th><th>Action</th></tr>
+                        <tr><td>up/down/left/right arrow keys</td><td>corresponding movement</td></tr>
+                        <tr><td>p</td><td>pick up</td></tr>
+                        <tr><td>d</td><td>drop</td></tr>
+                        <tr><td>r</td><td>reset simulation</td></tr>
+                    </table>
+                    <br>
+                </div>
             </div>
-            <div class="col-xs-3">
-                <button type="button" id="next" 
-                onclick="make_sandbox()"
-                value="next" class="btn btn-primary btn-lg continue">
-                Next <span class="glyphicon glyphicon-arrow-right"></span>
-        </button>
+            <br></br> 
+            <hr />
+            <div class="instructionsnav">
+                <div class="row justify-content-between">
+                    <div class="col-xs-3">
+                        <button type="button" id="prev" onclick="window.location.href='/sandbox_introduction'" value="previous" class="btn btn-primary btn-lg continue">
+                            Previous <span class="glyphicon glyphicon-arrow-left"></span>
+                            </button>
+                    </div>
+                    <div class="col-xs-3">
+                        <button type="button" id="next" 
+                        onclick="make_sandbox()"
+                        value="next" class="btn btn-primary btn-lg continue">
+                        Next <span class="glyphicon glyphicon-arrow-right"></span>
+                </button>
+                    </div>
+                </div>
             </div>
-        </div>
+            <br></br> 
+            </div>
     </div>
-    <br></br> 
-    </div>
+    
 
     <script>
     var socket = io();
