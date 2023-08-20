@@ -31,13 +31,47 @@
         float: center;
         text-align: center;
     }
-
+      /* Add your CSS styles here */
+        #loading-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+          height: 100vh;
+        }
+        .spinner {
+          border: 4px solid rgba(0, 0, 0, 0.1);
+          border-left-color: #3498db;
+          animation: spin 1s linear infinite;
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          margin-bottom: 10px;
+        }
+        @keyframes spin {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
     </style>
   </head>
   
   <body>
     <div class="container-fluid" style="padding-left: 5%; padding-right: 5%">
-    <div id="container-instructions" class="text-center">
+  <div id="container-instructions" class="text-center">
+      <div id = "load-main"><div id="loading-container">
+          <p>Please wait while the next instruction loads...</p>
+          <div class="spinner"></div>
+      </div>
+
+          <!-- Your content goes here -->
+          <div id="content" style="display: none;">
+              <!-- Content elements -->
+          </div>
+      </div>
     <div id="preamble" class="pre_info">
         <h1>Participant gameplay</h1> <hr/>
         <div id = "info_main"></div>
@@ -74,6 +108,14 @@
 
     <script>
         var socket = io();
+
+        // trying to provide a loading graphic
+        // Simulate loading completion after a delay
+        setTimeout(function() {
+            document.getElementById('loading-container').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+        }, 1000000); // Adjust the delay as needed
+
         socket.on("connect", function () {
             // if (localStorage.getItem("progress") === "sandbox_1") {
             //     socket.emit("sandbox settings", { version: 1 });
@@ -108,6 +150,7 @@
             if (data["last test"]) {
                 localStorage.setItem("last test", "true");
             }
+            document.getElementById('load-main').style.display = 'none';
             console.log(window.interaction_type);
             console.log(window.mdp_parameters);
             change_text(window.interaction_type);
@@ -285,7 +328,8 @@
         },
         picked: false,
         picked_human: false,
-        dropped: false
+        dropped: false,
+        dropped_human: false
     }
 
     var hotswap_station =
@@ -701,7 +745,13 @@
         drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
         drawPassenger(passenger.grid_loc.x,passenger.grid_loc.y,"normal");
 
-        if(passenger.dropped)
+        // todo: update this to also consider whether the passenger.dropped_human is true as well if mdp_parameter.tag == -2
+          game_completed = false
+          if (mdp_parameters.tag == -2) {
+              if (passenger.dropped && passenger.dropped_human) game_completed = true;
+          } else if (passenger.dropped) game_completed = true;
+
+        if(game_completed)
         {
             context.font = "bold 28px Arial";
             context.fillStyle = text_color;
@@ -737,15 +787,11 @@
                 <br></br>` );
             }
             
-            
+
         }
       }
 
       function left(version) {
-        if (passenger.dropped){
-           return;
-        }
-
         agent_on_hotswap_station = checkHotswap("agent");
         human_on_hotswap_station = checkHotswap("human");
 
@@ -766,7 +812,7 @@
         else{
             if (spaceship.grid_loc.human_x > offset_x && map_layout.color_blocks[spaceship.grid_loc.human_y-offset_y][spaceship.grid_loc.human_x-1-offset_x] != 1){
             spaceship.grid_loc.human_x -= 1;
-            if (passenger.picked){
+            if (passenger.picked_human){
                 passenger.grid_loc.human_x -= 1;
             }
             if (agent_on_hotswap_station) {
@@ -777,10 +823,6 @@
       }
 
       function right(version) {
-        if (passenger.dropped){
-            return;
-        }
-
         agent_on_hotswap_station = checkHotswap("agent");
         human_on_hotswap_station = checkHotswap("human");
 
@@ -800,7 +842,7 @@
         else{
             if (spaceship.grid_loc.human_x < mdp_parameters.width-1+offset_x && map_layout.color_blocks[spaceship.grid_loc.human_y-offset_y][spaceship.grid_loc.human_x+1-offset_x] != 1){
             spaceship.grid_loc.human_x += 1;
-            if (passenger.picked){
+            if (passenger.picked_human){
                 passenger.grid_loc.human_x += 1;
             }
             if (agent_on_hotswap_station) {
@@ -811,10 +853,6 @@
       }
 
       function up(version) {
-        if (passenger.dropped){
-            return;
-        }
-
         agent_on_hotswap_station = checkHotswap("agent");
         human_on_hotswap_station = checkHotswap("human");
 
@@ -834,7 +872,7 @@
         else{
             if (spaceship.grid_loc.human_y > offset_y && map_layout.color_blocks[spaceship.grid_loc.human_y-1-offset_y][spaceship.grid_loc.human_x-offset_x] != 1){
             spaceship.grid_loc.human_y -= 1;
-            if (passenger.picked){
+            if (passenger.picked_human){
                 passenger.grid_loc.human_y -= 1;
             }
             if (human_on_hotswap_station) {
@@ -846,10 +884,6 @@
       }
 
       function down(version) {
-        if (passenger.dropped){
-            return;
-        }
-
         agent_on_hotswap_station = checkHotswap("agent");
         human_on_hotswap_station = checkHotswap("human");
 
@@ -869,7 +903,7 @@
         else{
             if (spaceship.grid_loc.human_y < mdp_parameters.height-1+offset_y && map_layout.color_blocks[spaceship.grid_loc.human_y+1-offset_y][spaceship.grid_loc.human_x-offset_x] != 1){
             spaceship.grid_loc.human_y += 1;
-            if (passenger.picked){
+            if (passenger.picked_human){
                 passenger.grid_loc.human_y += 1;
             }
             if (human_on_hotswap_station) {
@@ -880,9 +914,6 @@
       }
 
       function pickup(version) {
-        if (passenger.dropped){
-            return;
-        }
         if (version == "agent"){
             if (Math.floor(spaceship.grid_loc.x) == Math.floor(passenger.grid_loc.x) && spaceship.grid_loc.y == passenger.grid_loc.y && passenger.picked == false){
                 moves.push("pickup");
@@ -901,46 +932,39 @@
       }
 
       function dropoff(version) {
-        if (passenger.dropped){
-            return;
-        }
         if (version == "agent"){
-            x = spaceship.grid_loc.x;
-            y = spaceship.grid_loc.y;
+            condition_goal = ((Math.floor(spaceship.grid_loc.x) == goal.grid_loc.x) && (spaceship.grid_loc.y == goal.grid_loc.y));
+
+            if (passenger.picked){
+                window.moves.push("dropoff");
+                passenger.picked = false;
+                if (condition_goal){
+                    passenger.dropped = true;
+                    //watched_vid_arr[current_page] = true;
+                    console.log(moves);
+                    window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y, passenger.picked])
+                }
+            }
         }
         else{
-            x = spaceship.grid_loc.human_x;
-            y = spaceship.grid_loc.human_y;
-        }
-        condition_goal = ((Math.floor(x) == goal.grid_loc.x) && (y == goal.grid_loc.y));
-        if (passenger.picked){
-            window.moves.push("dropoff");
-            passenger.picked = false;
-            passenger.picked_human = false;
-            if (condition_goal){
-                passenger.dropped = true;
-                //watched_vid_arr[current_page] = true;
-                console.log(moves);
-                window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y, passenger.picked])
-            }
+            condition_goal = ((Math.floor(spaceship.grid_loc.human_x) == goal.grid_loc.x) && (spaceship.grid_loc.human_y == goal.grid_loc.y));
 
-            
+            if (passenger.picked_human){
+                passenger.picked_human = false;
+                if (condition_goal){
+                    passenger.dropped_human = true;
+                }
+            }
         }
-        
+
+
       }
 
       function reset() {
-        if (passenger.dropped){
-            if ((mdp_parameters.tag == - 1)||(mdp_parameters.tag == -2)) {
-                passenger.dropped = false
-            }
-            else {
-                return;
-            }   
-        }
         moves = [];
         map_layout.set = false;
         passenger.picked = false;
+        passenger.picked_human = false;
         hotswap_station.visited = false;
         window.agent_history = [];
         window.agent_history_nonoffset = [];
@@ -989,148 +1013,149 @@
       function keyPressed(event)           
       {
         if (mdp_parameters.tag == -2) {
-            //training case, agent & human          
-            if (event.keyCode == 32) {
-                //space bar pressed, advance demo
+            //training case, agent & human
 
-                var next_action_agent = mdp_parameters.normalized_opt_actions[idx];
-                var next_action_human = mdp_parameters.normalized_human_actions[idx];
-                console.log("agent:" + next_action_agent);
-                console.log("human:" + next_action_human);
-                idx++;
-                switch(next_action_human) {
-                    case "left":
-                        left("human");
-                        break;
-                    case "right":
-                        right("human");
-                        break;
-                    case "up":
-                        up("human");
-                        break;
-                    case "down":
-                        down("human");
-                        break;
-                    case "pickup":
-                        pickup("human");
-                        break;
-                    case "dropoff":
-                        dropoff("human");
-                        break;
-                    case "no-op":
-                        no_op();
-                        break;
+                if (event.keyCode == 32) {
+                    //space bar pressed, advance demo
+
+                    var next_action_agent = mdp_parameters.normalized_opt_actions[idx];
+                    var next_action_human = mdp_parameters.normalized_human_actions[idx];
+                    console.log("agent:" + next_action_agent);
+                    console.log("human:" + next_action_human);
+                    idx++;
+                    switch (next_action_human) {
+                        case "left":
+                            left("human");
+                            break;
+                        case "right":
+                            right("human");
+                            break;
+                        case "up":
+                            up("human");
+                            break;
+                        case "down":
+                            down("human");
+                            break;
+                        case "pickup":
+                            pickup("human");
+                            break;
+                        case "dropoff":
+                            dropoff("human");
+                            break;
+                        case "no-op":
+                            no_op();
+                            break;
+                    }
+                    switch (next_action_agent) {
+                        case "left":
+                            left("agent");
+                            break;
+                        case "right":
+                            right("agent");
+                            break;
+                        case "up":
+                            up("agent");
+                            break;
+                        case "down":
+                            down("agent");
+                            break;
+                        case "pickup":
+                            pickup("agent");
+                            break;
+                        case "dropoff":
+                            dropoff("agent");
+                            break;
+                        case "no-op":
+                            no_op();
+                            break;
+                    }
+                    //agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
+                    requestAnimationFrame(draw);
                 }
-                switch(next_action_agent) {
-                    case "left":
-                        left("agent");
-                        break;
-                    case "right":
-                        right("agent");
-                        break;
-                    case "up":
-                        up("agent");
-                        break;
-                    case "down":
-                        down("agent");
-                        break;
-                    case "pickup":
-                        pickup("agent");
-                        break;
-                    case "dropoff":
-                        dropoff("agent");
-                        break;
-                    case "no-op":
-                        no_op();
-                        break;
+             if (event.keyCode == 82) {
+                    idx = 0;
+                    reset();
+                    requestAnimationFrame(draw);
                 }
-                //agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
-                requestAnimationFrame(draw);
+        }
+        else if (mdp_parameters.tag == -1) {
+                    //training case, just agent
+                    if (event.keyCode == 32) {
+                        //space bar pressed, advance demo
+                        var next_action_agent = mdp_parameters.opt_actions[idx];
+                        console.log(next_action_agent);
+                        idx++;
+                        switch (next_action_agent) {
+                            case "left":
+                                left("agent");
+                                break;
+                            case "right":
+                                right("agent");
+                                break;
+                            case "up":
+                                up("agent");
+                                break;
+                            case "down":
+                                down("agent");
+                                break;
+                            case "pickup":
+                                pickup("agent");
+                                break;
+                            case "dropoff":
+                                dropoff("agent");
+                                break;
+                        }
+                        window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
+                        requestAnimationFrame(draw);
+                    } else if (event.keyCode == 82) {
+                        idx = 0;
+                        reset();
+                        requestAnimationFrame(draw);
+                    }
             }
-            else if (event.keyCode == 82) {
-                idx = 0;
-                reset();
-                requestAnimationFrame(draw);
-            }
-        } 
-        else if (mdp_parameters.tag == -1){
-            //training case, just agent         
-            if (event.keyCode == 32) {
-                //space bar pressed, advance demo
-                var next_action_agent = mdp_parameters.opt_actions[idx];
-                console.log(next_action_agent);
-                idx++;
-                switch(next_action_agent) {
-                    case "left":
-                        left("agent");
-                        break;
-                    case "right":
-                        right("agent");
-                        break;
-                    case "up":
-                        up("agent");
-                        break;
-                    case "down":
-                        down("agent");
-                        break;
-                    case "pickup":
-                        pickup("agent");
-                        break;
-                    case "dropoff":
-                        dropoff("agent");
-                        break;
-                }
-                window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
-                requestAnimationFrame(draw);
-            }
-            else if (event.keyCode == 82) {
-                idx = 0;
-                reset();
-                requestAnimationFrame(draw);
-            }
-        } 
         else {
             //testing case
             // prevent arrow keys from simultaneously moving the window
             if([37, 38, 39, 40].indexOf(event.keyCode) > -1) {
                 event.preventDefault();
             }
-            switch(event.keyCode)
-            {
-                case 37:
-                    // Left Arrow key
-                    left("agent");
-                    break;
-                case 39:
-                    // Right Arrow key
-                    right("agent");
-                    break;
-                case 38:
-                    // Up Arrow key
-                    up("agent");
-                    break;
-                case 40:
-                    // down Arrow key
-                    down("agent");
-                    break;
-                case 80:
-                    //p key
-                    pickup("agent");
-                    break;
-                case 68:
-                    //d key
-                    dropoff("agent");
-                    break;
-                case 82:
-                    //r key
-                    reset("agent");
-                    break;
+            if (!passenger.dropped) {
+                switch (event.keyCode) {
+                    case 37:
+                        // Left Arrow key
+                        left("agent");
+                        break;
+                    case 39:
+                        // Right Arrow key
+                        right("agent");
+                        break;
+                    case 38:
+                        // Up Arrow key
+                        up("agent");
+                        break;
+                    case 40:
+                        // down Arrow key
+                        down("agent");
+                        break;
+                    case 80:
+                        //p key
+                        pickup("agent");
+                        break;
+                    case 68:
+                        //d key
+                        dropoff("agent");
+                        break;
+                    case 82:
+                        //r key
+                        reset("agent");
+                        break;
+                }
+                if (event.keyCode != 82) {
+                    window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
+                }
+                requestAnimationFrame(draw);
             }
-            if (event.keyCode != 82) {
-                window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
-            }
-            requestAnimationFrame(draw);
-      }
+        }
     }
 
     // reset();
