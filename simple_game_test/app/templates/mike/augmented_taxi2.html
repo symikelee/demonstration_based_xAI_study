@@ -89,7 +89,7 @@
     <div class="instructionsnav">
         <div class="row justify-content-between">
           <div class="col-xs-3">
-            <button type="button" id="prev" value="previous" class="btn btn-primary btn-lg continue"> Previous <span class="glyphicon glyphicon-arrow-left"></span>
+            <button type="button" id="prev" onclick="prev()" value="previous" class="btn btn-primary btn-lg continue"> Previous <span class="glyphicon glyphicon-arrow-left"></span>
             </button>
           </div>
           <div class="col-xs-3">
@@ -131,6 +131,7 @@
             let data = {};
             // data["domain"] = localStorage.getItem("domain");
             data["interaction type"] = localStorage.getItem("interaction type");
+            data["survey"] = localStorage.getItem("survey")
             // data["iteration"] = Number(localStorage.getItem("iteration"));
             // data["subiteration"] = Number(localStorage.getItem("subiteration"));
             data["user input"] = JSON.parse(localStorage.getItem("user input"));
@@ -145,7 +146,18 @@
             localStorage.setItem("survey", "-1");
             window.mdp_parameters = data["params"]; 
             window.interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
-            localStorage.setItem("seen", data["seen"]);
+            localStorage.setItem("already completed", data["already completed"]);
+            if (data["go prev"] === "false") {
+                $("#prev").replaceWith(`<button type="button" id="prev" disabled onclick="prev()" value="previous" class="btn btn-primary btn-lg continue"> Previous <span class="glyphicon glyphicon-arrow-left"></span>
+            </button>`);
+            }
+            if (data["already completed"] === "true") {
+                $("#next").replaceWith(`<button type="button" id="next" 
+                    onclick="next()"
+                    value="next" class="btn btn-primary btn-lg continue">
+                    Next <span class="glyphicon glyphicon-arrow-right"></span>
+                    </button>` );
+            }
             $("#debug").html(data["debug string"]);
             if (data["last test"]) {
                 localStorage.setItem("last test", "true");
@@ -195,8 +207,9 @@
         // );
 
         function prev() {
+            console.log("I am going prev");
             localStorage.setItem("movement", "prev");
-            window.location.href="/ct";
+            window.location.href="/at";
         }
 
 
@@ -763,8 +776,8 @@
             if (data_sent == false) {
                 record_data()
             }
-            it = window.interaction_type;
-            last_test = localStorage.getItem("last test");
+            var it = window.interaction_type;
+            var last_test = localStorage.getItem("last test");
             if (it == "final test"){
                 if(last_test){
                     $("#score").html('<div class="text-center"><h1>Score Results</h1><p>You scored <p id="score_val"></p>times correctly.</p></div>')
@@ -775,7 +788,7 @@
                     Next <span class="glyphicon glyphicon-arrow-right"></span>
                     </button>` );
             }
-            else{
+            else if (localStorage.getItem("already completed") === "false"){
                 $("#survey").html(`<h3> This sequence improved my understanding of the game strategy.</h3>
                 <div class="likert">
                 <label><input name="info" type="radio" value="1"/><span>Strongly Disagree</span></label>

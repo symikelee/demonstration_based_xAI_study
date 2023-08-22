@@ -776,7 +776,7 @@ def sb():
 def settings(data):
     loop_cond = current_user.loop_condition
     curr_domain = current_user.curr_progress[-1]
-    print(curr_domain)
+    # print(curr_domain)
     print(current_user.curr_progress)
     domain = ""
     if curr_domain == "1":
@@ -924,22 +924,23 @@ def settings(data):
     print(loop_cond)
     print(domain)
 
-    trial = Trial(
-        user_id = current_user.id,
-        domain = domain,
-        interaction_type = it,
-        iteration = iter,
-        subiteration = subiter,
-        #likert = data["survey"],
-        #moves = data["user input"]["moves"],
-        #coordinates = data["user input"]["agent_history_nonoffset"],
-        # is_opt_response = data["user input"]["opt_response"],
-        percent_seen = -1, #TODO: later?
-        #mdp_parameters = data["user input"]["mdp_parameters"],
-        #duration_ms = data["user input"]["simulation_rt"],
-        human_model = None #TODO: later?
-    )
-    db.session.add(trial)
+    if iter != -1:
+        trial = Trial(
+            user_id = current_user.id,
+            domain = domain,
+            interaction_type = it,
+            iteration = iter,
+            subiteration = subiter,
+            likert = int(data["survey"]),
+            moves = data["user input"]["moves"],
+            coordinates = data["user input"]["agent_history_nonoffset"],
+            is_opt_response = data["user input"]["opt_response"],
+            percent_seen = -1, #TODO: later?
+            mdp_parameters = data["user input"]["mdp_parameters"],
+            duration_ms = data["user input"]["simulation_rt"],
+            human_model = None #TODO: later?
+        )
+        db.session.add(trial)
 
     # if data["survey "]
 
@@ -952,6 +953,10 @@ def settings(data):
         # search ctrl stack for the current key,  
 
     key = [it, iter, subiter]
+    last_test = False
+
+    if key not in current_user.control_stack:
+        current_user.stack_push(key)
 
     if data["movement"] == "prev":
         old_idx = current_user.control_stack.index(key)
@@ -960,145 +965,154 @@ def settings(data):
         current_user.iteration = current_user.control_stack[new_idx][1]
         current_user.subiteration = current_user.control_stack[new_idx][2]
         current_user.curr_trial_idx = new_idx
+        old_trials = db.session.query(Trial).filter_by(user_id=current_user.id, 
+                                                        domain=domain, 
+                                                        interaction_type=current_user.interaction_type, 
+                                                        iteration=current_user.iteration, 
+                                                        subiteration=current_user.subiteration).all()
+        params_list = [trial.mdp_parameters for trial in old_trials]
+        response["params"] = params_list[0]
+
     elif data["movement"] == "next":
         
-        if key not in current_user.control_stack:
-            current_user.stack_push(key)
-            seen = "false"
-        current_user.curr_trial_idx = current_user.control_stack.index(key)
-        print(current_user.control_stack)
+        # if key not in current_user.control_stack:
+        #     current_user.stack_push(key)
+        #     seen = "false"
+        # current_user.curr_trial_idx = current_user.control_stack.index(key)
+        # print(current_user.control_stack)
 
-    arr = progression[loop_cond][domain]
-    idx = 0
-    if (it == "remedial test") or (it == "remedial feedback"):
-        idx = arr.index([it, iter, subiter])
-    else: 
-        idx = arr.index([it, iter])
+        arr = progression[loop_cond][domain]
+        idx = 0
+        if (it == "remedial test") or (it == "remedial feedback"):
+            idx = arr.index([it, iter, subiter])
+        else: 
+            idx = arr.index([it, iter])
 
-    # taking care of db pushes
-    if "test" in it:
-        # push the user input to the current trial ??
-        pass
-    # if db.session.query for the current domain, interaction type, iteration, and sub iteration
-    # then increment times seen?
-    last_test = False
-    # taking care of next progs
-    # here is a nice little jump table
-    if idx == len(arr) - 2:
-        last_test = True
-        # current_user.interaction_type = "demo"
-        # current_user.iteration = -1
-        # current_user.subiteration = 0
-        # figure this out later
-    
-    if loop_cond == "open" or loop_cond == "debug":
-        current_user.interaction_type = arr[idx + 1][0]
-        current_user.iteration = arr[idx + 1][1]
-    elif loop_cond == "pl":
-        if it == "diagnostic test": #and data["user input"]["opt_response"]:
-            current_user.interaction_type = arr[idx + 2][0]
-            current_user.iteration = arr[idx + 2][1]
-        else:
+        # taking care of next progs
+        # here is a nice little jump table
+        if idx == len(arr) - 2:
+            last_test = True
+        
+        if loop_cond == "open" or loop_cond == "debug":
             current_user.interaction_type = arr[idx + 1][0]
             current_user.iteration = arr[idx + 1][1]
-    elif loop_cond == "cl":
-        if it == "diagnostic test": #and data["user input"]["opt_response"]:
-            current_user.interaction_type = arr[idx + 11][0]
-            current_user.iteration = arr[idx + 11][1]
-        elif it == "remedial test": #and data["user input"]["opt_response"]:
-            jump = 2 * (4 - subiter)
-            current_user.interaction_type = arr[idx + jump][0]
-            current_user.iteration = arr[idx + jump][1]
-            current_user.subiteration = 0
-        else:
-            current_user.interaction_type = arr[idx + 1][0]
-            current_user.iteration = arr[idx + 1][1]
-            if current_user.interaction_type == ("remedial test" or "remedial feedback"):
-                current_user.subiteration = arr[idx + 1][2]
+        elif loop_cond == "pl":
+            if it == "diagnostic test": #and data["user input"]["opt_response"]:
+                current_user.interaction_type = arr[idx + 2][0]
+                current_user.iteration = arr[idx + 2][1]
             else:
+                current_user.interaction_type = arr[idx + 1][0]
+                current_user.iteration = arr[idx + 1][1]
+        elif loop_cond == "cl":
+            if it == "diagnostic test": #and data["user input"]["opt_response"]:
+                current_user.interaction_type = arr[idx + 11][0]
+                current_user.iteration = arr[idx + 11][1]
+            elif it == "remedial test": #and data["user input"]["opt_response"]:
+                jump = 2 * (4 - subiter)
+                current_user.interaction_type = arr[idx + jump][0]
+                current_user.iteration = arr[idx + jump][1]
                 current_user.subiteration = 0
-    
-    response["params"] = {}
-
-    # REQUIRES: domain and loop condition are the same throughout this function
-    # it, iter, and subiter are the old versions
-    # current_user.{interaction_type, iteration, subiteration} are the new versions
-
-    if domain == "at":
-        domain_key = "augmented_taxi2"
-    elif domain == "ct":
-        domain_key = "colored_tiles"
-    else:
-        domain_key = "skateboard2"
-
-    #TODO: set up dummy function for taxi call
-    print("heree")
-    print(current_user.interaction_type)
-    print(current_user.iteration)
-    if loop_cond == "cl":
-        if current_user.interaction_type == "final test":
-            # todo: randomize the order of the tests and also potentially account for train_test_set (currently only using the first set)
-            if current_user.iteration < 2:
-                response["params"] = jsons[domain_key][current_user.interaction_type]["low"][0][current_user.iteration]
-            elif current_user.iteration < 4:
-                response["params"] = jsons[domain_key][current_user.interaction_type]["medium"][0][current_user.iteration - 2]
             else:
-                response["params"] = jsons[domain_key][current_user.interaction_type]["high"][0][current_user.iteration - 4]
-        elif current_user.interaction_type == "diagnostic feedback":
-            # normalize the actions of the optimal and (incorrect) human trajectory such that they're the same length
-            # (by causing the longer trajectory to wait at overlapping states)
-            opt_actions = data['user input']['mdp_parameters']['opt_actions']
-            opt_locations = data['user input']['mdp_parameters']['opt_locations']
-            opt_locations_tuple = [tuple(opt_location) for opt_location in opt_locations]
+                current_user.interaction_type = arr[idx + 1][0]
+                current_user.iteration = arr[idx + 1][1]
+                if current_user.interaction_type == ("remedial test" or "remedial feedback"):
+                    current_user.subiteration = arr[idx + 1][2]
+                else:
+                    current_user.subiteration = 0
+        
+        response["params"] = {}
 
-            human_actions = data["user input"]["moves"]
-            human_locations = data["user input"]["agent_history_nonoffset"]
-            human_locations_tuple = [(human_location[0], human_location[1], int(human_location[2])) for human_location in human_locations]
+        # REQUIRES: domain and loop condition are the same throughout this function
+        # it, iter, and subiter are the old versions
+        # current_user.{interaction_type, iteration, subiteration} are the new versions
 
-            normalized_opt_actions, normalized_human_actions = normalize_trajectories(opt_locations_tuple, opt_actions, human_locations_tuple, human_actions)
-            print(normalized_opt_actions)
-            print(normalized_human_actions)
-
-            # update the relevant mdp_parameter with the normalized versions of the trajectories
-            updated_data = data['user input']['mdp_parameters'].copy()
-            updated_data['normalized_opt_actions'] = normalized_opt_actions
-            updated_data['normalized_human_actions'] = normalized_human_actions
-            updated_data['tag'] = -2 # indicate that this is trajectory visualization
-            response["params"] = updated_data
-        elif current_user.interaction_type == "remedial demo" or current_user.interaction_type == "remedial test":
-            a = 2
-            # todo: im here
-            # obtain_remedial_demonstrations_flask(data_loc, pool, particles, n_human_models, BEC_constraints, traj_record, traj_features_record,
-            #  previous_demonstrations, visited_env_traj_idxs, variable_filter, mdp_features_record, weights,
-            #  step_cost_flag, type='training', n_human_models_precomputed=0):
-
-            # todo: I need a way to be able to obtain constraints
-
+        if domain == "at":
+            domain_key = "augmented_taxi2"
+        elif domain == "ct":
+            domain_key = "colored_tiles"
         else:
-            response["params"] = jsons[domain_key][current_user.interaction_type][str(current_user.iteration)]
-            # check if it's already been seen. if so, and interaction type is test, then change the tag to be -2
-    else:
-        if "test" in current_user.interaction_type:
-            response["params"] = jsons[domain_key]["final test"]["low"][0][0]
-        else:
-            response["params"] = jsons[domain_key]["demo"]["0"]
+            domain_key = "skateboard2"
 
-    key = [current_user.interaction_type, 
-            current_user.iteration,
-            current_user.subiteration]
-    seen = "true"
-    if key not in current_user.control_stack:
-        current_user.stack_push(key)
-        seen = "false"
-    current_user.curr_trial_idx = current_user.control_stack.index(key)
-    print(current_user.control_stack)
+        #TODO: set up dummy function for taxi call
+        print("heree")
+        print(current_user.interaction_type)
+        print(current_user.iteration)
+        if loop_cond == "cl":
+            if current_user.interaction_type == "final test":
+                # todo: randomize the order of the tests and also potentially account for train_test_set (currently only using the first set)
+                if current_user.iteration < 2:
+                    response["params"] = jsons[domain_key][current_user.interaction_type]["low"][0][current_user.iteration]
+                elif current_user.iteration < 4:
+                    response["params"] = jsons[domain_key][current_user.interaction_type]["medium"][0][current_user.iteration - 2]
+                else:
+                    response["params"] = jsons[domain_key][current_user.interaction_type]["high"][0][current_user.iteration - 4]
+            elif current_user.interaction_type == "diagnostic feedback":
+                # normalize the actions of the optimal and (incorrect) human trajectory such that they're the same length
+                # (by causing the longer trajectory to wait at overlapping states)
+                opt_actions = data['user input']['mdp_parameters']['opt_actions']
+                opt_locations = data['user input']['mdp_parameters']['opt_locations']
+                opt_locations_tuple = [tuple(opt_location) for opt_location in opt_locations]
+
+                human_actions = data["user input"]["moves"]
+                human_locations = data["user input"]["agent_history_nonoffset"]
+                human_locations_tuple = [(human_location[0], human_location[1], int(human_location[2])) for human_location in human_locations]
+
+                normalized_opt_actions, normalized_human_actions = normalize_trajectories(opt_locations_tuple, opt_actions, human_locations_tuple, human_actions)
+                print(normalized_opt_actions)
+                print(normalized_human_actions)
+
+                # update the relevant mdp_parameter with the normalized versions of the trajectories
+                updated_data = data['user input']['mdp_parameters'].copy()
+                updated_data['normalized_opt_actions'] = normalized_opt_actions
+                updated_data['normalized_human_actions'] = normalized_human_actions
+                updated_data['tag'] = -2 # indicate that this is trajectory visualization
+                response["params"] = updated_data
+            elif current_user.interaction_type == "remedial demo" or current_user.interaction_type == "remedial test":
+                a = 2
+                # todo: im here
+                # obtain_remedial_demonstrations_flask(data_loc, pool, particles, n_human_models, BEC_constraints, traj_record, traj_features_record,
+                #  previous_demonstrations, visited_env_traj_idxs, variable_filter, mdp_features_record, weights,
+                #  step_cost_flag, type='training', n_human_models_precomputed=0):
+
+                # todo: I need a way to be able to obtain constraints
+
+            else:
+                response["params"] = jsons[domain_key][current_user.interaction_type][str(current_user.iteration)]
+                # check if it's already been seen. if so, and interaction type is test, then change the tag to be -2
+        else:
+            if "test" in current_user.interaction_type:
+                response["params"] = jsons[domain_key]["final test"]["low"][0][0]
+            else:
+                response["params"] = jsons[domain_key]["demo"]["0"]
+
+
+    already_completed = "false"
+    num_times_completed = db.session.query(Trial).filter_by(user_id=current_user.id, 
+                                                        domain=domain, 
+                                                        interaction_type=current_user.interaction_type, 
+                                                        iteration=current_user.iteration, 
+                                                        subiteration=current_user.subiteration).count()
+    num_times_unfinished = db.session.query(Trial).filter_by(user_id=current_user.id, 
+                                                        domain=domain, 
+                                                        interaction_type=current_user.interaction_type, 
+                                                        iteration=current_user.iteration, 
+                                                        subiteration=current_user.subiteration,
+                                                        likert=-1).count()
+    num_times_finished = num_times_completed - num_times_unfinished
+    if num_times_finished > 0:
+        already_completed = "true"
+        response["params"]["tag"] = -1
     
-    # response["params"] = jsons[domain][temp]
+    go_prev = "true"
+    if (current_user.iteration == 0 and current_user.interaction_type == "demo") or ("test" in current_user.interaction_type and already_completed == "false"):
+        go_prev = "false"
+
     debug_string = f"domain={domain}, interaction type={current_user.interaction_type}, iteration={current_user.iteration}, subiteration={current_user.subiteration}"
     response["debug string"] = debug_string
     response["last test"] = last_test
     response["interaction type"] = current_user.interaction_type
-    response["seen"] = seen
+    response["already completed"] = already_completed
+    response["go prev"] = go_prev
     # response["domain"] = domain
     # response["interaction type"] = current_user.interaction_type
     # response["iteration"] = current_user.iteration
