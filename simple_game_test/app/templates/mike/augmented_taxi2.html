@@ -31,47 +31,52 @@
         float: center;
         text-align: center;
     }
-      /* Add your CSS styles here */
-        #loading-container {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-direction: column;
-          height: 100vh;
-        }
-        .spinner {
-          border: 4px solid rgba(0, 0, 0, 0.1);
-          border-left-color: #3498db;
-          animation: spin 1s linear infinite;
-          width: 50px;
-          height: 50px;
-          border-radius: 50%;
-          margin-bottom: 10px;
-        }
-        @keyframes spin {
-          0% {
-            transform: rotate(0deg);
-          }
-          100% {
-            transform: rotate(360deg);
-          }
-        }
+        /* Add your CSS styles here */
+        #center-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    #loading-container {
+      display: flex;
+      align-items: center;
+      color: #333;
+    }
+        #loading-text {
+      margin-top: 10px;
+      color: #333;
+    }
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-left-color: #3498db;
+      animation: spin 1s linear infinite;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
     </style>
   </head>
-  
-  <body>
-    <div class="container-fluid" style="padding-left: 5%; padding-right: 5%">
-  <div id="container-instructions" class="text-center">
-      <div id = "load-main"><div id="loading-container">
-          <p>Please wait while the next instruction loads...</p>
-          <div class="spinner"></div>
-      </div>
 
-          <!-- Your content goes here -->
-          <div id="content" style="display: none;">
-              <!-- Content elements -->
+  <body>
+<div class="container-fluid" style="padding-left: 5%; padding-right: 5%">
+  <div id="container-instructions" class="text-center">
+          <div id="center-container">
+              <div id="loading-container">
+                  <div class="spinner"></div>
+                  <div id="loading-text">Loading the next instruction...</div>
+              </div>
           </div>
-      </div>
     <div id="preamble" class="pre_info">
         <h1>Participant gameplay</h1> <hr/>
         <div id = "info_main"></div>
@@ -85,8 +90,8 @@
     <div id="survey"></div>
     <hr>
     <br>
-    
-    <div class="instructionsnav">
+
+    <div id="instructions" class="instructionsnav">
         <div class="row justify-content-between">
           <div class="col-xs-3">
             <button type="button" id="prev" onclick="prev()" value="previous" class="btn btn-primary btn-lg continue"> Previous <span class="glyphicon glyphicon-arrow-left"></span>
@@ -106,23 +111,42 @@
     </div>
     </div>
 
-    <script>
-        var socket = io();
+  <script>
+      // hide the game instructions and preamble and show a loading screen while waiting to receive the necessary game data
+      document.getElementById('instructions').style.display = 'none';
+      document.getElementById('preamble').style.display = 'none';
 
-        // trying to provide a loading graphic
-        // Simulate loading completion after a delay
-        setTimeout(function() {
-            document.getElementById('loading-container').style.display = 'none';
-            document.getElementById('content').style.display = 'block';
-        }, 1000000); // Adjust the delay as needed
+      const roomIdentifier = "uniqueRoomIdentifier";  // Replace with the actual room identifier
+      const websocket = new WebSocket(`ws://localhost:8765/${roomIdentifier}`); // todo: will likely have to replace with a nonlocal host
 
-        socket.on("connect", function () {
+      websocket.onopen = function(event) {
+          console.log('Connected to server');
+      };
+
+      const loadingText = document.getElementById('loading-text');
+      websocket.onmessage = function(event) {
+          const data = event.data;
+          if (data === "Progress updates complete") {
+              console.log('Progress updates complete');
+              websocket.close(); // Close the WebSocket connection
+          } else {
+              var progress = parseInt(data);
+              if (isNaN(progress)) {
+                  progress = 0
+              }
+              loadingText.innerHTML = `Loading the next instruction... (${progress}% completed)`
+          }
+      };
+
+      var socket = io();
+
+      socket.on("connect", function () {
             // if (localStorage.getItem("progress") === "sandbox_1") {
             //     socket.emit("sandbox settings", { version: 1 });
             // }
             // else if (localStorage.getItem("progress") === "sandbox_2") {
             //     socket.emit("sandbox settings", { version: 2 });
-            //     $("button").replaceWith(`<button type="button" disabled id="next" 
+            //     $("button").replaceWith(`<button type="button" disabled id="next"
             //         onclick="make_sandbox()"
             //         value="next" class="btn btn-primary btn-lg continue">
             //         Next <span class="glyphicon glyphicon-arrow-right"></span>
@@ -141,10 +165,10 @@
         socket.on("settings configured", function (data) {
             localStorage.setItem("movement", "false");
             localStorage.setItem("user input", "{}");
-            // localStorage.setItem("game completed", "false"); 
+            // localStorage.setItem("game completed", "false");
             // localStorage.setItem("survey completed", "false");
             localStorage.setItem("survey", "-1");
-            window.mdp_parameters = data["params"]; 
+            window.mdp_parameters = data["params"];
             window.interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
             localStorage.setItem("already completed", data["already completed"]);
             if (data["go prev"] === "false") {
@@ -152,7 +176,7 @@
             </button>`);
             }
             if (data["already completed"] === "true") {
-                $("#next").replaceWith(`<button type="button" id="next" 
+                $("#next").replaceWith(`<button type="button" id="next"
                     onclick="next()"
                     value="next" class="btn btn-primary btn-lg continue">
                     Next <span class="glyphicon glyphicon-arrow-right"></span>
@@ -162,15 +186,18 @@
             if (data["last test"]) {
                 localStorage.setItem("last test", "true");
             }
-            document.getElementById('load-main').style.display = 'none';
+            // hide the loading screen and show the game content
+            document.getElementById('center-container').style.display = 'none';
+            document.getElementById('instructions').style.display = 'block';
+            document.getElementById('preamble').style.display = 'block';
             console.log(window.interaction_type);
             console.log(window.mdp_parameters);
             change_text(window.interaction_type);
             run_page(window.mdp_parameters);
         });
-        
+
         // Assign html for interaction type
-        function change_text(interaction_type){  
+        function change_text(interaction_type){
         console.log("changing text")
         if ((interaction_type == "diagnostic test") || (interaction_type == "remedial test") || (interaction_type == "final test")) {
             $("#table_controlinfo").replaceWith(`<div><br><br><br><br>
@@ -197,7 +224,7 @@
         }
         // socket.on("", function (data) {
         //     if (data["passed"]) {
-        //         $("button").replaceWith(`<button type="button" id="next" 
+        //         $("button").replaceWith(`<button type="button" id="next"
         //             onclick="make_sandbox()"
         //             value="next" class="btn btn-primary btn-lg continue">
         //             Next <span class="glyphicon glyphicon-arrow-right"></span>
@@ -241,7 +268,7 @@
             // data["user input"] = JSON.parse(localStorage.getItem("user input"));
             // socket.emit("settings", data);
             }
-            
+
         }
         addEventListener("beforeunload", (event) => {
             if (localStorage.getItem("movement") === "false") {
@@ -262,7 +289,7 @@
                 });
                 localStorage.setItem("user input", final_data);
             }
-                             
+
         });
 
         addEventListener("input", (event) => {
@@ -272,13 +299,13 @@
             if(radioValue) {
                 localStorage.setItem("survey", radioValue);
             }
-            $("#next").replaceWith(`<button type="button" id="next" 
+            $("#next").replaceWith(`<button type="button" id="next"
                     onclick="next()"
                     value="next" class="btn btn-primary btn-lg continue">
                     Next <span class="glyphicon glyphicon-arrow-right"></span>
                     </button>` );
             });
-    
+
 
   function run_page(mdp_parameters) {
     var canvas = document.getElementById("game");
@@ -308,7 +335,7 @@
     var text_color = "#394d7e";
 
     var map_layout = {};
-        
+
 
     var spaceship =
     {
@@ -362,12 +389,12 @@
         visited_human: false,
     }
 
-    var goal = 
+    var goal =
     {
         grid_loc:
         {
             x: 0,
-            y: 0 
+            y: 0
         }
     }
 
@@ -533,7 +560,7 @@
 
     function drawHotswapStation(x,y,version){
         context.save();
-        if (version == "agent"){        
+        if (version == "agent"){
             if (!hotswap_station.visited){
             drawHexagon(x * 100 + 50 + translate_draw, y * 100 + 50, hotswap_station.color)
         }}
@@ -770,7 +797,7 @@
             context.fillStyle = text_color;
             context.textAlign = "center";
             context.fillText("Game completed!", (mdp_parameters.width*100)/2+offset_x*100, (mdp_parameters.height*100)/2+offset_y*100+200);
-            
+
             //requestAnimationFrame(draw);
 
             if (data_sent == false) {
@@ -781,8 +808,8 @@
             if (it == "final test"){
                 if(last_test){
                     $("#score").html('<div class="text-center"><h1>Score Results</h1><p>You scored <p id="score_val"></p>times correctly.</p></div>')
-                } 
-                $("#next").replaceWith(`<button type="button" id="next" 
+                }
+                $("#next").replaceWith(`<button type="button" id="next"
                     onclick="next()"
                     value="next" class="btn btn-primary btn-lg continue">
                     Next <span class="glyphicon glyphicon-arrow-right"></span>
@@ -799,7 +826,7 @@
                 </div>
                 <br></br>` );
             }
-            
+
 
         }
       }
@@ -893,7 +920,7 @@
             }
             }
             }
-        
+
       }
 
       function down(version) {
@@ -939,7 +966,7 @@
                 passenger.picked_human = true;
         }}
       }
-      
+
       function no_op(){
         return;
       }
@@ -1003,13 +1030,13 @@
     }
 
     function disableScroll() {
-            scrollTop = window.pageYOffset 
-          
+            scrollTop = window.pageYOffset
+
             window.onscroll = function() {
                 window.scrollTo(scrollTop);
             };
         }
-          
+
         function enableScroll() {
             window.onscroll = function() {};
         }
@@ -1023,7 +1050,7 @@
           var translate_draw = 0;
       }
 
-      function keyPressed(event)           
+      function keyPressed(event)
       {
         if (mdp_parameters.tag == -2) {
             //training case, agent & human

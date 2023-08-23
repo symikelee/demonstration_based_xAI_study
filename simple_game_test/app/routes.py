@@ -16,14 +16,17 @@ from learner import Learner
 
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'augmented_taxi'))
-# from .augmented_taxi.policy_summarization import particle_filter as pf
-# from .augmented_taxi.main import run_scripts
-#from .augmented_taxi.policy_summarization.flask_user_study_utils import normalize_trajectories
-print(os.path.join(os.path.dirname(__file__)))
+from .augmented_taxi.policy_summarization.flask_user_study_utils import normalize_trajectories, obtain_constraint
+from .augmented_taxi.policy_summarization.BEC import obtain_remedial_demonstrations
+from .augmented_taxi import params
+from .augmented_taxi.policy_summarization import BEC_helpers
+from .augmented_taxi.policy_summarization import particle_filter as pf
 
 from app.backend_test import send_signal
 from app import socketio
 from flask_socketio import join_room, leave_room
+import pickle
+from multiprocessing import Pool
 
 with open(os.path.join(os.path.dirname(__file__), 'user_study_dict.json'), 'r') as f:
     jsons = json.load(f)
@@ -39,6 +42,26 @@ CARD_ID_TO_FEATURES = [
     [color, fill, shape, number] for color in ['red', 'green', 'purple'] for fill in ['hollow', 'striped', 'solid'] for shape in ['diamond', 'ellipse', 'squiggle'] for number in ['one', 'two', 'three']
 ]
 
+# todo: Mike uncomment for remedial demos and tests
+# # background variables needed for remedial demonstrations and tests
+# domain_background_vars = {}
+# def load_background_vars(data_loc):
+#     with open('models/' + data_loc + '/base_constraints.pickle', 'rb') as f:
+#         policy_constraints, min_subset_constraints_record, env_record, traj_record, traj_features_record, reward_record, mdp_features_record, consistent_state_count = pickle.load(
+#             f)
+#     background_vars = (
+#     policy_constraints, min_subset_constraints_record, env_record, traj_record, traj_features_record, reward_record,
+#     mdp_features_record, consistent_state_count)
+#
+#     return background_vars
+#
+# # todo: double check if this code is run for each new person
+# args = ['augmented_taxi2', 'colored_tiles', 'skateboard2']
+#
+# for domain in args:
+#     domain_background_vars[domain] = load_background_vars(domain)
+#
+# pool = Pool(os.cpu_count())
 
 # HOW TO PREVENT RULE / STATE CHANGE ON RELOAD???
 
@@ -86,7 +109,7 @@ def test():
         tutorial_mode = True
         feedback_condition = 'no_feedback'
         round_num = "0 (Tutorial)"
-    else: 
+    else:
         tutorial_mode = False
         feedback_condition = current_condition.trials[current_user.num_trials_completed]
         round_num = current_user.num_trials_completed + 1
@@ -204,7 +227,7 @@ def trial_completed():
     return {"url":url_for("survey")}
 
 @app.route("/check_termination_condition", methods=["GET", "POST"])
-def check_termination_condition(): 
+def check_termination_condition():
     global learners
     learner = learners[current_user.username]
     print(learner.get_n_valid_rules)
@@ -254,11 +277,11 @@ def terminate_learning():
     else:
         dialog_str += f' Learner\'s belief contains {learner.get_n_valid_rules()} valid rules.'
     dialog_str += f'\n\nMetrics:'
-    
+
     learner_metrics = learner.get_metrics(env.bins)
     for key in learner_metrics:
         dialog_str += f'\n- {key}: {learner_metrics[key]}'
-    
+
     return {'dialog_str': dialog_str}
 
 @app.route("/set_fb_type", methods=["GET", "POST"])
@@ -313,7 +336,7 @@ def set_fb_type():
 
 #         current_user.set_attention_check(attention_check_val)
 
-#         # Clear this variable -- for some reason was not clearing on its own. 
+#         # Clear this variable -- for some reason was not clearing on its own.
 #         session.pop('attention_check_rules', None)
 
 #         db.session.commit()
@@ -375,9 +398,9 @@ def training(page):
 # def index():
 #     start_time = datetime.now().utcnow().isoformat()
 #     form = TrialForm(start_time=start_time)
-    
+
 #     num_completed_trials = 0 #db.session.query(Trial).filter_by(user_id=current_user.id, round_num=round).count()
-    
+
 #     # condition_id = current_user.condition_id
 #     # current_condition = db.session.query(Condition).get(condition_id)
 #     round = 0
@@ -430,7 +453,7 @@ def training(page):
 #     if num_completed_trials == len(cards):
 #         # flash("You have seen all the trials in this round!")
 #         return redirect(url_for("survey", round=round))
-    
+
 #     #Check if previous thing is done, previous demos must be done
 #     check_rule_name = rule_name# current_condition.difficulty[round]
 #     check_previous_demos = db.session.query(Demo).filter_by(user_id=current_user.id, round_num=round).count()
@@ -455,7 +478,7 @@ def training(page):
 #     p = p / np.sum(p)
 #     vid_choice = np.random.choice(np.arange(cur_counts.shape[0]), p= p)
 #     neutral_vid_name = cur_names[vid_choice]
-    
+
 #     new_feedback_counts = {}
 #     for new_vid_name in VIDEO_LIST:
 #         if new_vid_name == vid_name:
@@ -534,21 +557,21 @@ def index():
     # for round in range(num_rounds):
     #     completed.append([])
     #     rule_name = current_condition.difficulty[round]
-        
+
     #     demo_cards = RULE_PROPS[rule_name]['demo_cards']
     #     num_completed_demos = db.session.query(Demo).filter_by(user_id=current_user.id, round_num=round).count()
     #     if num_completed_demos < len(demo_cards):
     #         completed[round].append(False)
     #     else:
     #         completed[round].append(True)
-        
+
     #     cards = RULE_PROPS[rule_name]['cards']
     #     num_completed_trials = db.session.query(Trial).filter_by(user_id=current_user.id, round_num=round).count()
     #     if num_completed_trials < len(cards):
     #         completed[round].append(False)
     #     else:
     #         completed[round].append(True)
-        
+
     #     num_completed_surveys = db.session.query(Survey).filter_by(user_id=current_user.id, round_num=round).count()
     #     if num_completed_surveys < 1:
     #         completed[round].append(False)
@@ -560,7 +583,9 @@ def index():
     completed = True if current_user.study_completed == 1 else False
 
     current_user.loop_condition = "cl"
-    domains = ["at", "ct", "sb"] 
+    domains = ["at", "ct", "sb"]
+    # domains = ["ct", "sb", "at"]
+    # domains = ["sb", "at", "ct"]
     # rand.shuffle(domains)
     current_user.domain_1 = domains[0]
     current_user.domain_2 = domains[1]
@@ -694,7 +719,7 @@ def attention_check(data):
     if data["passed"]:
         socketio.emit("attention checked", {"passed": True}, to=request.sid)
         current_user.set_attention_check(1)
-         
+
         db.session.commit()
 
 @app.route("/post_practice", methods=["GET", "POST"])
@@ -732,7 +757,7 @@ def next_domain():
     elif current_user.curr_progress == "domain 3":
         current_user.set_curr_progress("final survey")
         socketio.emit("next domain is", {"domain": "final survey"}, to=request.sid)
-    
+
     db.session.commit()
 
 
@@ -797,11 +822,11 @@ def settings(data):
 
     progression = {
         "debug": {
-            "at": [["demo", -1], ["demo", 0], ["demo", 1], 
+            "at": [["demo", -1], ["demo", 0], ["demo", 1],
                    ["final test",  0], ["final test", 1]],
-            "ct": [["demo", -1], ["demo", 0], ["demo", 1], 
+            "ct": [["demo", -1], ["demo", 0], ["demo", 1],
                    ["final test",  0], ["final test", 1]],
-            "sb": [["demo", -1], ["demo", 0], ["demo", 1], 
+            "sb": [["demo", -1], ["demo", 0], ["demo", 1],
                    ["final test",  0], ["final test", 1]]
         },
         "open": {
@@ -813,7 +838,7 @@ def settings(data):
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]]
         },
         "pl": {
-            "at": [["demo", -1], ["demo", 0], ["demo", 1], ["diagnostic test", 0], ["diagnostic feedback", 0], 
+            "at": [["demo", -1], ["demo", 0], ["demo", 1], ["diagnostic test", 0], ["diagnostic feedback", 0],
                    ["demo", 2], ["demo", 3], ["diagnostic test", 1], ["diagnostic feedback", 1], ["diagnostic test", 2], ["diagnostic feedback", 2],
                    ["demo", 4], ["diagnostic test", 3], ["diagnostic feedback", 3],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
@@ -821,102 +846,102 @@ def settings(data):
                    ["demo", 2], ["demo", 3], ["diagnostic test", 2], ["diagnostic feedback", 2], ["diagnostic test", 3], ["diagnostic feedback", 3],
                    ["demo", 4], ["diagnostic test", 4], ["diagnostic feedback", 4],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
-            "sb": [["demo", -1], ["demo", 0], ["demo", 1], ["diagnostic test", 0], ["diagnostic feedback", 0], ["diagnostic test", 1], ["diagnostic feedback", 1], 
+            "sb": [["demo", -1], ["demo", 0], ["demo", 1], ["diagnostic test", 0], ["diagnostic feedback", 0], ["diagnostic test", 1], ["diagnostic feedback", 1],
                    ["demo", 2], ["demo", 3], ["diagnostic test", 2], ["diagnostic feedback", 2], ["diagnostic test", 3], ["diagnostic feedback", 3],
-                   ["demo", 4], ["demo", 5], ["demo", 6], ["diagnostic test", 4], ["diagnostic feedback", 4], ["diagnostic test", 5], ["diagnostic feedback", 5], ["diagnostic test", 6], ["diagnostic feedback", 6], 
+                   ["demo", 4], ["demo", 5], ["demo", 6], ["diagnostic test", 4], ["diagnostic feedback", 4], ["diagnostic test", 5], ["diagnostic feedback", 5], ["diagnostic test", 6], ["diagnostic feedback", 6],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]]
         },
         "cl": {
-            "at": [["demo", -1], ["demo", 0], ["demo", 1], 
-                   ["diagnostic test", 0], ["diagnostic feedback", 0], ["remedial demo", 0], 
-                   ["remedial test", 0, 0], ["remedial feedback", 0, 0], 
-                   ["remedial test", 0, 1], ["remedial feedback", 0, 1], 
-                   ["remedial test", 0, 2], ["remedial feedback", 0, 2], 
+            "at": [["demo", -1], ["demo", 0], ["demo", 1],
+                   ["diagnostic test", 0], ["diagnostic feedback", 0], ["remedial demo", 0],
+                   ["remedial test", 0, 0], ["remedial feedback", 0, 0],
+                   ["remedial test", 0, 1], ["remedial feedback", 0, 1],
+                   ["remedial test", 0, 2], ["remedial feedback", 0, 2],
                    ["remedial test", 0, 3], ["remedial feedback", 0, 3],
-                   ["demo", 2], ["demo", 3], 
-                   ["diagnostic test", 1], ["diagnostic feedback", 1], ["remedial demo", 1], 
-                   ["remedial test", 1, 0], ["remedial feedback", 1, 0], 
-                   ["remedial test", 1, 1], ["remedial feedback", 1, 1], 
-                   ["remedial test", 1, 2], ["remedial feedback", 1, 2], 
+                   ["demo", 2], ["demo", 3],
+                   ["diagnostic test", 1], ["diagnostic feedback", 1], ["remedial demo", 1],
+                   ["remedial test", 1, 0], ["remedial feedback", 1, 0],
+                   ["remedial test", 1, 1], ["remedial feedback", 1, 1],
+                   ["remedial test", 1, 2], ["remedial feedback", 1, 2],
                    ["remedial test", 1, 3], ["remedial feedback", 1, 3],
                    ["diagnostic test", 2], ["diagnostic feedback", 2], ["remedial demo", 2],
-                   ["remedial test", 2, 0], ["remedial feedback", 2, 0], 
-                   ["remedial test", 2, 1], ["remedial feedback", 2, 1], 
-                   ["remedial test", 2, 2], ["remedial feedback", 2, 2], 
+                   ["remedial test", 2, 0], ["remedial feedback", 2, 0],
+                   ["remedial test", 2, 1], ["remedial feedback", 2, 1],
+                   ["remedial test", 2, 2], ["remedial feedback", 2, 2],
                    ["remedial test", 2, 3], ["remedial feedback", 2, 3],
-                   ["demo", 4], 
+                   ["demo", 4],
                    ["diagnostic test", 3], ["diagnostic feedback", 3], ["remedial demo", 3],
-                   ["remedial test", 3, 0], ["remedial feedback", 3, 0], 
-                   ["remedial test", 3, 1], ["remedial feedback", 3, 1], 
-                   ["remedial test", 3, 2], ["remedial feedback", 3, 2], 
+                   ["remedial test", 3, 0], ["remedial feedback", 3, 0],
+                   ["remedial test", 3, 1], ["remedial feedback", 3, 1],
+                   ["remedial test", 3, 2], ["remedial feedback", 3, 2],
                    ["remedial test", 3, 3], ["remedial feedback", 3, 3],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
-            "ct": [["demo", -1], ["demo", 0], ["demo", 1], 
-                   ["diagnostic test", 0], ["diagnostic feedback", 0], ["remedial demo", 0], 
-                   ["remedial test", 0, 0], ["remedial feedback", 0, 0], 
-                   ["remedial test", 0, 1], ["remedial feedback", 0, 1], 
-                   ["remedial test", 0, 2], ["remedial feedback", 0, 2], 
+            "ct": [["demo", -1], ["demo", 0], ["demo", 1],
+                   ["diagnostic test", 0], ["diagnostic feedback", 0], ["remedial demo", 0],
+                   ["remedial test", 0, 0], ["remedial feedback", 0, 0],
+                   ["remedial test", 0, 1], ["remedial feedback", 0, 1],
+                   ["remedial test", 0, 2], ["remedial feedback", 0, 2],
                    ["remedial test", 0, 3], ["remedial feedback", 0, 3],
-                   ["diagnostic test", 1], ["diagnostic feedback", 1],["remedial demo", 1], 
-                   ["remedial test", 1, 0], ["remedial feedback", 1, 0], 
-                   ["remedial test", 1, 1], ["remedial feedback", 1, 1], 
-                   ["remedial test", 1, 2], ["remedial feedback", 1, 2], 
+                   ["diagnostic test", 1], ["diagnostic feedback", 1],["remedial demo", 1],
+                   ["remedial test", 1, 0], ["remedial feedback", 1, 0],
+                   ["remedial test", 1, 1], ["remedial feedback", 1, 1],
+                   ["remedial test", 1, 2], ["remedial feedback", 1, 2],
                    ["remedial test", 1, 3], ["remedial feedback", 1, 3],
-                   ["demo", 2], ["demo", 3], 
+                   ["demo", 2], ["demo", 3],
                    ["diagnostic test", 2], ["diagnostic feedback", 2], ["remedial demo", 2],
-                   ["remedial test", 2, 0], ["remedial feedback", 2, 0], 
-                   ["remedial test", 2, 1], ["remedial feedback", 2, 1], 
-                   ["remedial test", 2, 2], ["remedial feedback", 2, 2], 
+                   ["remedial test", 2, 0], ["remedial feedback", 2, 0],
+                   ["remedial test", 2, 1], ["remedial feedback", 2, 1],
+                   ["remedial test", 2, 2], ["remedial feedback", 2, 2],
                    ["remedial test", 2, 3], ["remedial feedback", 2, 3],
                    ["diagnostic test", 3], ["diagnostic feedback", 3], ["remedial demo", 3],
-                   ["remedial test", 3, 0], ["remedial feedback", 3, 0], 
-                   ["remedial test", 3, 1], ["remedial feedback", 3, 1], 
-                   ["remedial test", 3, 2], ["remedial feedback", 3, 2], 
+                   ["remedial test", 3, 0], ["remedial feedback", 3, 0],
+                   ["remedial test", 3, 1], ["remedial feedback", 3, 1],
+                   ["remedial test", 3, 2], ["remedial feedback", 3, 2],
                    ["remedial test", 3, 3], ["remedial feedback", 3, 3],
-                   ["demo", 4], 
+                   ["demo", 4],
                    ["diagnostic test", 4], ["diagnostic feedback", 4], ["remedial demo", 4],
-                   ["remedial test", 4, 0], ["remedial feedback", 4, 0], 
-                   ["remedial test", 4, 1], ["remedial feedback", 4, 1], 
-                   ["remedial test", 4, 2], ["remedial feedback", 4, 2], 
+                   ["remedial test", 4, 0], ["remedial feedback", 4, 0],
+                   ["remedial test", 4, 1], ["remedial feedback", 4, 1],
+                   ["remedial test", 4, 2], ["remedial feedback", 4, 2],
                    ["remedial test", 4, 3], ["remedial feedback", 4, 3],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
-            "sb": [["demo", -1], ["demo", 0], ["demo", 1], 
-                   ["diagnostic test", 0], ["diagnostic feedback", 0], ["remedial demo", 0], 
-                   ["remedial test", 0, 0], ["remedial feedback", 0, 0], 
-                   ["remedial test", 0, 1], ["remedial feedback", 0, 1], 
-                   ["remedial test", 0, 2], ["remedial feedback", 0, 2], 
+            "sb": [["demo", -1], ["demo", 0], ["demo", 1],
+                   ["diagnostic test", 0], ["diagnostic feedback", 0], ["remedial demo", 0],
+                   ["remedial test", 0, 0], ["remedial feedback", 0, 0],
+                   ["remedial test", 0, 1], ["remedial feedback", 0, 1],
+                   ["remedial test", 0, 2], ["remedial feedback", 0, 2],
                    ["remedial test", 0, 3], ["remedial feedback", 0, 3],
-                   ["diagnostic test", 1], ["diagnostic feedback", 1], ["remedial demo", 1], 
-                   ["remedial test", 1, 0], ["remedial feedback", 1, 0], 
-                   ["remedial test", 1, 1], ["remedial feedback", 1, 1], 
-                   ["remedial test", 1, 2], ["remedial feedback", 1, 2], 
+                   ["diagnostic test", 1], ["diagnostic feedback", 1], ["remedial demo", 1],
+                   ["remedial test", 1, 0], ["remedial feedback", 1, 0],
+                   ["remedial test", 1, 1], ["remedial feedback", 1, 1],
+                   ["remedial test", 1, 2], ["remedial feedback", 1, 2],
                    ["remedial test", 1, 3], ["remedial feedback", 1, 3],
-                   ["demo", 2], ["demo", 3], 
+                   ["demo", 2], ["demo", 3],
                    ["diagnostic test", 2], ["diagnostic feedback", 2], ["remedial demo", 2],
-                   ["remedial test", 2, 0], ["remedial feedback", 2, 0], 
-                   ["remedial test", 2, 1], ["remedial feedback", 2, 1], 
-                   ["remedial test", 2, 2], ["remedial feedback", 2, 2], 
+                   ["remedial test", 2, 0], ["remedial feedback", 2, 0],
+                   ["remedial test", 2, 1], ["remedial feedback", 2, 1],
+                   ["remedial test", 2, 2], ["remedial feedback", 2, 2],
                    ["remedial test", 2, 3], ["remedial feedback", 2, 3],
                    ["diagnostic test", 3], ["diagnostic feedback", 3], ["remedial demo", 3],
-                   ["remedial test", 3, 0], ["remedial feedback", 3, 0], 
-                   ["remedial test", 3, 1], ["remedial feedback", 3, 1], 
-                   ["remedial test", 3, 2], ["remedial feedback", 3, 2], 
+                   ["remedial test", 3, 0], ["remedial feedback", 3, 0],
+                   ["remedial test", 3, 1], ["remedial feedback", 3, 1],
+                   ["remedial test", 3, 2], ["remedial feedback", 3, 2],
                    ["remedial test", 3, 3], ["remedial feedback", 3, 3],
-                   ["demo", 4], ["demo", 5], ["demo", 6], 
+                   ["demo", 4], ["demo", 5], ["demo", 6],
                    ["diagnostic test", 4], ["diagnostic feedback", 4], ["remedial demo", 4],
-                   ["remedial test", 4, 0], ["remedial feedback", 4, 0], 
-                   ["remedial test", 4, 1], ["remedial feedback", 4, 1], 
-                   ["remedial test", 4, 2], ["remedial feedback", 4, 2], 
+                   ["remedial test", 4, 0], ["remedial feedback", 4, 0],
+                   ["remedial test", 4, 1], ["remedial feedback", 4, 1],
+                   ["remedial test", 4, 2], ["remedial feedback", 4, 2],
                    ["remedial test", 4, 3], ["remedial feedback", 4, 3],
                    ["diagnostic test", 5], ["diagnostic feedback", 5], ["remedial demo", 5],
-                   ["remedial test", 5, 0], ["remedial feedback", 5, 0], 
-                   ["remedial test", 5, 1], ["remedial feedback", 5, 1], 
-                   ["remedial test", 5, 2], ["remedial feedback", 5, 2], 
+                   ["remedial test", 5, 0], ["remedial feedback", 5, 0],
+                   ["remedial test", 5, 1], ["remedial feedback", 5, 1],
+                   ["remedial test", 5, 2], ["remedial feedback", 5, 2],
                    ["remedial test", 5, 3], ["remedial feedback", 5, 3],
                    ["diagnostic test", 6], ["diagnostic feedback", 6], ["remedial demo", 6],
-                   ["remedial test", 6, 0], ["remedial feedback", 6, 0], 
-                   ["remedial test", 6, 1], ["remedial feedback", 6, 1], 
-                   ["remedial test", 6, 2], ["remedial feedback", 6, 2], 
+                   ["remedial test", 6, 0], ["remedial feedback", 6, 0],
+                   ["remedial test", 6, 1], ["remedial feedback", 6, 1],
+                   ["remedial test", 6, 2], ["remedial feedback", 6, 2],
                    ["remedial test", 6, 3], ["remedial feedback", 6, 3],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]]
         }
@@ -946,11 +971,11 @@ def settings(data):
 
     # need some cases
     # if survey completed, then push to the stack
-    # if movement is prev, 
+    # if movement is prev,
         # if key in ctrl stack, then get the prev idx
         # if not, then get the -1 idx item
     # if movement is next,
-        # search ctrl stack for the current key,  
+        # search ctrl stack for the current key,
 
     key = [it, iter, subiter]
     last_test = False
@@ -965,16 +990,16 @@ def settings(data):
         current_user.iteration = current_user.control_stack[new_idx][1]
         current_user.subiteration = current_user.control_stack[new_idx][2]
         current_user.curr_trial_idx = new_idx
-        old_trials = db.session.query(Trial).filter_by(user_id=current_user.id, 
-                                                        domain=domain, 
-                                                        interaction_type=current_user.interaction_type, 
-                                                        iteration=current_user.iteration, 
+        old_trials = db.session.query(Trial).filter_by(user_id=current_user.id,
+                                                        domain=domain,
+                                                        interaction_type=current_user.interaction_type,
+                                                        iteration=current_user.iteration,
                                                         subiteration=current_user.subiteration).all()
         params_list = [trial.mdp_parameters for trial in old_trials]
         response["params"] = params_list[0]
 
     elif data["movement"] == "next":
-        
+
         # if key not in current_user.control_stack:
         #     current_user.stack_push(key)
         #     seen = "false"
@@ -985,29 +1010,35 @@ def settings(data):
         idx = 0
         if (it == "remedial test") or (it == "remedial feedback"):
             idx = arr.index([it, iter, subiter])
-        else: 
+        else:
             idx = arr.index([it, iter])
 
         # taking care of next progs
         # here is a nice little jump table
         if idx == len(arr) - 2:
             last_test = True
-        
+
         if loop_cond == "open" or loop_cond == "debug":
             current_user.interaction_type = arr[idx + 1][0]
             current_user.iteration = arr[idx + 1][1]
         elif loop_cond == "pl":
-            if it == "diagnostic test": #and data["user input"]["opt_response"]:
+            # todo: Mike uncomment for remedial demos and tests
+            # if it == "diagnostic test" and data["user input"]["opt_response"]:
+            if it == "diagnostic test":
                 current_user.interaction_type = arr[idx + 2][0]
                 current_user.iteration = arr[idx + 2][1]
             else:
                 current_user.interaction_type = arr[idx + 1][0]
                 current_user.iteration = arr[idx + 1][1]
         elif loop_cond == "cl":
-            if it == "diagnostic test": #and data["user input"]["opt_response"]:
+            # todo: Mike uncomment for remedial demos and tests
+            # if it == "diagnostic test" and data["user input"]["opt_response"]:
+            if it == "diagnostic test":
                 current_user.interaction_type = arr[idx + 11][0]
                 current_user.iteration = arr[idx + 11][1]
-            elif it == "remedial test": #and data["user input"]["opt_response"]:
+            # todo: Mike uncomment for remedial demos and tests
+            # elif it == "remedial test" and data["user input"]["opt_response"]:
+            elif it == "remedial test":
                 jump = 2 * (4 - subiter)
                 current_user.interaction_type = arr[idx + jump][0]
                 current_user.iteration = arr[idx + jump][1]
@@ -1019,7 +1050,7 @@ def settings(data):
                     current_user.subiteration = arr[idx + 1][2]
                 else:
                     current_user.subiteration = 0
-        
+
         response["params"] = {}
 
         # REQUIRES: domain and loop condition are the same throughout this function
@@ -1033,8 +1064,6 @@ def settings(data):
         else:
             domain_key = "skateboard2"
 
-        #TODO: set up dummy function for taxi call
-        print("heree")
         print(current_user.interaction_type)
         print(current_user.iteration)
         if loop_cond == "cl":
@@ -1046,7 +1075,7 @@ def settings(data):
                     response["params"] = jsons[domain_key][current_user.interaction_type]["medium"][0][current_user.iteration - 2]
                 else:
                     response["params"] = jsons[domain_key][current_user.interaction_type]["high"][0][current_user.iteration - 4]
-            elif current_user.interaction_type == "diagnostic feedback":
+            elif current_user.interaction_type == "diagnostic feedback" or current_user.interaction_type == "remedial feedback":
                 # normalize the actions of the optimal and (incorrect) human trajectory such that they're the same length
                 # (by causing the longer trajectory to wait at overlapping states)
                 opt_actions = data['user input']['mdp_parameters']['opt_actions']
@@ -1066,19 +1095,36 @@ def settings(data):
                 updated_data['normalized_opt_actions'] = normalized_opt_actions
                 updated_data['normalized_human_actions'] = normalized_human_actions
                 updated_data['tag'] = -2 # indicate that this is trajectory visualization
+                updated_data['human_actions'] = human_actions
                 response["params"] = updated_data
             elif current_user.interaction_type == "remedial demo" or current_user.interaction_type == "remedial test":
-                a = 2
-                # todo: im here
-                # obtain_remedial_demonstrations_flask(data_loc, pool, particles, n_human_models, BEC_constraints, traj_record, traj_features_record,
-                #  previous_demonstrations, visited_env_traj_idxs, variable_filter, mdp_features_record, weights,
-                #  step_cost_flag, type='training', n_human_models_precomputed=0):
+                policy_constraints, min_subset_constraints_record, env_record, traj_record, traj_features_record, reward_record, mdp_features_record, consistent_state_count = domain_background_vars[domain_key]
+                prev_mdp_parameters = data['user input']['mdp_parameters']
 
-                # todo: I need a way to be able to obtain constraints
+                best_env_idx, best_traj_idx = prev_mdp_parameters['env_traj_idxs']
+                opt_traj = traj_record[best_env_idx][best_traj_idx]
+                opt_traj_features = traj_features_record[best_env_idx][best_traj_idx]
 
+                print(prev_mdp_parameters)
+                variable_filter = np.array(prev_mdp_parameters['variable_filter'])
+
+                # obtain the constraint that the participant failed to demonstrate
+                constraint = obtain_constraint(domain_key, prev_mdp_parameters, opt_traj, opt_traj_features)
+
+                # todo: need to keep track of previous_demonstrations and visited_env_traj_idxs (the two back to back empty lists), maintain PF
+                particle_positions = BEC_helpers.sample_human_models_uniform([], 50)
+                particles = pf.Particles(particle_positions)
+
+                if current_user.interaction_type == "remedial demo": type = 'training'
+                else: type = 'testing'
+
+                remedial_mdp_dict, visited_env_traj_idxs = obtain_remedial_demonstrations(domain_key, pool, particles, params.BEC['n_human_models'], constraint,
+                min_subset_constraints_record, env_record, traj_record, traj_features_record, [], [], variable_filter, mdp_features_record, consistent_state_count, [],
+                params.step_cost_flag, type=type, n_human_models_precomputed=params.BEC['n_human_models_precomputed'], web_based=True)
+
+                response["params"] = remedial_mdp_dict
             else:
                 response["params"] = jsons[domain_key][current_user.interaction_type][str(current_user.iteration)]
-                # check if it's already been seen. if so, and interaction type is test, then change the tag to be -2
         else:
             if "test" in current_user.interaction_type:
                 response["params"] = jsons[domain_key]["final test"]["low"][0][0]
@@ -1087,22 +1133,22 @@ def settings(data):
 
 
     already_completed = "false"
-    num_times_completed = db.session.query(Trial).filter_by(user_id=current_user.id, 
-                                                        domain=domain, 
-                                                        interaction_type=current_user.interaction_type, 
-                                                        iteration=current_user.iteration, 
+    num_times_completed = db.session.query(Trial).filter_by(user_id=current_user.id,
+                                                        domain=domain,
+                                                        interaction_type=current_user.interaction_type,
+                                                        iteration=current_user.iteration,
                                                         subiteration=current_user.subiteration).count()
-    num_times_unfinished = db.session.query(Trial).filter_by(user_id=current_user.id, 
-                                                        domain=domain, 
-                                                        interaction_type=current_user.interaction_type, 
-                                                        iteration=current_user.iteration, 
+    num_times_unfinished = db.session.query(Trial).filter_by(user_id=current_user.id,
+                                                        domain=domain,
+                                                        interaction_type=current_user.interaction_type,
+                                                        iteration=current_user.iteration,
                                                         subiteration=current_user.subiteration,
                                                         likert=-1).count()
     num_times_finished = num_times_completed - num_times_unfinished
     if num_times_finished > 0:
         already_completed = "true"
         response["params"]["tag"] = -1
-    
+
     go_prev = "true"
     if (current_user.iteration == 0 and current_user.interaction_type == "demo") or ("test" in current_user.interaction_type and already_completed == "false"):
         go_prev = "false"
@@ -1148,7 +1194,7 @@ def settings(data):
     #     elif data["domain"] == "sb":
     #         response["params"] = jsons["skateboard2"]["1"]
 
-    # elif it == "diagnostic feedback": 
+    # elif it == "diagnostic feedback":
     #     if data["domain"] == "at":
     #         response["params"] = jsons["augmented_taxi2"]["0"]
     #     elif data["domain"] == "ct":
@@ -1171,8 +1217,8 @@ def settings(data):
     #         response["params"] = jsons["colored_tiles"]["1"]
     #     elif data["domain"] == "sb":
     #         response["params"] = jsons["skateboard2"]["1"]
-            
-    # elif it == "remedial feedback": 
+
+    # elif it == "remedial feedback":
     #     if data["domain"] == "at":
     #         response["params"] = jsons["augmented_taxi2"]["0"]
     #     elif data["domain"] == "ct":
@@ -1194,11 +1240,11 @@ def settings(data):
 @login_required
 def sign_consent():
     current_user.consent = 1
-    db.session.commit() 
+    db.session.commit()
     # need to return json since this function is called on button press
     # which replaces the current url with new url
     # sorry trying to work within existing infra
-    return {"url":url_for("introduction")}  
+    return {"url":url_for("introduction")}
 
 @app.route("/pass_trajectories", methods=["GET", "POST"])
 @login_required
@@ -1219,7 +1265,7 @@ def handle_message():
         current_user.group = "room2"
     # socketio.emit('ping event', {'test': 'sending to client'}, to=request.sid)
     # current_user.set_test_column(812)
-    
+
     # curr_room = ""
     # if len(current_user.username) % 2 == 0:
     #     curr_room = "room1"
@@ -1314,9 +1360,9 @@ def consent():
 # @login_required
 # def demos(round):
 #     # form = DemoForm()
-    
+
 #     # num_completed_demos = db.session.query(Demo).filter_by(user_id=current_user.id, round_num=round).count()
-    
+
 #     # condition_id = current_user.condition_id
 #     # current_condition = db.session.query(Condition).get(condition_id)
 #     # rule_name = current_condition.difficulty[round]
@@ -1344,13 +1390,13 @@ def consent():
 
 #     # if num_completed_demos == len(demo_cards):
 #     #     return redirect(url_for("trials",round=round))
-    
+
 #     #Check if previous thing is done
 
 #     #If first round, training must be done
 #     # if (round == 0) and (not current_user.training):
 #         return redirect(url_for("consent"))
-    
+
 #     #If not first round, previous survey must be done
 #     # if round > 0:
 #     #     check_previous_surveys = db.session.query(Survey).filter_by(user_id=current_user.id, round_num=round-1).count()
@@ -1375,7 +1421,7 @@ def consent():
 #     # p = p / np.sum(p)
 #     # vid_choice = np.random.choice(np.arange(cur_counts.shape[0]), p= p)
 #     # vid_name = cur_names[vid_choice]
-    
+
 #     # new_feedback_counts = {}
 #     # for new_vid_name in VIDEO_LIST:
 #     #     if new_vid_name == vid_name:
@@ -1404,9 +1450,9 @@ def consent():
 # def trials(round):
 #     start_time = datetime.now().utcnow().isoformat()
 #     form = TrialForm(start_time=start_time)
-    
+
 #     num_completed_trials = db.session.query(Trial).filter_by(user_id=current_user.id, round_num=round).count()
-    
+
 #     condition_id = current_user.condition_id
 #     current_condition = db.session.query(Condition).get(condition_id)
 #     rule_name = current_condition.difficulty[round]
@@ -1458,7 +1504,7 @@ def consent():
 #     if num_completed_trials == len(cards):
 #         # flash("You have seen all the trials in this round!")
 #         return redirect(url_for("survey", round=round))
-    
+
 #     #Check if previous thing is done, previous demos must be done
 #     check_rule_name = current_condition.difficulty[round]
 #     check_previous_demos = db.session.query(Demo).filter_by(user_id=current_user.id, round_num=round).count()
@@ -1483,7 +1529,7 @@ def consent():
 #     p = p / np.sum(p)
 #     vid_choice = np.random.choice(np.arange(cur_counts.shape[0]), p= p)
 #     neutral_vid_name = cur_names[vid_choice]
-    
+
 #     new_feedback_counts = {}
 #     for new_vid_name in VIDEO_LIST:
 #         if new_vid_name == vid_name:
@@ -1583,7 +1629,7 @@ def survey():
             current_user.set_completion(1)
 
             print(form.ethnicity.data)
-            db.session.commit()      
+            db.session.commit()
 
         elif current_condition.trials[current_user.num_trials_completed] == 'no_feedback':
             survey = Survey(author=current_user,
@@ -1632,7 +1678,7 @@ def survey():
         else:
             return redirect(url_for("index"))
 
-    # If they have not completed the previous game, they must do that 
+    # If they have not completed the previous game, they must do that
     completed_game = db.session.query(Trial).filter_by(user_id=current_user.id).count()
     print(current_user.id)
     print(completed_game)
@@ -1648,10 +1694,10 @@ def survey():
     # check_rule_name = current_condition.difficulty[round]
     # check_previous_trials = db.session.query(Trial).filter_by(user_id=current_user.id, round_num=round).count()
     # if check_previous_trials < len(RULE_PROPS[check_rule_name]['cards']):
-    #     return redirect(url_for("consent"))    
-    return render_template(template, 
-                            methods=["GET", "POST"], 
-                            form=form, 
+    #     return redirect(url_for("consent"))
+    return render_template(template,
+                            methods=["GET", "POST"],
+                            form=form,
                             round=round)
 
 @app.route("/login", methods=["GET", "POST"])
@@ -1669,12 +1715,12 @@ def login():
             user.set_completion(0)
             user.set_attention_check(-1)
 
-            # Change depending on the study type. 
+            # Change depending on the study type.
             cond = user.set_condition("in_person" if IS_IN_PERSON else "online")
             code = user.set_code()
 
             db.session.add(user)
-        
+
             cond.users.append(user)
             cond.count += 1
 
@@ -1691,7 +1737,7 @@ def login():
 
 @app.route("/logout")
 def logout():
-    # Clear this variable -- for some reason was not clearing on its own. 
+    # Clear this variable -- for some reason was not clearing on its own.
     session.pop("attention_check_rules", None)
     logout_user()
     return {"url":url_for("index")}
@@ -1710,20 +1756,20 @@ def logout():
 #         user.set_completion(0)
 #         user.set_attention_check(-1)
 
-#         # Change depending on the study type. 
+#         # Change depending on the study type.
 #         cond = user.set_condition("online")
 #         code = user.set_code()
 
 
 #         db.session.add(user)
-        
+
 #         cond.users.append(user)
 #         cond.count += 1
 
 #         feedback = {}
 #         for vid in VIDEO_LIST:
 #             feedback[vid] = 0
-        
+
 #         user.feedback_counts = feedback
 
 #         db.session.commit()

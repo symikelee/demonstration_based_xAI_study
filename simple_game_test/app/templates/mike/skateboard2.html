@@ -90,6 +90,7 @@
             // data["iteration"] = Number(localStorage.getItem("iteration"));
             // data["subiteration"] = Number(localStorage.getItem("subiteration"));
             data["user input"] = JSON.parse(localStorage.getItem("user input"));
+            data["movement"] = localStorage.getItem("movement");
             socket.emit("settings", data);
         });
 

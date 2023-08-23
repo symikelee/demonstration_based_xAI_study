@@ -9,7 +9,7 @@
     <script src="/static/lib/d3.v3.min.js" type="text/javascript"> </script>
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
 
-x
+
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
     <link rel="stylesheet" href="/static/css/jspsych.css" type="text/css" />
@@ -523,6 +523,14 @@ var spaceship =
             drawAgentHistory();
         }
         drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
+
+        {#  game_completed = false#}
+        {#  if (mdp_parameters.tag == -2) {#}
+        {#      if (map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] == 1 && map_layout.destination[spaceship.grid_loc.human_y-offset_y][spaceship.grid_loc.human_x-offset_x] == 1) game_completed = true;#}
+        {#  } else if (map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] == 1) game_completed = true;#}
+        {##}
+        {#if(game_completed)#}
+
 
         if(map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] == 1)
         {
