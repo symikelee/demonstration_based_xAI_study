@@ -153,11 +153,11 @@
             //         </button>` );
             // }
             let data = {};
-            // data["domain"] = localStorage.getItem("domain");
+            data["domain"] = localStorage.getItem("domain");
             data["interaction type"] = localStorage.getItem("interaction type");
             data["survey"] = localStorage.getItem("survey")
-            // data["iteration"] = Number(localStorage.getItem("iteration"));
-            // data["subiteration"] = Number(localStorage.getItem("subiteration"));
+            data["iteration"] = Number(localStorage.getItem("iteration"));
+            data["subiteration"] = Number(localStorage.getItem("subiteration"));
             data["user input"] = JSON.parse(localStorage.getItem("user input"));
             data["movement"] = localStorage.getItem("movement");
             data["already completed"] = localStorage.getItem("already completed");
@@ -319,8 +319,8 @@
     window.start_time = 0;
     window.start_time_set = false;
     window.moves = [];
-    window.agent_history = [];
-    window.agent_history_nonoffset = [];  // this is for keep track of the agent's location in gridworld integers
+    window.agent_history = [];            // for drawing a history of the agent's path
+    window.agent_history_nonoffset = [];  // for keeping track of the agent's location in gridworld integers
 
     var offset_x = 1.5;
     var offset_y = 1;
@@ -731,9 +731,9 @@
 
       function draw()
       {
-          if (!start_time_set) {
-              start_time = performance.now();
-              start_time_set = true
+          if (!window.start_time_set) {
+              window.start_time = performance.now();
+              window.start_time_set = true
           }
           if (!map_layout.set){
             set_grids();
@@ -787,7 +787,6 @@
         drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
         drawPassenger(passenger.grid_loc.x,passenger.grid_loc.y,"normal");
 
-        // todo: update this to also consider whether the passenger.dropped_human is true as well if mdp_parameter.tag == -2
           game_completed = false
           if (mdp_parameters.tag == -2) {
               if (passenger.dropped && passenger.dropped_human) game_completed = true;

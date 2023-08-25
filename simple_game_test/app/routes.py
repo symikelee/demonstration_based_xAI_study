@@ -1169,7 +1169,12 @@ def settings(data):
 
                         human_actions = data["user input"]["moves"]
                         human_locations = data["user input"]["agent_history_nonoffset"]
-                        human_locations_tuple = [(human_location[0], human_location[1], int(human_location[2])) for human_location in human_locations]
+                        if domain == 'at':
+                            human_locations_tuple = [(human_location[0], human_location[1], int(human_location[2])) for
+                                                     human_location in human_locations]
+                        else:
+                            human_locations_tuple = [(human_location[0], human_location[1]) for
+                                                     human_location in human_locations]
 
                         normalized_opt_actions, normalized_human_actions = normalize_trajectories(opt_locations_tuple, opt_actions, human_locations_tuple, human_actions)
                         print(normalized_opt_actions)

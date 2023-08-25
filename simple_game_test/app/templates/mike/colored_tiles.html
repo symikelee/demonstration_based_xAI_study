@@ -54,17 +54,6 @@
         <div id="table_controlinfo"></div>
     </div>
     <div id="survey">
-        <!-- <h3> Did this sequence improve your understanding of the game strategy?</h3>
-        <ul class="likert">
-            <li> Not helpful/informative at all </li>
-            <li><input type="radio" name="info" value="1" /></li>
-            <li><input type="radio" name="info" value="2" /></li>
-            <li><input type="radio" name="info" value="3" /></li>
-            <li><input type="radio" name="info" value="4" /></li>
-            <li><input type="radio" name="info" value="5" /></li>
-            <li> Very helpful/informative </li>
-        </ul>
-        <br></br> -->
     </div>
     <hr>
     <br>
@@ -103,19 +92,37 @@
             //         </button>` );
             // }
             let data = {};
-            // data["domain"] = localStorage.getItem("domain");
-            // data["interaction type"] = localStorage.getItem("interaction type");
-            // data["iteration"] = Number(localStorage.getItem("iteration"));
-            // data["subiteration"] = Number(localStorage.getItem("subiteration"));
+            data["domain"] = localStorage.getItem("domain");
+            data["interaction type"] = localStorage.getItem("interaction type");
+            data["iteration"] = Number(localStorage.getItem("iteration"));
+            data["survey"] = localStorage.getItem("survey")
+            data["subiteration"] = Number(localStorage.getItem("subiteration"));
             data["user input"] = JSON.parse(localStorage.getItem("user input"));
             data["movement"] = localStorage.getItem("movement");
+            data["already completed"] = localStorage.getItem("already completed");
             socket.emit("settings", data);
         });
 
         socket.on("settings configured", function (data) {
-            mdp_parameters = data["params"]; 
-            interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
-            localStorage.setItem("seen", data["seen"]);
+            localStorage.setItem("movement", "false");
+            localStorage.setItem("user input", "{}");
+            // localStorage.setItem("game completed", "false");
+            // localStorage.setItem("survey completed", "false");
+            localStorage.setItem("survey", "-1");
+            window.mdp_parameters = data["params"];
+            window.interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
+            localStorage.setItem("already completed", data["already completed"]);
+            if (data["go prev"] === "false") {
+                $("#prev").replaceWith(`<button type="button" id="prev" disabled onclick="prev()" value="previous" class="btn btn-primary btn-lg continue"> Previous <span class="glyphicon glyphicon-arrow-left"></span>
+            </button>`);
+            }
+            if (data["already completed"] === "true") {
+                $("#next").replaceWith(`<button type="button" id="next"
+                    onclick="next()"
+                    value="next" class="btn btn-primary btn-lg continue">
+                    Next <span class="glyphicon glyphicon-arrow-right"></span>
+                    </button>` );
+            }
             $("#debug").html(data["debug string"]);
             if (data["last test"]) {
                 localStorage.setItem("last test", "true");
@@ -135,8 +142,6 @@
         <table width="500">
             <tr><th>Key</th><th>Action</th></tr>
             <tr><td>up/down/left/right arrow keys</td><td>corresponding movement</td></tr>
-            <tr><td>p</td><td>pick up</td></tr>
-            <tr><td>d</td><td>drop</td></tr>
             <tr><td>r</td><td>reset simulation</td></tr>
         </table>
         <br></div>`);
@@ -147,14 +152,13 @@
         <table width="500">
             <tr><th>Key</th><th>Action</th></tr>
             <tr><td>space bar</td><td>next movement</td></tr>
-            <tr><td>p</td><td>pick up</td></tr>
-            <tr><td>d</td><td>drop</td></tr>
             <tr><td>r</td><td>reset simulation</td></tr>
         </table>
         <br></div>`);
             $("#info_main").replaceWith('<h3> Look at the demonstration on how you should complete this games task while minimizing Chips energy loss.</h3><h3>Please answer the question below on the confidence of your <b>understanding</b> of the demonstration.</h3>');
         }
-        }        function prev() {
+        }
+        function prev() {
             localStorage.setItem("movement", "prev");
             window.location.href="/ct";
         }
@@ -181,14 +185,41 @@
             }
         }
 
+        addEventListener("beforeunload", (event) => {
+            if (localStorage.getItem("movement") === "false") {
+                event.preventDefault();
+                event.returnValue = "Are you sure you want to leave? The task is incomplete.";
+            }
+            let simulation_rt = 0;
+            if (localStorage.getItem("user input") === "{}") {
+                if (window.moves.length > 0) {
+                    simulation_rt = performance.now() - window.start_time;
+                }
+                final_data = JSON.stringify({
+                    'moves': window.moves,
+                    'opt_response': false,
+                    'agent_history_nonoffset': window.agent_history_nonoffset,
+                    'mdp_parameters': window.mdp_parameters,
+                    'simulation_rt': simulation_rt,
+                });
+                localStorage.setItem("user input", final_data);
+            }
+
+        });
+
         addEventListener("input", (event) => {
             localStorage.setItem("survey completed", "true");
-            $("#next").replaceWith(`<button type="button" id="next" 
+            //localStorage.setItem("survey completed", "true");
+            let radioValue = $("input[name='info']:checked").val();
+            if(radioValue) {
+                localStorage.setItem("survey", radioValue);
+            }
+            $("#next").replaceWith(`<button type="button" id="next"
                     onclick="next()"
                     value="next" class="btn btn-primary btn-lg continue">
                     Next <span class="glyphicon glyphicon-arrow-right"></span>
                     </button>` );
-        });
+            });
 
         function run_page(mdp_parameters) {
     var canvas = document.getElementById("game");
@@ -198,10 +229,11 @@
     var final_data = [];
     var data_sent = false;
 
-    var start_time = 0;
-    var start_time_set = false;
-    var moves = [];
-    var agent_history = [];
+    window.start_time = 0;
+    window.start_time_set = false;
+    window.moves = [];
+    window.agent_history = [];
+    window.agent_history_nonoffset = [];  // this is for keep track of the agent's location in gridworld integers
 
 
     var offset_x = 1;
@@ -253,7 +285,9 @@ var spaceship =
         spaceship.grid_loc.y =  (mdp_parameters.height - mdp_parameters.agent.y) + offset_y;
         spaceship.grid_loc.human_x =  (mdp_parameters.agent.x-1) + offset_x + agent_human_spacer;
         spaceship.grid_loc.human_y =  (mdp_parameters.height - mdp_parameters.agent.y) + offset_y;
-        agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y])
+
+        window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y])
+          window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y])
         spaceship.taxi_set = true;
         //set destination
         destination_grid = build_grid();
@@ -320,13 +354,13 @@ var spaceship =
     function drawAgentHistory()
     {
         context.save();
-        for (j = 0; j < agent_history.length; j++) {
+        for (j = 0; j < window.agent_history.length; j++) {
             context.beginPath();
             if (j == 0) {
-                context.rect(agent_history[j][0]*100 + 37, agent_history[j][1]*100 + 48, 25, 4);
+                context.rect(window.agent_history[j][0]*100 + 37, window.agent_history[j][1]*100 + 48, 25, 4);
                 context.fillStyle = '#677387';
             }
-            context.arc(agent_history[j][0]*100 + 50, agent_history[j][1]*100 + 50, 6, 0, 2 * Math.PI);
+            context.arc(window.agent_history[j][0]*100 + 50, window.agent_history[j][1]*100 + 50, 6, 0, 2 * Math.PI);
             context.fillStyle = '#677387';
             context.fill();
             context.closePath();
@@ -457,9 +491,11 @@ var spaceship =
         }
 
         final_data = JSON.stringify({
-            'simulation_rt': (end_time - start_time),
+            'simulation_rt': (end_time - window.start_time),
             'moves': moves,
-            'opt_response': same_traj
+            'opt_response': same_traj,
+            'agent_history_nonoffset': window.agent_history_nonoffset,
+            'mdp_parameters': mdp_parameters,
         });
 
         var event = new CustomEvent("game-completed", { "detail": "Demonstration has now ended." });
@@ -472,9 +508,9 @@ var spaceship =
 
       function draw()
       {
-          if (!start_time_set) {
-              start_time = performance.now();
-              start_time_set = true
+          if (!window.start_time_set) {
+              window.start_time = performance.now();
+              window.start_time_set = true
           }
 
           if (!map_layout.set){
@@ -524,15 +560,12 @@ var spaceship =
         }
         drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
 
-        {#  game_completed = false#}
-        {#  if (mdp_parameters.tag == -2) {#}
-        {#      if (map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] == 1 && map_layout.destination[spaceship.grid_loc.human_y-offset_y][spaceship.grid_loc.human_x-offset_x] == 1) game_completed = true;#}
-        {#  } else if (map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] == 1) game_completed = true;#}
-        {##}
-        {#if(game_completed)#}
+          game_completed = false
+          if (mdp_parameters.tag == -2) {
+              if (onGoal('agent') && onGoal('human')) game_completed = true;
+          } else if (onGoal('agent')) game_completed = true;
 
-
-        if(map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] == 1)
+        if(game_completed)
         {
             context.font = "bold 28px Arial";
             context.fillStyle = text_color;
@@ -543,17 +576,32 @@ var spaceship =
                 record_data()
             }
 
-            $("#survey").replaceWith(`<h3> This sequence improved my understanding of the game strategy.</h3>
+            var it = window.interaction_type;
+            var last_test = localStorage.getItem("last test");
+            if (it == "final test"){
+                if(last_test){
+                    $("#score").html('<div class="text-center"><h1>Score Results</h1><p>You scored <p id="score_val"></p>times correctly.</p></div>')
+                }
+                $("#next").replaceWith(`<button type="button" id="next"
+                    onclick="next()"
+                    value="next" class="btn btn-primary btn-lg continue">
+                    Next <span class="glyphicon glyphicon-arrow-right"></span>
+                    </button>` );
+            }
+            else if (localStorage.getItem("already completed") === "false") {
+                $("#survey").replaceWith(`<h3> This sequence improved my understanding of the game strategy.</h3>
                 <div class="likert">
-                <label><input name="l" type="radio" value="1"/><span>Strongly Disagree</span></label>
-                <label><input name="l" type="radio" value="2"/><span>Disagree</span></label>
-                <label><input name="l" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
-                <label><input name="l" type="radio" value="4"/><span>Agree</span></label>
-                <label><input name="l" type="radio" value="5"/><span>Strongly Agree</span></label>
+                <label><input name="info" type="radio" value="1"/><span>Strongly Disagree</span></label>
+                <label><input name="info" type="radio" value="2"/><span>Disagree</span></label>
+                <label><input name="info" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
+                <label><input name="info" type="radio" value="4"/><span>Agree</span></label>
+                <label><input name="info" type="radio" value="5"/><span>Strongly Agree</span></label>
                 </div>
-                <br></br>` );
+                <br></br>`);
+            }
         }
       }
+
       function onGoal(version)
 {
     if (version=="agent"){
@@ -584,6 +632,7 @@ var spaceship =
             if (spaceship.grid_loc.x > offset_x){
                 spaceship.grid_loc.x -= 1;
                 moves.push("left");
+                window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y])
             }
         }
         else{
@@ -604,6 +653,7 @@ var spaceship =
             if (spaceship.grid_loc.x < mdp_parameters.width-1+offset_x){
                 spaceship.grid_loc.x += 1;
                 moves.push("right");
+                window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y])
             }
         }
         else{
@@ -624,6 +674,7 @@ var spaceship =
             if (spaceship.grid_loc.y > offset_y){
                 spaceship.grid_loc.y -= 1;
                 moves.push("up");
+                window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y])
             }
         }
         else{
@@ -645,6 +696,7 @@ var spaceship =
             if (spaceship.grid_loc.y < mdp_parameters.height-1+offset_y){
                 spaceship.grid_loc.y += 1;
                 moves.push("down");
+                window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y])
             }
         }
         else{
@@ -668,7 +720,8 @@ var spaceship =
         }
         moves = [];
         map_layout.set = false;
-        agent_history = [];
+        window.agent_history = [];
+        window.agent_history_nonoffset = []
     }
 
     function no_op(){
@@ -730,7 +783,6 @@ var spaceship =
                         no_op();
                         break;
                 }
-                //agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
                 requestAnimationFrame(draw);
             }
             else if (event.keyCode == 82) {
@@ -743,7 +795,7 @@ var spaceship =
             //training case, just agent         
             if (event.keyCode == 32) {
                 //space bar pressed, advance demo
-                var next_action_agent = mdp_parameters.normalized_opt_actions[idx];
+                var next_action_agent  = mdp_parameters.opt_actions[idx];
                 idx++;
                 switch(next_action_agent) {
                     case "left":
@@ -759,7 +811,7 @@ var spaceship =
                         down("agent");
                         break;
                 }
-                agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
+                window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
                 requestAnimationFrame(draw);
             }
             else if (event.keyCode == 82) {
@@ -797,7 +849,7 @@ var spaceship =
                     reset("agent");
                     break;
             }
-            if (event.keyCode != 82) agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
+            if (event.keyCode != 82) window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
             requestAnimationFrame(draw);
       }
       console.log(moves);
