@@ -52,6 +52,10 @@ class User(UserMixin, db.Model):
     curr_trial_idx = db.Column(db.Integer)
     group = db.Column(db.String(50))
 
+    pf_model = db.Column(db.PickleType)
+    params_stack = db.Column(MutableList.as_mutable(db.PickleType),
+                              default=[])
+
     def __repr__(self):
         return "<User {}>".format(self.username)
     

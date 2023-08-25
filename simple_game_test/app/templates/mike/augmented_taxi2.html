@@ -160,6 +160,7 @@
             // data["subiteration"] = Number(localStorage.getItem("subiteration"));
             data["user input"] = JSON.parse(localStorage.getItem("user input"));
             data["movement"] = localStorage.getItem("movement");
+            data["already completed"] = localStorage.getItem("already completed");
             socket.emit("settings", data);
         });
         socket.on("settings configured", function (data) {
@@ -425,6 +426,7 @@
         //set location of passenger
         if (mdp_parameters.agent.has_passenger == 1){
             passenger.picked = true;
+            passenger.picked_human = true;
             passenger.grid_loc.x = (mdp_parameters.agent.x-1) + offset_x;
             passenger.grid_loc.y = (mdp_parameters.height - mdp_parameters.agent.y) + offset_y;
             passenger.grid_loc.human_x = (mdp_parameters.agent.x-1) + offset_x + agent_human_spacer;

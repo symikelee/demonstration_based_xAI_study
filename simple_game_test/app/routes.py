@@ -43,25 +43,25 @@ CARD_ID_TO_FEATURES = [
 ]
 
 # todo: Mike uncomment for remedial demos and tests
-# # background variables needed for remedial demonstrations and tests
-# domain_background_vars = {}
-# def load_background_vars(data_loc):
-#     with open('models/' + data_loc + '/base_constraints.pickle', 'rb') as f:
-#         policy_constraints, min_subset_constraints_record, env_record, traj_record, traj_features_record, reward_record, mdp_features_record, consistent_state_count = pickle.load(
-#             f)
-#     background_vars = (
-#     policy_constraints, min_subset_constraints_record, env_record, traj_record, traj_features_record, reward_record,
-#     mdp_features_record, consistent_state_count)
-#
-#     return background_vars
-#
-# # todo: double check if this code is run for each new person
-# args = ['augmented_taxi2', 'colored_tiles', 'skateboard2']
-#
-# for domain in args:
-#     domain_background_vars[domain] = load_background_vars(domain)
-#
-# pool = Pool(os.cpu_count())
+# background variables needed for remedial demonstrations and tests
+domain_background_vars = {}
+def load_background_vars(data_loc):
+    with open('models/' + data_loc + '/base_constraints.pickle', 'rb') as f:
+        policy_constraints, min_subset_constraints_record, env_record, traj_record, traj_features_record, reward_record, mdp_features_record, consistent_state_count = pickle.load(
+            f)
+    background_vars = (
+    policy_constraints, min_subset_constraints_record, env_record, traj_record, traj_features_record, reward_record,
+    mdp_features_record, consistent_state_count)
+
+    return background_vars
+
+# todo: double check if this code is run for each new person
+args = ['augmented_taxi2', 'colored_tiles', 'skateboard2']
+
+for domain in args:
+    domain_background_vars[domain] = load_background_vars(domain)
+
+pool = Pool(os.cpu_count())
 
 # HOW TO PREVENT RULE / STATE CHANGE ON RELOAD???
 
@@ -949,7 +949,62 @@ def settings(data):
     print(loop_cond)
     print(domain)
 
-    if iter != -1:
+    if domain == "at":
+        domain_key = "augmented_taxi2"
+    elif domain == "ct":
+        domain_key = "colored_tiles"
+    else:
+        domain_key = "skateboard2"
+
+    constraints = []
+    prev_already_completed = data["already completed"]
+
+    # save interaction data from the most recent page and consider updating the particle filter human model
+    # only consider updating the particle filter following the first interaction, if it's a new page, and the person didn't go backward to a previous interaction
+    if iter != -1 and prev_already_completed == "false" and data['movement'] != 'prev':
+        # update particle filter
+        update_pf = False
+
+        if ('demo' in it):
+            update_pf = True
+            constraints = [np.array(c) for c in data["user input"]["mdp_parameters"]["constraints"]]
+        elif ('test' in it) and ('final' not in it):
+            update_pf = True
+            if data["user input"]["opt_response"]:
+                # person got the test right
+                constraints = [np.array(c) for c in data["user input"]["mdp_parameters"]["constraints"]]
+            else:
+                # person got the test wrong
+                # todo: Mike uncomment for remedial demos and tests
+                policy_constraints, min_subset_constraints_record, env_record, traj_record, traj_features_record, reward_record, mdp_features_record, consistent_state_count = domain_background_vars[domain_key]
+                prev_mdp_parameters = data['user input']['mdp_parameters']
+
+                # store the moves input by the human in previous game
+                prev_mdp_parameters['human_actions'] = data["user input"]["moves"]
+
+                best_env_idx, best_traj_idx = prev_mdp_parameters['env_traj_idxs']
+                opt_traj = traj_record[best_env_idx][best_traj_idx]
+                opt_traj_features = traj_features_record[best_env_idx][best_traj_idx]
+
+                # obtain the constraint that the participant failed to demonstrate
+                constraint = obtain_constraint(domain_key, prev_mdp_parameters, opt_traj, opt_traj_features)
+                constraints = [-constraint]
+                # constraints = [np.array([[0, 0, -1]])] # dummy constraint
+        # todo: Mike uncomment for remedial demos and tests
+        if update_pf:
+            if current_user.pf_model is None:
+                particle_positions = BEC_helpers.sample_human_models_uniform([], params.BEC['n_particles'])
+                particles = pf.Particles(particle_positions)
+                particles.update(params.prior)
+                particles.update(constraints)
+                current_user.pf_model = particles
+                print("Updated PF with constraints: {}".format(constraints))
+            else:
+                particles = current_user.pf_model
+                particles.update(constraints)
+                current_user.pf_model = particles
+        print("Updated PF with constraints: {}".format(constraints))
+
         trial = Trial(
             user_id = current_user.id,
             domain = domain,
@@ -963,11 +1018,13 @@ def settings(data):
             percent_seen = -1, #TODO: later?
             mdp_parameters = data["user input"]["mdp_parameters"],
             duration_ms = data["user input"]["simulation_rt"],
-            human_model = None #TODO: later?
+            human_model = current_user.pf_model # todo: verify that different snapshots of the PF are being saved (and previous snapshots aren't being updated)
         )
         db.session.add(trial)
 
-    # if data["survey "]
+        # pop the params from the params_stack once you've saved it
+        current_user.params_stack.pop()
+        print("popped from params stack")
 
     # need some cases
     # if survey completed, then push to the stack
@@ -983,7 +1040,9 @@ def settings(data):
     if key not in current_user.control_stack:
         current_user.stack_push(key)
 
+    # determine which params to provide to the next page
     if data["movement"] == "prev":
+        # if the user pressed prev, you can simply use params that was previously saved
         old_idx = current_user.control_stack.index(key)
         new_idx = old_idx - 1
         current_user.interaction_type = current_user.control_stack[new_idx][0]
@@ -997,17 +1056,10 @@ def settings(data):
                                                         subiteration=current_user.subiteration).all()
         params_list = [trial.mdp_parameters for trial in old_trials]
         response["params"] = params_list[0]
-
     elif data["movement"] == "next":
-
-        # if key not in current_user.control_stack:
-        #     current_user.stack_push(key)
-        #     seen = "false"
-        # current_user.curr_trial_idx = current_user.control_stack.index(key)
-        # print(current_user.control_stack)
+        # if the user pressed next, you'll have to determined whether you can still use previously saved params or generate new ones
 
         arr = progression[loop_cond][domain]
-        idx = 0
         if (it == "remedial test") or (it == "remedial feedback"):
             idx = arr.index([it, iter, subiter])
         else:
@@ -1018,119 +1070,159 @@ def settings(data):
         if idx == len(arr) - 2:
             last_test = True
 
-        if loop_cond == "open" or loop_cond == "debug":
-            current_user.interaction_type = arr[idx + 1][0]
-            current_user.iteration = arr[idx + 1][1]
-        elif loop_cond == "pl":
-            # todo: Mike uncomment for remedial demos and tests
-            # if it == "diagnostic test" and data["user input"]["opt_response"]:
-            if it == "diagnostic test":
-                current_user.interaction_type = arr[idx + 2][0]
-                current_user.iteration = arr[idx + 2][1]
-            else:
+        # a) get new control key
+        control_stack_idx = current_user.control_stack.index([it, iter, subiter])
+        if control_stack_idx < len(current_user.control_stack) - 1:
+            # if there's a key ahead of you, use it
+            current_user.interaction_type = current_user.control_stack[control_stack_idx + 1][0]
+            current_user.iteration = current_user.control_stack[control_stack_idx + 1][1]
+            current_user.subiteration = current_user.control_stack[control_stack_idx + 1][2]
+        else:
+            # otherwise, find the next key
+
+            # REQUIRES: domain and loop condition are the same throughout this function
+            # it, iter, and subiter are the old versions
+            # current_user.{interaction_type, iteration, subiteration} are the new versions
+            if loop_cond == "open" or loop_cond == "debug":
                 current_user.interaction_type = arr[idx + 1][0]
                 current_user.iteration = arr[idx + 1][1]
-        elif loop_cond == "cl":
-            # todo: Mike uncomment for remedial demos and tests
-            # if it == "diagnostic test" and data["user input"]["opt_response"]:
-            if it == "diagnostic test":
-                current_user.interaction_type = arr[idx + 11][0]
-                current_user.iteration = arr[idx + 11][1]
-            # todo: Mike uncomment for remedial demos and tests
-            # elif it == "remedial test" and data["user input"]["opt_response"]:
-            elif it == "remedial test":
-                jump = 2 * (4 - subiter)
-                current_user.interaction_type = arr[idx + jump][0]
-                current_user.iteration = arr[idx + jump][1]
-                current_user.subiteration = 0
-            else:
-                current_user.interaction_type = arr[idx + 1][0]
-                current_user.iteration = arr[idx + 1][1]
-                if current_user.interaction_type == ("remedial test" or "remedial feedback"):
-                    current_user.subiteration = arr[idx + 1][2]
+            elif loop_cond == "pl":
+                # skip the remedial demos and tests if the human answers correctly or if it's a rerun of a test (i.e. tag = -1)
+                if it == "diagnostic test" and data["user input"]["opt_response"] and (data["user input"]["mdp_parameters"]['tag'] != -1):
+                    current_user.interaction_type = arr[idx + 2][0]
+                    current_user.iteration = arr[idx + 2][1]
                 else:
+                    current_user.interaction_type = arr[idx + 1][0]
+                    current_user.iteration = arr[idx + 1][1]
+            elif loop_cond == "cl":
+                # skip the remedial demos and tests if the human answers correctly or if it's a rerun of a test (i.e. tag = -1)
+                if it == "diagnostic test" and data["user input"]["opt_response"] and (data["user input"]["mdp_parameters"]['tag'] != -1):
+                    # move to next demo from next unit
+                    current_user.interaction_type = arr[idx + 11][0]
+                    current_user.iteration = arr[idx + 11][1]
+                elif it == "remedial test" and data["user input"]["opt_response"] and (data["user input"]["mdp_parameters"]['tag'] != -1):
+                    # move to next demo from next unit
+                    jump = 2 * (4 - subiter)
+                    current_user.interaction_type = arr[idx + jump][0]
+                    current_user.iteration = arr[idx + jump][1]
                     current_user.subiteration = 0
-
-        response["params"] = {}
-
-        # REQUIRES: domain and loop condition are the same throughout this function
-        # it, iter, and subiter are the old versions
-        # current_user.{interaction_type, iteration, subiteration} are the new versions
-
-        if domain == "at":
-            domain_key = "augmented_taxi2"
-        elif domain == "ct":
-            domain_key = "colored_tiles"
-        else:
-            domain_key = "skateboard2"
-
-        print(current_user.interaction_type)
-        print(current_user.iteration)
-        if loop_cond == "cl":
-            if current_user.interaction_type == "final test":
-                # todo: randomize the order of the tests and also potentially account for train_test_set (currently only using the first set)
-                if current_user.iteration < 2:
-                    response["params"] = jsons[domain_key][current_user.interaction_type]["low"][0][current_user.iteration]
-                elif current_user.iteration < 4:
-                    response["params"] = jsons[domain_key][current_user.interaction_type]["medium"][0][current_user.iteration - 2]
                 else:
-                    response["params"] = jsons[domain_key][current_user.interaction_type]["high"][0][current_user.iteration - 4]
-            elif current_user.interaction_type == "diagnostic feedback" or current_user.interaction_type == "remedial feedback":
-                # normalize the actions of the optimal and (incorrect) human trajectory such that they're the same length
-                # (by causing the longer trajectory to wait at overlapping states)
-                opt_actions = data['user input']['mdp_parameters']['opt_actions']
-                opt_locations = data['user input']['mdp_parameters']['opt_locations']
-                opt_locations_tuple = [tuple(opt_location) for opt_location in opt_locations]
+                    # move to remedial feedback
+                    current_user.interaction_type = arr[idx + 1][0]
+                    current_user.iteration = arr[idx + 1][1]
+                    if current_user.interaction_type == "remedial test" or current_user.interaction_type == "remedial feedback":
+                        current_user.subiteration = arr[idx + 1][2]
+                    else:
+                        current_user.subiteration = 0
 
-                human_actions = data["user input"]["moves"]
-                human_locations = data["user input"]["agent_history_nonoffset"]
-                human_locations_tuple = [(human_location[0], human_location[1], int(human_location[2])) for human_location in human_locations]
+        # b) get new params
+        num_times_completed = db.session.query(Trial).filter_by(user_id=current_user.id,
+                                                                domain=domain,
+                                                                interaction_type=current_user.interaction_type,
+                                                                iteration=current_user.iteration,
+                                                                subiteration=current_user.subiteration).count()
+        num_times_unfinished = db.session.query(Trial).filter_by(user_id=current_user.id,
+                                                                 domain=domain,
+                                                                 interaction_type=current_user.interaction_type,
+                                                                 iteration=current_user.iteration,
+                                                                 subiteration=current_user.subiteration,
+                                                                 likert=-1).count()
+        num_times_finished = num_times_completed - num_times_unfinished
+        print("num of times finished: {}".format(num_times_finished))
 
-                normalized_opt_actions, normalized_human_actions = normalize_trajectories(opt_locations_tuple, opt_actions, human_locations_tuple, human_actions)
-                print(normalized_opt_actions)
-                print(normalized_human_actions)
-
-                # update the relevant mdp_parameter with the normalized versions of the trajectories
-                updated_data = data['user input']['mdp_parameters'].copy()
-                updated_data['normalized_opt_actions'] = normalized_opt_actions
-                updated_data['normalized_human_actions'] = normalized_human_actions
-                updated_data['tag'] = -2 # indicate that this is trajectory visualization
-                updated_data['human_actions'] = human_actions
-                response["params"] = updated_data
-            elif current_user.interaction_type == "remedial demo" or current_user.interaction_type == "remedial test":
-                policy_constraints, min_subset_constraints_record, env_record, traj_record, traj_features_record, reward_record, mdp_features_record, consistent_state_count = domain_background_vars[domain_key]
-                prev_mdp_parameters = data['user input']['mdp_parameters']
-
-                best_env_idx, best_traj_idx = prev_mdp_parameters['env_traj_idxs']
-                opt_traj = traj_record[best_env_idx][best_traj_idx]
-                opt_traj_features = traj_features_record[best_env_idx][best_traj_idx]
-
-                print(prev_mdp_parameters)
-                variable_filter = np.array(prev_mdp_parameters['variable_filter'])
-
-                # obtain the constraint that the participant failed to demonstrate
-                constraint = obtain_constraint(domain_key, prev_mdp_parameters, opt_traj, opt_traj_features)
-
-                # todo: need to keep track of previous_demonstrations and visited_env_traj_idxs (the two back to back empty lists), maintain PF
-                particle_positions = BEC_helpers.sample_human_models_uniform([], 50)
-                particles = pf.Particles(particle_positions)
-
-                if current_user.interaction_type == "remedial demo": type = 'training'
-                else: type = 'testing'
-
-                remedial_mdp_dict, visited_env_traj_idxs = obtain_remedial_demonstrations(domain_key, pool, particles, params.BEC['n_human_models'], constraint,
-                min_subset_constraints_record, env_record, traj_record, traj_features_record, [], [], variable_filter, mdp_features_record, consistent_state_count, [],
-                params.step_cost_flag, type=type, n_human_models_precomputed=params.BEC['n_human_models_precomputed'], web_based=True)
-
-                response["params"] = remedial_mdp_dict
-            else:
-                response["params"] = jsons[domain_key][current_user.interaction_type][str(current_user.iteration)]
+        if num_times_finished > 0:
+            # if you've seen this page before, simply get the associated params from the database
+            old_trials = db.session.query(Trial).filter_by(user_id=current_user.id,
+                                                           domain=domain,
+                                                           interaction_type=current_user.interaction_type,
+                                                           iteration=current_user.iteration,
+                                                           subiteration=current_user.subiteration).all()
+            params_list = [trial.mdp_parameters for trial in old_trials]
+            response["params"] = params_list[0]
         else:
-            if "test" in current_user.interaction_type:
-                response["params"] = jsons[domain_key]["final test"]["low"][0][0]
+            if len(current_user.params_stack) > 0:
+                # if there's still params on the stack (which hasn't been committed to the database yet), use it
+                print("pulling from params stack")
+                response["params"] = current_user.params_stack[-1]
             else:
-                response["params"] = jsons[domain_key]["demo"]["0"]
+                # otherwise, you'll have to obtain new params
+                print("getting new params")
+                response["params"] = {}
 
+                print(current_user.interaction_type)
+                print(current_user.iteration)
+                if loop_cond == "cl":
+                    if current_user.interaction_type == "final test":
+                        # todo: randomize the order of the tests and also potentially account for train_test_set (currently only using the first set)
+                        if current_user.iteration < 2:
+                            response["params"] = jsons[domain_key][current_user.interaction_type]["low"][0][current_user.iteration]
+                        elif current_user.iteration < 4:
+                            response["params"] = jsons[domain_key][current_user.interaction_type]["medium"][0][current_user.iteration - 2]
+                        else:
+                            response["params"] = jsons[domain_key][current_user.interaction_type]["high"][0][current_user.iteration - 4]
+                    elif current_user.interaction_type == "diagnostic feedback" or current_user.interaction_type == "remedial feedback":
+                        # normalize the actions of the optimal and (incorrect) human trajectory such that they're the same length
+                        # (by causing the longer trajectory to wait at overlapping states)
+                        opt_actions = data['user input']['mdp_parameters']['opt_actions']
+                        opt_locations = data['user input']['mdp_parameters']['opt_locations']
+                        opt_locations_tuple = [tuple(opt_location) for opt_location in opt_locations]
+
+                        human_actions = data["user input"]["moves"]
+                        human_locations = data["user input"]["agent_history_nonoffset"]
+                        human_locations_tuple = [(human_location[0], human_location[1], int(human_location[2])) for human_location in human_locations]
+
+                        normalized_opt_actions, normalized_human_actions = normalize_trajectories(opt_locations_tuple, opt_actions, human_locations_tuple, human_actions)
+                        print(normalized_opt_actions)
+                        print(normalized_human_actions)
+
+                        # update the relevant mdp_parameter with the normalized versions of the trajectories
+                        updated_data = data['user input']['mdp_parameters'].copy()
+                        updated_data['normalized_opt_actions'] = normalized_opt_actions
+                        updated_data['normalized_human_actions'] = normalized_human_actions
+                        updated_data['tag'] = -2 # indicate that this is trajectory visualization
+                        updated_data['human_actions'] = human_actions
+                        response["params"] = updated_data
+                    elif current_user.interaction_type == "remedial demo" or current_user.interaction_type == "remedial test":
+                        # todo: Mike uncomment for remedial demos and tests
+                        # policy_constraints, min_subset_constraints_record, env_record, traj_record, traj_features_record, reward_record, mdp_features_record, consistent_state_count = domain_background_vars[domain_key]
+                        # prev_mdp_parameters = data['user input']['mdp_parameters']
+                        #
+                        # best_env_idx, best_traj_idx = prev_mdp_parameters['env_traj_idxs']
+                        # opt_traj = traj_record[best_env_idx][best_traj_idx]
+                        # opt_traj_features = traj_features_record[best_env_idx][best_traj_idx]
+                        #
+                        # # print(prev_mdp_parameters)
+                        # variable_filter = np.array(prev_mdp_parameters['variable_filter'])
+                        #
+                        # # obtain the constraint that the participant failed to demonstrate
+                        # constraint = obtain_constraint(domain_key, prev_mdp_parameters, opt_traj, opt_traj_features)
+                        #
+                        # if current_user.interaction_type == "remedial demo": type = 'training'
+                        # else: type = 'testing'
+                        #
+                        # particles = current_user.pf_model
+                        #
+                        # # todo: need to keep track of previous_demonstrations and visited_env_traj_idxs (the two back to back empty lists), maintain PF
+                        # remedial_mdp_dict, visited_env_traj_idxs = obtain_remedial_demonstrations(domain_key, pool, particles, params.BEC['n_human_models'], constraint,
+                        # min_subset_constraints_record, env_record, traj_record, traj_features_record, [], [], variable_filter, mdp_features_record, consistent_state_count, [],
+                        # params.step_cost_flag, type=type, n_human_models_precomputed=params.BEC['n_human_models_precomputed'], web_based=True)
+                        #
+                        # response["params"] = remedial_mdp_dict
+
+                        # dummy params
+                        if current_user.interaction_type == "remedial demo": response["params"] = jsons[domain_key]['demo'][str(0)]
+                        else: response["params"] = jsons[domain_key]['diagnostic test'][str(0)]
+                    else:
+                        response["params"] = jsons[domain_key][current_user.interaction_type][str(current_user.iteration)]
+                else:
+                    if "test" in current_user.interaction_type:
+                        response["params"] = jsons[domain_key]["final test"]["low"][0][0]
+                    else:
+                        response["params"] = jsons[domain_key]["demo"]["0"]
+
+                # add the newly obtained params to the stack (in case the user goes back to another page before committing it to the database)
+                current_user.params_stack.append(response["params"])
+                print("adding to params stack")
 
     already_completed = "false"
     num_times_completed = db.session.query(Trial).filter_by(user_id=current_user.id,
@@ -1145,9 +1237,13 @@ def settings(data):
                                                         subiteration=current_user.subiteration,
                                                         likert=-1).count()
     num_times_finished = num_times_completed - num_times_unfinished
+
+    print("num of times finished: {}".format(num_times_finished))
     if num_times_finished > 0:
         already_completed = "true"
-        response["params"]["tag"] = -1
+        if 'test' in current_user.interaction_type:
+            # if you've already been to this test page, you should simply show the optimal trajectory
+            response["params"]["tag"] = -1
 
     go_prev = "true"
     if (current_user.iteration == 0 and current_user.interaction_type == "demo") or ("test" in current_user.interaction_type and already_completed == "false"):
