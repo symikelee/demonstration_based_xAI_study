@@ -27,16 +27,16 @@
 
 <script>
     function start_study() {
-    //   localStorage.setItem("domain", "at");
-    //   localStorage.setItem("interaction type", "demo");
-    //   localStorage.setItem("iteration", "-1");
-    //   localStorage.setItem("subiteration", "-1");
       localStorage.setItem("user input", "{}");
       localStorage.setItem("movement", "next");
-      // localStorage.setItem("game completed", "false");
-      // localStorage.setItem("survey completed", "false");
-    //   localStorage.setItem("page started", "false");
       localStorage.setItem("survey", "-1");
+      localStorage.setItem("attn1", "-1");
+      localStorage.setItem("attn2", "-1");
+      localStorage.setItem("attn3", "-1");
+      localStorage.setItem("use1", "-1");
+      localStorage.setItem("use2", "-1");
+      localStorage.setItem("use3", "-1");
+      localStorage.setItem("short answer", "");
       let socket = io();
       socket.emit("next domain");
       socket.on("next domain is", function(data) {

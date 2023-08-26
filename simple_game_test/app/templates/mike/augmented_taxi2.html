@@ -17,6 +17,9 @@
   <body>
 <div class="container-fluid" style="padding-left: 5%; padding-right: 5%">
   <div id="container-instructions" class="text-center">
+    <!-- non button section, id'd by non-buttons, should be entirely replaced by
+    survey when we get to end of all of training -->
+    <div id="non-buttons">
           <div id="center-container">
               <div id="loading-container">
                   <div class="spinner"></div>
@@ -36,6 +39,7 @@
     <div id="survey"></div>
     <hr>
     <br>
+    </div>
 
     <div id="instructions" class="instructionsnav">
         <div class="row justify-content-between">
@@ -87,17 +91,6 @@
       var socket = io();
 
       socket.on("connect", function () {
-            // if (localStorage.getItem("progress") === "sandbox_1") {
-            //     socket.emit("sandbox settings", { version: 1 });
-            // }
-            // else if (localStorage.getItem("progress") === "sandbox_2") {
-            //     socket.emit("sandbox settings", { version: 2 });
-            //     $("button").replaceWith(`<button type="button" disabled id="next"
-            //         onclick="make_sandbox()"
-            //         value="next" class="btn btn-primary btn-lg continue">
-            //         Next <span class="glyphicon glyphicon-arrow-right"></span>
-            //         </button>` );
-            // }
             let data = {};
             data["domain"] = localStorage.getItem("domain");
             data["interaction type"] = localStorage.getItem("interaction type");
@@ -106,6 +99,13 @@
             data["subiteration"] = Number(localStorage.getItem("subiteration"));
             data["user input"] = JSON.parse(localStorage.getItem("user input"));
             data["movement"] = localStorage.getItem("movement");
+            data["attn1"] = localStorage.getItem("attn1");
+            data["attn2"] = localStorage.getItem("attn2");
+            data["attn3"] = localStorage.getItem("attn3");
+            data["use1"] = localStorage.getItem("use1");
+            data["use2"] = localStorage.getItem("use2");
+            data["use3"] = localStorage.getItem("use3");
+            data["short answer"] = localStorage.getItem("short answer");
             data["already completed"] = localStorage.getItem("already completed");
             socket.emit("settings", data);
         });
@@ -116,7 +116,7 @@
             // localStorage.setItem("survey completed", "false");
             localStorage.setItem("survey", "-1");
             window.mdp_parameters = data["params"];
-            window.interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
+            window.interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, survey, final test
             localStorage.setItem("already completed", data["already completed"]);
             if (data["go prev"] === "false") {
                 $("#prev").replaceWith(`<button type="button" id="prev" disabled onclick="prev()" value="previous" class="btn btn-primary btn-lg continue"> Previous <span class="glyphicon glyphicon-arrow-left"></span>
@@ -146,7 +146,69 @@
         // Assign html for interaction type
         function change_text(interaction_type){
         console.log("changing text")
-        if ((interaction_type == "diagnostic test") || (interaction_type == "remedial test") || (interaction_type == "final test")) {
+      if (interaction_type === "survey") {
+            $("#non-buttons").html(
+                `<h3> I lost myself in this experience.</h3>
+                <div class="likert">
+                <label><input name="attn1" type="radio" value="1"/><span>Strongly Disagree</span></label>
+                <label><input name="attn1" type="radio" value="2"/><span>Disagree</span></label>
+                <label><input name="attn1" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
+                <label><input name="attn1" type="radio" value="4"/><span>Agree</span></label>
+                <label><input name="attn1" type="radio" value="5"/><span>Strongly Agree</span></label>
+                </div>
+                <br></br>
+                <h3> The time I spent learning the game strategy just slipped away.</h3>
+                <div class="likert">
+                <label><input name="attn2" type="radio" value="1"/><span>Strongly Disagree</span></label>
+                <label><input name="attn2" type="radio" value="2"/><span>Disagree</span></label>
+                <label><input name="attn2" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
+                <label><input name="attn2" type="radio" value="4"/><span>Agree</span></label>
+                <label><input name="attn2" type="radio" value="5"/><span>Strongly Agree</span></label>
+                </div>
+                <br></br>
+                <h3> I was absorbed in this experience. </h3>
+                <div class="likert">
+                <label><input name="attn3" type="radio" value="1"/><span>Strongly Disagree</span></label>
+                <label><input name="attn3" type="radio" value="2"/><span>Disagree</span></label>
+                <label><input name="attn3" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
+                <label><input name="attn3" type="radio" value="4"/><span>Agree</span></label>
+                <label><input name="attn3" type="radio" value="5"/><span>Strongly Agree</span></label>
+                </div>
+                <br></br>
+
+                <h3> I felt frustrated while learning the game strategy.</h3>
+                <div class="likert">
+                <label><input name="use1" type="radio" value="1"/><span>Strongly Disagree</span></label>
+                <label><input name="use1" type="radio" value="2"/><span>Disagree</span></label>
+                <label><input name="use1" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
+                <label><input name="use1" type="radio" value="4"/><span>Agree</span></label>
+                <label><input name="use1" type="radio" value="5"/><span>Strongly Agree</span></label>
+                </div>
+                <br></br>
+                <h3> I found learning the game strategy confusing.</h3>
+                <div class="likert">
+                <label><input name="use2" type="radio" value="1"/><span>Strongly Disagree</span></label>
+                <label><input name="use2" type="radio" value="2"/><span>Disagree</span></label>
+                <label><input name="use2" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
+                <label><input name="use2" type="radio" value="4"/><span>Agree</span></label>
+                <label><input name="use2" type="radio" value="5"/><span>Strongly Agree</span></label>
+                </div>
+                <br></br>
+                <h3> Learning the game strategy was taxing. </h3>
+                <div class="likert">
+                <label><input name="use3" type="radio" value="1"/><span>Strongly Disagree</span></label>
+                <label><input name="use3" type="radio" value="2"/><span>Disagree</span></label>
+                <label><input name="use3" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
+                <label><input name="use3" type="radio" value="4"/><span>Agree</span></label>
+                <label><input name="use3" type="radio" value="5"/><span>Strongly Agree</span></label>
+                </div>
+                <br></br>
+                <h3> Any further comments/thoughts on the practice stage? </h3>
+                <textarea id="short answer" rows="4" cols="50"></textarea>
+                `
+            );
+        }
+        else if ((interaction_type == "diagnostic test") || (interaction_type == "remedial test") || (interaction_type == "final test")) {
             $("#table_controlinfo").replaceWith(`<div><br><br><br><br>
         <table width="500">
             <tr><th>Key</th><th>Action</th></tr>
@@ -222,36 +284,80 @@
                 event.preventDefault();
                 event.returnValue = "Are you sure you want to leave? The task is incomplete.";
             }
-            let simulation_rt = 0;
-            if (localStorage.getItem("user input") === "{}") {
-                if (window.moves.length > 0) {
-                    simulation_rt = performance.now() - window.start_time;
+            if (window.interaction_type === "survey") {
+                localStorage.setItem("short answer", document.getElementById("short answer").value);
+            }
+
+            else {
+                let simulation_rt = 0;
+                if (localStorage.getItem("user input") === "{}") {
+                    if (window.moves.length > 0) {
+                        simulation_rt = performance.now() - window.start_time;
+                    }
+                    final_data = JSON.stringify({
+                        'moves': window.moves,
+                        'opt_response': false,
+                        'agent_history_nonoffset': window.agent_history_nonoffset,
+                        'mdp_parameters': window.mdp_parameters,
+                        'simulation_rt': simulation_rt,
+                    });
+                    localStorage.setItem("user input", final_data);
                 }
-                final_data = JSON.stringify({
-                    'moves': window.moves,
-                    'opt_response': false,
-                    'agent_history_nonoffset': window.agent_history_nonoffset,
-                    'mdp_parameters': window.mdp_parameters,
-                    'simulation_rt': simulation_rt,
-                });
-                localStorage.setItem("user input", final_data);
             }
 
         });
 
-        addEventListener("input", (event) => {
-            localStorage.setItem("survey completed", "true");
-            //localStorage.setItem("survey completed", "true");
-            let radioValue = $("input[name='info']:checked").val();
-            if(radioValue) {
-                localStorage.setItem("survey", radioValue);
+         addEventListener("input", (event) => {
+            if (window.interaction_type !== "survey") {
+                localStorage.setItem("survey completed", "true");
+                //localStorage.setItem("survey completed", "true");
+                // checked based on input name
+                let radioValue = $("input[name='info']:checked").val();
+                if(radioValue) {
+                    localStorage.setItem("survey", radioValue);
+                }
+                $("#next").replaceWith(`<button type="button" id="next"
+                        onclick="next()"
+                        value="next" class="btn btn-primary btn-lg continue">
+                        Next <span class="glyphicon glyphicon-arrow-right"></span>
+                        </button>` );
             }
-            $("#next").replaceWith(`<button type="button" id="next"
-                    onclick="next()"
-                    value="next" class="btn btn-primary btn-lg continue">
-                    Next <span class="glyphicon glyphicon-arrow-right"></span>
-                    </button>` );
-            });
+            else {
+                let attn1 = $("input[name='attn1']:checked").val();
+                if(attn1) {
+                    localStorage.setItem("attn1", attn1);
+                }
+                let attn2 = $("input[name='attn2']:checked").val();
+                if(attn2) {
+                    localStorage.setItem("attn2", attn2);
+                }
+                let attn3 = $("input[name='attn3']:checked").val();
+                if(attn3) {
+                    localStorage.setItem("attn3", attn3);
+                }
+                let use1 = $("input[name='use1']:checked").val();
+                if(use1) {
+                    localStorage.setItem("use1", use1);
+                }
+                let use2 = $("input[name='use2']:checked").val();
+                if(use2) {
+                    localStorage.setItem("use2", use2);
+                }
+                let use3 = $("input[name='use3']:checked").val();
+                if(use3) {
+                    localStorage.setItem("use3", use3);
+                }
+
+                if (attn1 && attn2 && attn3 && use1 && use2 && use3) {
+                    $("#next").replaceWith(`<button type="button" id="next"
+                        onclick="next()"
+                        value="next" class="btn btn-primary btn-lg continue">
+                        Next <span class="glyphicon glyphicon-arrow-right"></span>
+                        </button>` );
+                }
+            }
+        });
+
 
 
   function run_page(mdp_parameters) {

@@ -3,7 +3,7 @@ from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.urls import url_parse
 from app import app, db
 from app.forms import LoginForm, RegistrationForm, TrialForm, DemoForm, ConsentForm, AttentionCheckForm, FinalForm, TrainingForm, FeedbackSurveyForm, NoFeedbackSurveyForm, InformativenessForm
-from app.models import User, Trial, Demo, OnlineCondition, InPersonCondition, Survey
+from app.models import User, Trial, Demo, OnlineCondition, InPersonCondition, Survey, Domain
 from app.params import *
 from utils import rules_to_str, str_to_rules
 import numpy as np
@@ -823,32 +823,41 @@ def settings(data):
     progression = {
         "debug": {
             "at": [["demo", -1], ["demo", 0], ["demo", 1],
+                   ["survey", 0],
                    ["final test",  0], ["final test", 1]],
             "ct": [["demo", -1], ["demo", 0], ["demo", 1],
+                   ["survey", 0],
                    ["final test",  0], ["final test", 1]],
             "sb": [["demo", -1], ["demo", 0], ["demo", 1],
+                   ["survey", 0],
                    ["final test",  0], ["final test", 1]]
         },
         "open": {
             "at": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4],
+                   ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
             "ct": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4],
+                   ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
             "sb": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4], ["demo", 5], ["demo", 6],
+                   ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]]
         },
         "pl": {
             "at": [["demo", -1], ["demo", 0], ["demo", 1], ["diagnostic test", 0], ["diagnostic feedback", 0],
                    ["demo", 2], ["demo", 3], ["diagnostic test", 1], ["diagnostic feedback", 1], ["diagnostic test", 2], ["diagnostic feedback", 2],
                    ["demo", 4], ["diagnostic test", 3], ["diagnostic feedback", 3],
+                   ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
             "ct": [["demo", -1], ["demo", 0], ["demo", 1], ["diagnostic test", 0], ["diagnostic feedback", 0], ["diagnostic test", 1], ["diagnostic feedback", 1],
                    ["demo", 2], ["demo", 3], ["diagnostic test", 2], ["diagnostic feedback", 2], ["diagnostic test", 3], ["diagnostic feedback", 3],
                    ["demo", 4], ["diagnostic test", 4], ["diagnostic feedback", 4],
+                   ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
             "sb": [["demo", -1], ["demo", 0], ["demo", 1], ["diagnostic test", 0], ["diagnostic feedback", 0], ["diagnostic test", 1], ["diagnostic feedback", 1],
                    ["demo", 2], ["demo", 3], ["diagnostic test", 2], ["diagnostic feedback", 2], ["diagnostic test", 3], ["diagnostic feedback", 3],
                    ["demo", 4], ["demo", 5], ["demo", 6], ["diagnostic test", 4], ["diagnostic feedback", 4], ["diagnostic test", 5], ["diagnostic feedback", 5], ["diagnostic test", 6], ["diagnostic feedback", 6],
+                   ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]]
         },
         "cl": {
@@ -875,6 +884,7 @@ def settings(data):
                    ["remedial test", 3, 1], ["remedial feedback", 3, 1],
                    ["remedial test", 3, 2], ["remedial feedback", 3, 2],
                    ["remedial test", 3, 3], ["remedial feedback", 3, 3],
+                   ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
             "ct": [["demo", -1], ["demo", 0], ["demo", 1],
                    ["diagnostic test", 0], ["diagnostic feedback", 0], ["remedial demo", 0],
@@ -904,6 +914,7 @@ def settings(data):
                    ["remedial test", 4, 1], ["remedial feedback", 4, 1],
                    ["remedial test", 4, 2], ["remedial feedback", 4, 2],
                    ["remedial test", 4, 3], ["remedial feedback", 4, 3],
+                   ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
             "sb": [["demo", -1], ["demo", 0], ["demo", 1],
                    ["diagnostic test", 0], ["diagnostic feedback", 0], ["remedial demo", 0],
@@ -943,6 +954,7 @@ def settings(data):
                    ["remedial test", 6, 1], ["remedial feedback", 6, 1],
                    ["remedial test", 6, 2], ["remedial feedback", 6, 2],
                    ["remedial test", 6, 3], ["remedial feedback", 6, 3],
+                   ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]]
         }
     }
@@ -961,7 +973,27 @@ def settings(data):
 
     # save interaction data from the most recent page and consider updating the particle filter human model
     # only consider updating the particle filter following the first interaction, if it's a new page, and the person didn't go backward to a previous interaction
-    if iter != -1 and prev_already_completed == "false" and data['movement'] != 'prev':
+    if it == "survey":
+        dom = Domain(
+            user_id=current_user.id,
+            domain_name=domain,
+            attn1=int(data["attn1"]),
+            attn2=int(data["attn2"]),
+            attn3=int(data["attn3"]),
+            use1=int(data["use1"]),
+            use2=int(data["use2"]),
+            use3=int(data["use3"]),
+            short_answer=data["short answer"]
+        )
+        db.session.add(dom)
+        print(data["attn1"])
+        print(data["attn2"])
+        print(data["attn3"])
+        print(data["use1"])
+        print(data["use2"])
+        print(data["use3"])
+        print(data["short answer"])
+    elif iter != -1 and prev_already_completed == "false" and data['movement'] != 'prev':
         # update particle filter
         update_pf = False
 
@@ -1188,36 +1220,36 @@ def settings(data):
                         updated_data['human_actions'] = human_actions
                         response["params"] = updated_data
                     elif current_user.interaction_type == "remedial demo" or current_user.interaction_type == "remedial test":
-                        # todo: Mike uncomment for remedial demos and tests
-                        policy_constraints, min_subset_constraints_record, env_record, traj_record, traj_features_record, reward_record, mdp_features_record, consistent_state_count = domain_background_vars[domain_key]
-                        prev_mdp_parameters = data['user input']['mdp_parameters']
-
-                        best_env_idx, best_traj_idx = prev_mdp_parameters['env_traj_idxs']
-                        opt_traj = traj_record[best_env_idx][best_traj_idx]
-                        opt_traj_features = traj_features_record[best_env_idx][best_traj_idx]
-
-                        # print(prev_mdp_parameters)
-                        variable_filter = np.array(prev_mdp_parameters['variable_filter'])
-
-                        # obtain the constraint that the participant failed to demonstrate
-                        constraint = obtain_constraint(domain_key, prev_mdp_parameters, opt_traj, opt_traj_features)
-
-                        if current_user.interaction_type == "remedial demo": type = 'training'
-                        else: type = 'testing'
-
-                        particles = current_user.pf_model
-
-                        # todo: need to keep track of previous_demonstrations and visited_env_traj_idxs (the two back to back empty lists), maintain PF
-                        remedial_mdp_dict, visited_env_traj_idxs = obtain_remedial_demonstrations(domain_key, pool, particles, params.BEC['n_human_models'], constraint,
-                        min_subset_constraints_record, env_record, traj_record, traj_features_record, [], [], variable_filter, mdp_features_record, consistent_state_count, [],
-                        params.step_cost_flag, type=type, n_human_models_precomputed=params.BEC['n_human_models_precomputed'], web_based=True)
-
-                        response["params"] = remedial_mdp_dict
+                        # # todo: Mike uncomment for remedial demos and tests
+                        # policy_constraints, min_subset_constraints_record, env_record, traj_record, traj_features_record, reward_record, mdp_features_record, consistent_state_count = domain_background_vars[domain_key]
+                        # prev_mdp_parameters = data['user input']['mdp_parameters']
+                        #
+                        # best_env_idx, best_traj_idx = prev_mdp_parameters['env_traj_idxs']
+                        # opt_traj = traj_record[best_env_idx][best_traj_idx]
+                        # opt_traj_features = traj_features_record[best_env_idx][best_traj_idx]
+                        #
+                        # # print(prev_mdp_parameters)
+                        # variable_filter = np.array(prev_mdp_parameters['variable_filter'])
+                        #
+                        # # obtain the constraint that the participant failed to demonstrate
+                        # constraint = obtain_constraint(domain_key, prev_mdp_parameters, opt_traj, opt_traj_features)
+                        #
+                        # if current_user.interaction_type == "remedial demo": type = 'training'
+                        # else: type = 'testing'
+                        #
+                        # particles = current_user.pf_model
+                        #
+                        # # todo: need to keep track of previous_demonstrations and visited_env_traj_idxs (the two back to back empty lists), maintain PF
+                        # remedial_mdp_dict, visited_env_traj_idxs = obtain_remedial_demonstrations(domain_key, pool, particles, params.BEC['n_human_models'], constraint,
+                        # min_subset_constraints_record, env_record, traj_record, traj_features_record, [], [], variable_filter, mdp_features_record, consistent_state_count, [],
+                        # params.step_cost_flag, type=type, n_human_models_precomputed=params.BEC['n_human_models_precomputed'], web_based=True)
+                        #
+                        # response["params"] = remedial_mdp_dict
 
                         # dummy params
-                        # if current_user.interaction_type == "remedial demo": response["params"] = jsons[domain_key]['demo'][str(0)]
-                        # else: response["params"] = jsons[domain_key]['diagnostic test'][str(0)]
-                    else:
+                        if current_user.interaction_type == "remedial demo": response["params"] = jsons[domain_key]['demo'][str(0)]
+                        else: response["params"] = jsons[domain_key]['diagnostic test'][str(0)]
+                    elif current_user.interaction_type != "survey":
                         response["params"] = jsons[domain_key][current_user.interaction_type][str(current_user.iteration)]
                 else:
                     if "test" in current_user.interaction_type:
@@ -1225,30 +1257,33 @@ def settings(data):
                     else:
                         response["params"] = jsons[domain_key]["demo"]["0"]
 
-                # add the newly obtained params to the stack (in case the user goes back to another page before committing it to the database)
-                current_user.params_stack.append(response["params"])
-                print("adding to params stack")
+                if current_user.interaction_type != "survey":
+                    # add the newly obtained params to the stack (in case the user goes back to another page before committing it to the database)
+                    current_user.params_stack.append(response["params"])
+                    print("adding to params stack")
 
     already_completed = "false"
-    num_times_completed = db.session.query(Trial).filter_by(user_id=current_user.id,
-                                                        domain=domain,
-                                                        interaction_type=current_user.interaction_type,
-                                                        iteration=current_user.iteration,
-                                                        subiteration=current_user.subiteration).count()
-    num_times_unfinished = db.session.query(Trial).filter_by(user_id=current_user.id,
-                                                        domain=domain,
-                                                        interaction_type=current_user.interaction_type,
-                                                        iteration=current_user.iteration,
-                                                        subiteration=current_user.subiteration,
-                                                        likert=-1).count()
-    num_times_finished = num_times_completed - num_times_unfinished
 
-    print("num of times finished: {}".format(num_times_finished))
-    if num_times_finished > 0:
-        already_completed = "true"
-        if 'test' in current_user.interaction_type:
-            # if you've already been to this test page, you should simply show the optimal trajectory
-            response["params"]["tag"] = -1
+    if current_user.interaction_type != "survey":
+        num_times_completed = db.session.query(Trial).filter_by(user_id=current_user.id,
+                                                            domain=domain,
+                                                            interaction_type=current_user.interaction_type,
+                                                            iteration=current_user.iteration,
+                                                            subiteration=current_user.subiteration).count()
+        num_times_unfinished = db.session.query(Trial).filter_by(user_id=current_user.id,
+                                                            domain=domain,
+                                                            interaction_type=current_user.interaction_type,
+                                                            iteration=current_user.iteration,
+                                                            subiteration=current_user.subiteration,
+                                                            likert=-1).count()
+        num_times_finished = num_times_completed - num_times_unfinished
+
+        print("num of times finished: {}".format(num_times_finished))
+        if num_times_finished > 0:
+            already_completed = "true"
+            if 'test' in current_user.interaction_type:
+                # if you've already been to this test page, you should simply show the optimal trajectory
+                response["params"]["tag"] = -1
 
     go_prev = "true"
     if (current_user.iteration == 0 and current_user.interaction_type == "demo") or ("test" in current_user.interaction_type and already_completed == "false"):
