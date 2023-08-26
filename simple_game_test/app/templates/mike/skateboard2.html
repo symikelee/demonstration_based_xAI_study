@@ -10,7 +10,7 @@
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
 
 
-    <link rel="stylesheet" href="/static/css/bootstrap.min.css" type="text/css" />
+      <link rel="stylesheet" href="/static/css/bootstrap.min.css.4.3.1.css" type="text/css" />
     <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
     <link rel="stylesheet" href="/static/css/jspsych.css" type="text/css" />
     <style type="text/css">
@@ -35,25 +35,14 @@
             <div id="table_controlinfo"></div>
         </div>
         <div id="survey">
-        <!-- <h3> Did this sequence improve your understanding of the game strategy?</h3>
-        <ul class="likert">
-            <li> Not helpful/informative at all </li>
-            <li><input type="radio" name="info" value="1" /></li>
-            <li><input type="radio" name="info" value="2" /></li>
-            <li><input type="radio" name="info" value="3" /></li>
-            <li><input type="radio" name="info" value="4" /></li>
-            <li><input type="radio" name="info" value="5" /></li>
-            <li> Very helpful/informative </li>
-        </ul>
-        <br></br> -->
-    </div>
+        </div>
     <hr>
     <br>
     
     <div class="instructionsnav">
-        <div class="row justify-content-around">
+        <div class="row justify-content-between">
           <div class="col-xs-3">
-            <button type="button" id="prev" value="previous" class="btn btn-primary btn-lg continue"> Previous <span class="glyphicon glyphicon-arrow-left"></span>
+            <button type="button" id="prev" onclick="prev()" value="previous" class="btn btn-primary btn-lg continue"> Previous <span class="glyphicon glyphicon-arrow-left"></span>
             </button>
           </div>
           <div class="col-xs-3">
@@ -85,28 +74,45 @@
             //         </button>` );
             // }
             let data = {};
-            // data["domain"] = localStorage.getItem("domain");
-            // data["interaction type"] = localStorage.getItem("interaction type");
-            // data["iteration"] = Number(localStorage.getItem("iteration"));
-            // data["subiteration"] = Number(localStorage.getItem("subiteration"));
+            data["domain"] = localStorage.getItem("domain");
+            data["interaction type"] = localStorage.getItem("interaction type");
+            data["iteration"] = Number(localStorage.getItem("iteration"));
+            data["survey"] = localStorage.getItem("survey")
+            data["subiteration"] = Number(localStorage.getItem("subiteration"));
             data["user input"] = JSON.parse(localStorage.getItem("user input"));
             data["movement"] = localStorage.getItem("movement");
+            data["already completed"] = localStorage.getItem("already completed");
             socket.emit("settings", data);
         });
 
         socket.on("settings configured", function (data) {
-            mdp_parameters = data["params"]; 
-            interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
+            localStorage.setItem("movement", "false");
+            localStorage.setItem("user input", "{}");
+            localStorage.setItem("survey", "-1");
+            window.mdp_parameters = data["params"];
+            window.interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, final test
+            localStorage.setItem("already completed", data["already completed"]);
+            if (data["go prev"] === "false") {
+                $("#prev").replaceWith(`<button type="button" id="prev" disabled onclick="prev()" value="previous" class="btn btn-primary btn-lg continue"> Previous <span class="glyphicon glyphicon-arrow-left"></span>
+            </button>`);
+            }
+            if (data["already completed"] === "true") {
+                $("#next").replaceWith(`<button type="button" id="next"
+                    onclick="next()"
+                    value="next" class="btn btn-primary btn-lg continue">
+                    Next <span class="glyphicon glyphicon-arrow-right"></span>
+                    </button>` );
+            }
 
             $("#debug").html(data["debug string"]);
             if (data["last test"]) {
                 localStorage.setItem("last test", "true");
             }
-            console.log(mdp_parameters);
+            console.log(window.mdp_parameters);
             console.log("Interaction: ");
             console.log(interaction_type);
             change_text(interaction_type);
-            run_page(mdp_parameters);
+            run_page(window.mdp_parameters);
         });
 
         // Assign html for interaction type 
@@ -137,8 +143,13 @@
             $("#info_main").replaceWith('<h3> Look at the demonstration on how you should complete this games task while minimizing Chips energy loss.</h3><h3>Please answer the question below on the confidence of your <b>understanding</b> of the demonstration.</h3>');
         }
         }
+        function prev() {
+            localStorage.setItem("movement", "prev");
+            window.location.href="/sb";
+        }
 
         function next() {
+            localStorage.setItem("movement", "next");
             if (localStorage.getItem("last test") === "true") {
                 localStorage.setItem("last test", "false");
                 socket.emit("next domain");
@@ -159,8 +170,34 @@
             }
         }
 
+        addEventListener("beforeunload", (event) => {
+            if (localStorage.getItem("movement") === "false") {
+                event.preventDefault();
+                event.returnValue = "Are you sure you want to leave? The task is incomplete.";
+            }
+            let simulation_rt = 0;
+            if (localStorage.getItem("user input") === "{}") {
+                if (window.moves.length > 0) {
+                    simulation_rt = performance.now() - window.start_time;
+                }
+                final_data = JSON.stringify({
+                    'moves': window.moves,
+                    'opt_response': false,
+                    'agent_history_nonoffset': window.agent_history_nonoffset,
+                    'mdp_parameters': window.mdp_parameters,
+                    'simulation_rt': simulation_rt,
+                });
+                localStorage.setItem("user input", final_data);
+            }
+
+        });
+
         addEventListener("input", (event) => {
             localStorage.setItem("survey completed", "true");
+            let radioValue = $("input[name='info']:checked").val();
+            if(radioValue) {
+                localStorage.setItem("survey", radioValue);
+            }
             $("#next").replaceWith(`<button type="button" id="next" 
                     onclick="next()"
                     value="next" class="btn btn-primary btn-lg continue">
@@ -176,10 +213,11 @@
     var final_data = [];
     var data_sent = false;
 
-    var start_time = 0;
-    var start_time_set = false;
-    var moves = [];
-    var agent_history = [];
+    window.start_time = 0;
+    window.start_time_set = false;
+    window.moves = [];
+    window.agent_history = [];
+    window.agent_history_nonoffset = []; // this is for keep track of the agent's location in gridworld integers
 
 
     var offset_x = 1.25;
@@ -258,21 +296,26 @@
           spaceship.grid_loc.y =  (mdp_parameters.height - mdp_parameters.agent.y) + offset_y;
           spaceship.grid_loc.human_x =  (mdp_parameters.agent.x-1) + offset_x + agent_human_spacer;
           spaceship.grid_loc.human_y =  (mdp_parameters.height - mdp_parameters.agent.y) + offset_y;
-          agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y])
+          window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y])
+          window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y])
           spaceship.taxi_set = true;
-        //set location of passenger
-        if (mdp_parameters.agent.has_skateboard == 1){
-            passenger.picked = true;
-            passenger.grid_loc.x = (mdp_parameters.agent.x-1) + offset_x;
-            passenger.grid_loc.y = (mdp_parameters.height - mdp_parameters.agent.y) + offset_y;
-            passenger.grid_loc.human_x = (mdp_parameters.agent.x-1) + offset_x + agent_human_spacer;
-            passenger.grid_loc.human_y = (mdp_parameters.height - mdp_parameters.agent.y) + offset_y;
-        }
-        else{
-            passenger.grid_loc.x = (mdp_parameters.skateboard[0].x-1) + offset_x;
-            passenger.grid_loc.y = (mdp_parameters.height - mdp_parameters.skateboard[0].y) + offset_y;
-            passenger.grid_loc.human_x = (mdp_parameters.skateboard[0].x-1) + offset_x + agent_human_spacer;
-            passenger.grid_loc.human_y = (mdp_parameters.height - mdp_parameters.skateboard[0].y) + offset_y;
+
+        if (mdp_parameters.skateboard.length > 0) {
+            //set location of passenger
+            if (mdp_parameters.agent.has_skateboard == 1){
+                passenger.picked = true;
+                passenger.picked_human = true;
+                passenger.grid_loc.x = (mdp_parameters.agent.x-1) + offset_x;
+                passenger.grid_loc.y = (mdp_parameters.height - mdp_parameters.agent.y) + offset_y;
+                passenger.grid_loc.human_x = (mdp_parameters.agent.x-1) + offset_x + agent_human_spacer;
+                passenger.grid_loc.human_y = (mdp_parameters.height - mdp_parameters.agent.y) + offset_y;
+            }
+            else{
+                passenger.grid_loc.x = (mdp_parameters.skateboard[0].x-1) + offset_x;
+                passenger.grid_loc.y = (mdp_parameters.height - mdp_parameters.skateboard[0].y) + offset_y;
+                passenger.grid_loc.human_x = (mdp_parameters.skateboard[0].x-1) + offset_x + agent_human_spacer;
+                passenger.grid_loc.human_y = (mdp_parameters.height - mdp_parameters.skateboard[0].y) + offset_y;
+            }
         }
         //set destination
         destination_grid = build_grid();
@@ -293,7 +336,7 @@
 
       }
 
-      function drawTaxi()
+      function drawTaxi(x,y,color)
       {
         if (spaceship.taxi_set == false){
         taxiSet();
@@ -315,7 +358,7 @@
         context.restore();
       }
 
-      function drawPassenger()
+      function drawPassenger(x,y,color)
       {
           if (mdp_parameters.skateboard.length > 0) {
             context.save();
@@ -357,13 +400,13 @@
     function drawAgentHistory()
     {
         context.save();
-        for (j = 0; j < agent_history.length; j++) {
+        for (j = 0; j < window.agent_history.length; j++) {
             context.beginPath();
             if (j == 0) {
-                context.rect(agent_history[j][0]*100 + 37, agent_history[j][1]*100 + 48, 25, 4);
+                context.rect(window.agent_history[j][0]*100 + 37, window.agent_history[j][1]*100 + 48, 25, 4);
                 context.fillStyle = '#677387';
             }
-            context.arc(agent_history[j][0]*100 + 50, agent_history[j][1]*100 + 50, 6, 0, 2 * Math.PI);
+            context.arc(window.agent_history[j][0]*100 + 50, window.agent_history[j][1]*100 + 50, 6, 0, 2 * Math.PI);
             context.fillStyle = '#677387';
             context.fill();
             context.closePath();
@@ -509,9 +552,11 @@
 
 
         final_data = JSON.stringify({
-            'simulation_rt': (end_time - start_time),
+            'simulation_rt': (end_time - window.start_time),
             'moves': moves,
-            'opt_response': same_traj
+            'opt_response': same_traj,
+            'agent_history_nonoffset': window.agent_history_nonoffset,
+            'mdp_parameters': mdp_parameters
         });
 
         var event = new CustomEvent("game-completed", { "detail": "Demonstration has now ended." });
@@ -522,62 +567,66 @@
         data_sent = true
     }
 
-    function draw()
-      {
-          if (!start_time_set) {
-              start_time = performance.now();
-              start_time_set = true
-          }
+    function draw() {
+        if (!window.start_time_set) {
+            window.start_time = performance.now();
+            window.start_time_set = true
+        }
 
-          if (!map_layout.set){
+        if (!map_layout.set) {
             set_grids();
             map_layout.set = true;
-          }
-          // Clear entire screen
-          context.clearRect(0, 0, canvas.width, canvas.height);
-          context.beginPath();
-          context.fillStyle = "black";
-          context.fill();
-          context.closePath();
+        }
+        // Clear entire screen
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.beginPath();
+        context.fillStyle = "black";
+        context.fill();
+        context.closePath();
 
 
-          //draw grid
-          for (i = 0; i <= mdp_parameters.height; i++) {
-                context.beginPath();
-                context.moveTo(0+offset_x*100, 100*i-1+offset_y*100);
-                context.lineTo(0+offset_x*100, 100*i+1+offset_y*100);
-                context.lineTo(mdp_parameters.width*100+offset_x*100, 100*i+1+offset_y*100);
-                context.lineTo(mdp_parameters.width*100+offset_x*100, 100*i-1+offset_y*100);
-                context.fillStyle = "black";
-                context.fill();
-                context.closePath();
-          }
-          for (i = 0; i <= mdp_parameters.width; i++) {
-                context.beginPath();
-                context.moveTo(100*i-1+offset_x*100, 0+offset_y*100);
-                context.lineTo(100*i+1+offset_x*100, 0+offset_y*100);
-                context.lineTo(100*i+1+offset_x*100, mdp_parameters.height*100+offset_y*100);
-                context.lineTo(100*i-1+offset_x*100, mdp_parameters.height*100+offset_y*100);
-                context.fillStyle = "black";
-                context.fill();
-                context.closePath();
-          }
+        //draw grid
+        for (i = 0; i <= mdp_parameters.height; i++) {
+            context.beginPath();
+            context.moveTo(0 + offset_x * 100, 100 * i - 1 + offset_y * 100);
+            context.lineTo(0 + offset_x * 100, 100 * i + 1 + offset_y * 100);
+            context.lineTo(mdp_parameters.width * 100 + offset_x * 100, 100 * i + 1 + offset_y * 100);
+            context.lineTo(mdp_parameters.width * 100 + offset_x * 100, 100 * i - 1 + offset_y * 100);
+            context.fillStyle = "black";
+            context.fill();
+            context.closePath();
+        }
+        for (i = 0; i <= mdp_parameters.width; i++) {
+            context.beginPath();
+            context.moveTo(100 * i - 1 + offset_x * 100, 0 + offset_y * 100);
+            context.lineTo(100 * i + 1 + offset_x * 100, 0 + offset_y * 100);
+            context.lineTo(100 * i + 1 + offset_x * 100, mdp_parameters.height * 100 + offset_y * 100);
+            context.lineTo(100 * i - 1 + offset_x * 100, mdp_parameters.height * 100 + offset_y * 100);
+            context.fillStyle = "black";
+            context.fill();
+            context.closePath();
+        }
 
         context.beginPath();
         // Begin drawing
         drawMap();
         drawDestination();
-        if (mdp_parameters.tag  == -2){
-            drawTaxi(spaceship.grid_loc.human_x,spaceship.grid_loc.human_y,"light");
-            drawPassenger(passenger.grid_loc.human_x,passenger.grid_loc.human_y,"light");
+        if (mdp_parameters.tag == -2) {
+            drawTaxi(spaceship.grid_loc.human_x, spaceship.grid_loc.human_y, "light");
+            drawPassenger(passenger.grid_loc.human_x, passenger.grid_loc.human_y, "light");
         }
-        if (mdp_parameters.tag  == -1){
+        if (mdp_parameters.tag == -1) {
             drawAgentHistory();
         }
-        drawTaxi(spaceship.grid_loc.x,spaceship.grid_loc.y,"normal");
-        drawPassenger(passenger.grid_loc.x,passenger.grid_loc.y,"normal");
+        drawTaxi(spaceship.grid_loc.x, spaceship.grid_loc.y, "normal");
+        drawPassenger(passenger.grid_loc.x, passenger.grid_loc.y, "normal");
 
-        if((map_layout.destination[spaceship.grid_loc.y-offset_y][Math.floor(spaceship.grid_loc.x.grid_loc.x-offset_x)] == 1) && (map_layout.destination[spaceship.grid_loc.human_y-offset_y][Math.floor(spaceship.grid_loc.human_x-offset_x)] == 1)){
+        game_completed = false
+        if (mdp_parameters.tag == -2) {
+            if (onGoal('agent') && onGoal('human')) game_completed = true;
+        } else if (onGoal('agent')) game_completed = true;
+
+        if (game_completed) {
             context.font = "bold 28px Arial";
             context.fillStyle = text_color;
             context.textAlign = "center";
@@ -587,17 +636,30 @@
                 record_data()
             }
 
-            $("#survey").replaceWith(`<h3> This sequence improved my understanding of the game strategy.</h3>
+            var it = window.interaction_type;
+            var last_test = localStorage.getItem("last test");
+            if (it == "final test") {
+                if (last_test) {
+                    $("#score").html('<div class="text-center"><h1>Score Results</h1><p>You scored <p id="score_val"></p>times correctly.</p></div>')
+                }
+                $("#next").replaceWith(`<button type="button" id="next"
+                    onclick="next()"
+                    value="next" class="btn btn-primary btn-lg continue">
+                    Next <span class="glyphicon glyphicon-arrow-right"></span>
+                    </button>`);
+            } else if (localStorage.getItem("already completed") === "false") {
+                $("#survey").replaceWith(`<h3> This sequence improved my understanding of the game strategy.</h3>
                 <div class="likert">
-                <label><input name="l" type="radio" value="1"/><span>Strongly Disagree</span></label>
-                <label><input name="l" type="radio" value="2"/><span>Disagree</span></label>
-                <label><input name="l" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
-                <label><input name="l" type="radio" value="4"/><span>Agree</span></label>
-                <label><input name="l" type="radio" value="5"/><span>Strongly Agree</span></label>
+                <label><input name="info" type="radio" value="1"/><span>Strongly Disagree</span></label>
+                <label><input name="info" type="radio" value="2"/><span>Disagree</span></label>
+                <label><input name="info" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
+                <label><input name="info" type="radio" value="4"/><span>Agree</span></label>
+                <label><input name="info" type="radio" value="5"/><span>Strongly Agree</span></label>
                 </div>
-                <br></br>` );
+                <br></br>`);
+            }
         }
-      }
+    }
 
     function onGoal(version){
         if (version=="agent"){
@@ -622,9 +684,6 @@
 
     function left(version) {
         if (version == "agent"){
-            if (onGoal("agent")){
-                return;
-            }
             if (spaceship.grid_loc.x > offset_x && map_layout.color_blocks[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-1-offset_x] != 1){
                 if (passenger.picked) {
                     // don't allow the skateboard to go on the path
@@ -634,15 +693,13 @@
                     }   
                 spaceship.grid_loc.x -= 1;
                 moves.push("left");
+                window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y])
                 if (passenger.picked){
                     passenger.grid_loc.x -= 1;
                 }
             }
         }
         else{
-            if (onGoal("human")){
-                    return;
-            }
             if (spaceship.grid_loc.human_x > offset_x && map_layout.color_blocks[spaceship.grid_loc.human_y-offset_y][spaceship.grid_loc.human_x-1-offset_x] != 1){
                 if (passenger.picked_human) {
                     // don't allow the skateboard to go on the path
@@ -660,9 +717,6 @@
 
     function right(version) {
         if (version == "agent"){
-            if (onGoal("agent")){
-                return;
-            }
             if (spaceship.grid_loc.x < mdp_parameters.width-1+offset_x && map_layout.color_blocks[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x+1-offset_x] != 1){
                 if (passenger.picked) {
                     // don't allow the skateboard to go on the path
@@ -672,15 +726,13 @@
                     }   
                 spaceship.grid_loc.x += 1;
                 moves.push("right");
+                window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y])
                 if (passenger.picked){
                     passenger.grid_loc.x += 1;
                 }
             }
         }
         else{
-            if (onGoal("human")){
-                    return;
-            }
             if (spaceship.grid_loc.human_x < mdp_parameters.width-1+offset_x && map_layout.color_blocks[spaceship.grid_loc.human_y-offset_y][spaceship.grid_loc.human_x+1-offset_x] != 1){
                 if (passenger.picked_human) {
                     // don't allow the skateboard to go on the path
@@ -698,9 +750,6 @@
 
     function up(version) {
         if (version == "agent"){
-            if (onGoal("agent")){
-                return;
-            }
             if (spaceship.grid_loc.y > offset_y && map_layout.color_blocks[spaceship.grid_loc.y-1-offset_y][spaceship.grid_loc.x-offset_x] != 1){
                 if (passenger.picked) {
                     // don't allow the skateboard to go on the path
@@ -710,6 +759,7 @@
                     }   
                 spaceship.grid_loc.y -= 1;
                 moves.push("up");
+                window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y])
                 if (passenger.picked){
                     passenger.grid_loc.y -= 1;
                 }
@@ -717,9 +767,6 @@
         }
         else{
             if (spaceship.grid_loc.human_y > offset_y && map_layout.color_blocks[spaceship.grid_loc.human_y-1-offset_y][spaceship.grid_loc.human_x-offset_x] != 1){
-                if (onGoal("human")){
-                    return;
-                }
                 if (passenger.picked_human) {
                     // don't allow the skateboard to go on the path
                     if (map_layout.color_blocks[spaceship.grid_loc.human_y-1-offset_y][spaceship.grid_loc.human_x-offset_x] == 2) {
@@ -736,9 +783,6 @@
 
     function down(version) {
         if (version == "agent"){
-            if (onGoal("agent")){
-                return;
-            }
             if (spaceship.grid_loc.y < mdp_parameters.height-1+offset_y && map_layout.color_blocks[spaceship.grid_loc.y+1-offset_y][spaceship.grid_loc.x-offset_x] != 1){
                 if (passenger.picked) {
                     // don't allow the skateboard to go on the path
@@ -747,7 +791,8 @@
                     }
                     }   
                 spaceship.grid_loc.y += 1;
-                moves.push("up");
+                moves.push("down");
+                window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y])
                 if (passenger.picked){
                     passenger.grid_loc.y += 1;
                 }
@@ -770,14 +815,11 @@
     }
 
     function pickup(version) {
-        
-        if (onGoal(version)){
-            return;
-        }
         if (version == "agent"){
             if (spaceship.grid_loc.x == passenger.grid_loc.x && spaceship.grid_loc.y == passenger.grid_loc.y && passenger.picked == false){
                 moves.push("pickup");
                 passenger.picked = true;
+                window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y])
         }}
         else{
             console.log("here")
@@ -787,43 +829,44 @@
     }
 
     function dropoff() {
-        if (onGoal()){
-            return;
-        }
         if (version == "agent"){
             x = spaceship.grid_loc.x;
             y = spaceship.grid_loc.y;
+
+            condition_goal = ((Math.floor(x) == goal.grid_loc.x) && (y == goal.grid_loc.y));
+
+            if (passenger.picked){
+                window.moves.push("dropoff");
+                passenger.picked = false;
+                window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y])
+                if (condition_goal){
+                passenger.dropped = true;
+                    console.log(moves);
+                }
+            }
         }
         else{
             x = spaceship.grid_loc.human_x;
             y = spaceship.grid_loc.human_y;
-        }
-        condition_goal = ((Math.floor(x) == goal.grid_loc.x) && (y == goal.grid_loc.y));
-        if (passenger.picked){
-            window.moves.push("dropoff");
-            passenger.picked = false;
-            passenger.picked_human = false;
-            if (condition_goal){
-                passenger.dropped = true;
-                console.log(moves);
-                window.agent_history_nonoffset.push([spaceship.grid_loc.x + 1 - offset_x, mdp_parameters.height - spaceship.grid_loc.y + offset_y, passenger.picked])
+
+            condition_goal = ((Math.floor(x) == goal.grid_loc.x) && (y == goal.grid_loc.y));
+
+            if (passenger.picked_human){
+                passenger.picked_human = false;
+                if (condition_goal){
+                passenger.dropped_human = true;
+                }
             }
         }
     }
 
     function reset() {
-        if (onGoal()){
-            if (mdp_parameters.tag == - 1){
-                map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] = 0
-            }
-            else {
-                return;
-            }
-        }
         moves = [];
         map_layout.set = false;
         passenger.picked = false;
-        agent_history = [];
+        passenger.picked_human = false;
+        window.agent_history = [];
+        window.agent_history_nonoffset = [];
     }
 
     function no_op(){
@@ -897,7 +940,6 @@
                         no_op();
                         break;
                 }
-                //agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
                 requestAnimationFrame(draw);
             }
             else if (event.keyCode == 82) {
@@ -910,7 +952,7 @@
             //training case, just agent         
             if (event.keyCode == 32) {
                 //space bar pressed, advance demo
-                var next_action_agent = mdp_parameters.normalized_opt_actions[idx];
+                var next_action_agent = mdp_parameters.opt_actions[idx];
                 idx++;
                 switch(next_action_agent) {
                     case "left":
@@ -932,7 +974,7 @@
                         dropoff("agent");
                         break;
                 }
-                agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
+                window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
                 requestAnimationFrame(draw);
             }
             else if (event.keyCode == 82) {
@@ -947,39 +989,40 @@
             if([37, 38, 39, 40].indexOf(event.keyCode) > -1) {
                 event.preventDefault();
             }
-            switch(event.keyCode)
-            {
-                case 37:
-                    // Left Arrow key
-                    left("agent");
-                    break;
-                case 39:
-                    // Right Arrow key
-                    right("agent");
-                    break;
-                case 38:
-                    // Up Arrow key
-                    up("agent");
-                    break;
-                case 40:
-                    // down Arrow key
-                    down("agent");
-                    break;
-                case 80:
-                    //p key
-                    pickup("agent");
-                    break;
-                case 68:
-                    //d key
-                    dropoff("agent");
-                    break;
-                case 82:
-                    //r key
-                    reset("agent");
-                    break;
+            if (!onGoal("agent")) {
+                switch (event.keyCode) {
+                    case 37:
+                        // Left Arrow key
+                        left("agent");
+                        break;
+                    case 39:
+                        // Right Arrow key
+                        right("agent");
+                        break;
+                    case 38:
+                        // Up Arrow key
+                        up("agent");
+                        break;
+                    case 40:
+                        // down Arrow key
+                        down("agent");
+                        break;
+                    case 80:
+                        //p key
+                        pickup("agent");
+                        break;
+                    case 68:
+                        //d key
+                        dropoff("agent");
+                        break;
+                    case 82:
+                        //r key
+                        reset("agent");
+                        break;
+                }
+                if (event.keyCode != 82) window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
+                requestAnimationFrame(draw);
             }
-            if (event.keyCode != 82) agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
-            requestAnimationFrame(draw);
       }
     }
     // document.addEventListener('keydown', _.debounce(keyPressed, 200)) // prevent quick key presses

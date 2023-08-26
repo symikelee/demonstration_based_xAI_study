@@ -10,7 +10,7 @@
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
 
 
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css.4.3.1.css" type="text/css" />
     <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
     <link rel="stylesheet" href="/static/css/jspsych.css" type="text/css" />
     <style type="text/css">
@@ -127,11 +127,11 @@
             if (data["last test"]) {
                 localStorage.setItem("last test", "true");
             }
-            console.log(mdp_parameters);
+            console.log(window.mdp_parameters);
             console.log("Interaction: ");
             console.log(interaction_type);
             change_text(interaction_type);
-            run_page(mdp_parameters);
+            run_page(window.mdp_parameters);
         });
 
         // Assign html for interaction type 
@@ -626,9 +626,6 @@ var spaceship =
 }
     function left(version) {
         if (version == "agent"){
-            if (onGoal("agent")){
-                return;
-            }
             if (spaceship.grid_loc.x > offset_x){
                 spaceship.grid_loc.x -= 1;
                 moves.push("left");
@@ -636,9 +633,6 @@ var spaceship =
             }
         }
         else{
-            if (onGoal("human")){
-                return;
-            }
             if (spaceship.grid_loc.human_x > offset_x){
                 spaceship.grid_loc.human_x -= 1;
             }
@@ -647,9 +641,6 @@ var spaceship =
 
     function right(version) {
         if (version == "agent"){
-            if (onGoal("agent")){
-                return;
-            }
             if (spaceship.grid_loc.x < mdp_parameters.width-1+offset_x){
                 spaceship.grid_loc.x += 1;
                 moves.push("right");
@@ -657,9 +648,6 @@ var spaceship =
             }
         }
         else{
-            if (onGoal("human")){
-                return;
-            }
             if (spaceship.grid_loc.human_x < mdp_parameters.width-1+offset_x){
                 spaceship.grid_loc.human_x += 1;
             }
@@ -668,9 +656,6 @@ var spaceship =
 
     function up(version) {
         if (version == "agent"){
-            if (onGoal("agent")){
-                return;
-            }
             if (spaceship.grid_loc.y > offset_y){
                 spaceship.grid_loc.y -= 1;
                 moves.push("up");
@@ -678,9 +663,6 @@ var spaceship =
             }
         }
         else{
-            if (onGoal("human")){
-                return;
-            }
             if (spaceship.grid_loc.human_y > offset_y){
                 spaceship.grid_loc.human_y -= 1;
             }
@@ -689,10 +671,6 @@ var spaceship =
 
     function down(version) {
         if (version == "agent"){
-            if (onGoal("agent")){
-                console.log(moves);
-                return;
-            }
             if (spaceship.grid_loc.y < mdp_parameters.height-1+offset_y){
                 spaceship.grid_loc.y += 1;
                 moves.push("down");
@@ -700,9 +678,6 @@ var spaceship =
             }
         }
         else{
-            if (onGoal("human")){
-                return;
-            }
             if (spaceship.grid_loc.human_y < mdp_parameters.height-1+offset_y){
                 spaceship.grid_loc.human_y += 1;
             }
@@ -710,14 +685,6 @@ var spaceship =
     }
 
     function reset() {
-        if (onGoal()){
-            if ((mdp_parameters.tag == - 1)||(mdp_parameters.tag == - 2)){
-                map_layout.destination[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-offset_x] = 0;
-            }
-            else {
-                return;
-            }
-        }
         moves = [];
         map_layout.set = false;
         window.agent_history = [];
@@ -823,36 +790,36 @@ var spaceship =
         else {
             //testing case
             // prevent arrow keys from simultaneously moving the window
-            if([37, 38, 39, 40].indexOf(event.keyCode) > -1) {
+            if ([37, 38, 39, 40].indexOf(event.keyCode) > -1) {
                 event.preventDefault();
             }
-            switch(event.keyCode)
-            {
-                case 37:
-                    // Left Arrow key
-                    left("agent");
-                    break;
-                case 39:
-                    // Right Arrow key
-                    right("agent");
-                    break;
-                case 38:
-                    // Up Arrow key
-                    up("agent");
-                    break;
-                case 40:
-                    // down Arrow key
-                    down("agent");
-                    break;
-                case 82:
-                    //r key
-                    reset("agent");
-                    break;
+            if (!onGoal("agent")) {
+                switch (event.keyCode) {
+                    case 37:
+                        // Left Arrow key
+                        left("agent");
+                        break;
+                    case 39:
+                        // Right Arrow key
+                        right("agent");
+                        break;
+                    case 38:
+                        // Up Arrow key
+                        up("agent");
+                        break;
+                    case 40:
+                        // down Arrow key
+                        down("agent");
+                        break;
+                    case 82:
+                        //r key
+                        reset("agent");
+                        break;
+                }
+                if (event.keyCode != 82) window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
+                requestAnimationFrame(draw);
             }
-            if (event.keyCode != 82) window.agent_history.push([spaceship.grid_loc.x, spaceship.grid_loc.y]);
-            requestAnimationFrame(draw);
-      }
-      console.log(moves);
+        }
     }
     // document.addEventListener('keydown', _.debounce(keyPressed, 200)) // prevent quick key presses
     document.addEventListener('keydown', keyPressed);
