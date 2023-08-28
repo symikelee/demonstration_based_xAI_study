@@ -74,6 +74,7 @@
         }
         else if (localStorage.getItem("progress") === "sandbox_2") {
             socket.emit("sandbox settings", {version: 2});
+            document.getElementById('prev').style.display = 'none';
             $( "#next" ).replaceWith( `<button type="button" disabled id="next" 
         onclick="make_sandbox()"
         value="next" class="btn btn-primary btn-lg continue">

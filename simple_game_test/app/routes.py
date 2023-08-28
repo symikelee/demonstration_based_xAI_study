@@ -742,6 +742,7 @@ def next_domain():
     current_user.iteration = -1
     current_user.subiteration = 0
     current_user.control_stack = []
+    current_user.params_stack = []
     print(current_user.curr_progress)
 
     if current_user.curr_progress == "post practice":
