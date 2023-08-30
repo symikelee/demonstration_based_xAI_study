@@ -137,6 +137,10 @@
             document.getElementById('center-container').style.display = 'none';
             document.getElementById('instructions').style.display = 'block';
             document.getElementById('preamble').style.display = 'block';
+            // don't show the previous button for final tests
+            if (window.interaction_type == 'final test') {
+                document.getElementById('prev').style.display = 'none';
+            }
             console.log(window.mdp_parameters);
             console.log("Interaction: ");
             console.log(interaction_type);
@@ -774,7 +778,17 @@
             var last_test = localStorage.getItem("last test");
             if (it == "final test") {
                 if (last_test) {
-                    $("#score").html('<div class="text-center"><h1>Score Results</h1><p>You scored <p id="score_val"></p>times correctly.</p></div>')
+                    var score = 0;
+                    if (sessionStorage.getItem('skateboard2_low_a') == 'true') score += 1;
+                    if (sessionStorage.getItem('skateboard2_low_b') == 'true') score += 1;
+                    if (sessionStorage.getItem('skateboard2_medium_a') == 'true') score += 1;
+                    if (sessionStorage.getItem('skateboard2_medium_b') == 'true') score += 1;
+                    if (sessionStorage.getItem('skateboard2_high_a') == 'true') score += 1;
+                    if (sessionStorage.getItem('skateboard2_high_b') == 'true') score += 1;
+                    console.log("game score: ")
+                    console.log(score)
+                    $("#score").html('<div class="text-center"><h1>Score Results</h1><p>You scored<p id="score_val"></p>tests correctly.</p></div>')
+                    document.getElementById('score_val').innerHTML = score + "/6"
                 }
                 $("#next").replaceWith(`<button type="button" id="next"
                     onclick="next()"
