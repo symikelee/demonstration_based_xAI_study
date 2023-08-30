@@ -21,6 +21,7 @@ from .augmented_taxi.policy_summarization.BEC import obtain_remedial_demonstrati
 from .augmented_taxi import params
 from .augmented_taxi.policy_summarization import BEC_helpers
 from .augmented_taxi.policy_summarization import particle_filter as pf
+from .augmented_taxi.policy_summarization import BEC_visualization as BEC_viz
 
 from app.backend_test import send_signal
 from app import socketio
@@ -1031,12 +1032,13 @@ def settings(data):
                 particles.update(params.prior)
                 particles.update(constraints)
                 current_user.pf_model = particles
-                print("Updated PF with constraints: {}".format(constraints))
+                # BEC_viz.visualize_pf_transition(constraints, particles, domain_key)
             else:
                 particles = current_user.pf_model
                 particles.update(constraints)
                 current_user.pf_model = particles
-        print("Updated PF with constraints: {}".format(constraints))
+                # BEC_viz.visualize_pf_transition(constraints, particles, domain_key)
+            print("Updated PF with constraints: {}".format(constraints))
 
         trial = Trial(
             user_id = current_user.id,
@@ -1221,35 +1223,39 @@ def settings(data):
                         updated_data['human_actions'] = human_actions
                         response["params"] = updated_data
                     elif current_user.interaction_type == "remedial demo" or current_user.interaction_type == "remedial test":
-                        # # todo: Mike uncomment for remedial demos and tests
-                        # policy_constraints, min_subset_constraints_record, env_record, traj_record, traj_features_record, reward_record, mdp_features_record, consistent_state_count = domain_background_vars[domain_key]
-                        # prev_mdp_parameters = data['user input']['mdp_parameters']
-                        #
-                        # best_env_idx, best_traj_idx = prev_mdp_parameters['env_traj_idxs']
-                        # opt_traj = traj_record[best_env_idx][best_traj_idx]
-                        # opt_traj_features = traj_features_record[best_env_idx][best_traj_idx]
-                        #
-                        # # print(prev_mdp_parameters)
-                        # variable_filter = np.array(prev_mdp_parameters['variable_filter'])
-                        #
-                        # # obtain the constraint that the participant failed to demonstrate
-                        # constraint = obtain_constraint(domain_key, prev_mdp_parameters, opt_traj, opt_traj_features)
-                        #
-                        # if current_user.interaction_type == "remedial demo": type = 'training'
-                        # else: type = 'testing'
-                        #
-                        # particles = current_user.pf_model
-                        #
-                        # # todo: need to keep track of previous_demonstrations and visited_env_traj_idxs (the two back to back empty lists), maintain PF
-                        # remedial_mdp_dict, visited_env_traj_idxs = obtain_remedial_demonstrations(domain_key, pool, particles, params.BEC['n_human_models'], constraint,
-                        # min_subset_constraints_record, env_record, traj_record, traj_features_record, [], [], variable_filter, mdp_features_record, consistent_state_count, [],
-                        # params.step_cost_flag, type=type, n_human_models_precomputed=params.BEC['n_human_models_precomputed'], web_based=True)
-                        #
-                        # response["params"] = remedial_mdp_dict
+                        # todo: Mike uncomment for remedial demos and tests
+                        policy_constraints, min_subset_constraints_record, env_record, traj_record, traj_features_record, reward_record, mdp_features_record, consistent_state_count = domain_background_vars[domain_key]
+                        prev_mdp_parameters = data['user input']['mdp_parameters']
+                        # print(prev_mdp_parameters)
+                        variable_filter = np.array(prev_mdp_parameters['variable_filter'])
+
+                        if current_user.interaction_type == "remedial test" and current_user.subiteration == 0:
+                            # the first remedial test will follow a remedial demonstration, which can piggyback off the remedial demonstration's constraint
+                            constraint = np.array(data['user input']['mdp_parameters']['constraints'][0])
+                        else:
+                            best_env_idx, best_traj_idx = prev_mdp_parameters['env_traj_idxs']
+                            opt_traj = traj_record[best_env_idx][best_traj_idx]
+                            opt_traj_features = traj_features_record[best_env_idx][best_traj_idx]
+
+                            # obtain the constraint that the participant failed to demonstrate
+                            constraint = obtain_constraint(domain_key, prev_mdp_parameters, opt_traj, opt_traj_features)
+                        print("this constraint: {}".format(constraint))
+
+                        if current_user.interaction_type == "remedial demo": type = 'training'
+                        else: type = 'testing'
+
+                        particles = current_user.pf_model
+
+                        # todo: need to keep track of previous_demonstrations and visited_env_traj_idxs (the two back to back empty lists), maintain PF
+                        remedial_mdp_dict, visited_env_traj_idxs = obtain_remedial_demonstrations(domain_key, pool, particles, params.BEC['n_human_models'], constraint,
+                        min_subset_constraints_record, env_record, traj_record, traj_features_record, [], [], variable_filter, mdp_features_record, consistent_state_count, [],
+                        params.step_cost_flag, type=type, n_human_models_precomputed=params.BEC['n_human_models_precomputed'], web_based=True)
+
+                        response["params"] = remedial_mdp_dict
 
                         # dummy params
-                        if current_user.interaction_type == "remedial demo": response["params"] = jsons[domain_key]['demo'][str(0)]
-                        else: response["params"] = jsons[domain_key]['diagnostic test'][str(0)]
+                        # if current_user.interaction_type == "remedial demo": response["params"] = jsons[domain_key]['demo'][str(0)]
+                        # else: response["params"] = jsons[domain_key]['diagnostic test'][str(0)]
                     elif current_user.interaction_type != "survey":
                         response["params"] = jsons[domain_key][current_user.interaction_type][str(current_user.iteration)]
                 else:
