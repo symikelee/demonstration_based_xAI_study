@@ -1743,9 +1743,41 @@ def consent():
 #         correct_vid_name = correct_vid_name,
 #         incorrect_vid_name = incorrect_vid_name)
 
-@app.route("/survey", methods=["GET", "POST"])
+@app.route("/final_survey", methods=["GET", "POST"])
 @login_required
-def survey():
+def final_survey():
+    online_condition_id = current_user.online_condition_id
+    current_condition = db.session.query(OnlineCondition).get(online_condition_id)
+
+    (form, template) = (FinalForm(), "final_survey.html")
+
+    # todo: maybe support being able to pick up where you left off, in case people frequently end up timing out of the study
+    #  fwiw, people shouldn't be timing out around this portion of the study though
+    if form.validate_on_submit():
+        current_user.age = form.age.data
+        current_user.gender = form.gender.data
+        current_user.ethnicity = form.ethnicity.data
+        current_user.education = form.education.data
+        current_user.robot = form.robot.data
+        current_user.final_robot_choice = form.robot_choice.data
+        current_user.final_feedback = form.opt_text.data
+        current_user.set_completion(1)
+
+        print(form.ethnicity.data)
+        db.session.commit()
+
+
+        # They are complete and can receive their payment code
+        return redirect(url_for("index"))
+
+    return render_template(template,
+                            methods=["GET", "POST"],
+                            form=form,
+                            round=round)
+
+@app.route("/survey_old", methods=["GET", "POST"])
+@login_required
+def survey_old():
     if IS_IN_PERSON:
         in_person_condition_id = current_user.in_person_condition_id
         current_condition = db.session.query(InPersonCondition).get(in_person_condition_id)
