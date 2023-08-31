@@ -744,6 +744,7 @@ def next_domain():
     current_user.subiteration = 0
     current_user.control_stack = []
     current_user.params_stack = []
+    current_user.visited_env_traj_idxs_stack = []
     print(current_user.curr_progress)
 
     if current_user.curr_progress == "post practice":
@@ -1038,7 +1039,11 @@ def settings(data):
                 particles.update(constraints)
                 current_user.pf_model = particles
                 # BEC_viz.visualize_pf_transition(constraints, particles, domain_key)
+
             print("Updated PF with constraints: {}".format(constraints))
+
+            # update the visited_env_traj_idxs_stack with the env_traj indices of the most recent interaction
+            current_user.visited_env_traj_idxs_stack.append(data['user input']['mdp_parameters']['env_traj_idxs'])
 
         trial = Trial(
             user_id = current_user.id,
@@ -1246,9 +1251,8 @@ def settings(data):
 
                         particles = current_user.pf_model
 
-                        # todo: need to keep track of previous_demonstrations and visited_env_traj_idxs (the two back to back empty lists), maintain PF
                         remedial_mdp_dict, visited_env_traj_idxs = obtain_remedial_demonstrations(domain_key, pool, particles, params.BEC['n_human_models'], constraint,
-                        min_subset_constraints_record, env_record, traj_record, traj_features_record, [], [], variable_filter, mdp_features_record, consistent_state_count, [],
+                        min_subset_constraints_record, env_record, traj_record, traj_features_record, [], current_user.visited_env_traj_idxs_stack, variable_filter, mdp_features_record, consistent_state_count, [],
                         params.step_cost_flag, type=type, n_human_models_precomputed=params.BEC['n_human_models_precomputed'], web_based=True)
 
                         response["params"] = remedial_mdp_dict

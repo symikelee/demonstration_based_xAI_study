@@ -55,6 +55,8 @@ class User(UserMixin, db.Model):
     pf_model = db.Column(db.PickleType)
     params_stack = db.Column(MutableList.as_mutable(db.PickleType),
                               default=[])
+    visited_env_traj_idxs_stack = db.Column(MutableList.as_mutable(db.PickleType),
+                             default=[])
 
     def __repr__(self):
         return "<User {}>".format(self.username)
