@@ -1302,6 +1302,7 @@ def settings(data):
 
     debug_string = f"domain={domain}, interaction type={current_user.interaction_type}, iteration={current_user.iteration}, subiteration={current_user.subiteration}"
     response["debug string"] = debug_string
+    response["username"] = current_user.username
     response["last test"] = last_test
     response["interaction type"] = current_user.interaction_type
     response["already completed"] = already_completed

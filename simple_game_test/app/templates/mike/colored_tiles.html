@@ -67,8 +67,14 @@
         document.getElementById('instructions').style.display = 'none';
         document.getElementById('preamble').style.display = 'none';
 
-        const roomIdentifier = "uniqueRoomIdentifier";  // Replace with the actual room identifier
-        const websocket = new WebSocket(`ws://localhost:8765/${roomIdentifier}`); // todo: will likely have to replace with a nonlocal host
+      var roomIdentifier = localStorage.getItem("username")
+
+      if (roomIdentifier == null) {
+          // the username will available in localStorage after the first page between augmented_taxi2.html, colored_tiles.html, skateboard2.html
+          // for the first page, simply make up a placeholder which statistically won't conflict (and the first page of each domain should load instantaneously anyways)
+          roomIdentifier = Math.floor(Math.random() * 100000000000000);
+      }
+      const websocket = new WebSocket(`ws://localhost:8765/${roomIdentifier}`);
 
         websocket.onopen = function(event) {
             console.log('Connected to server');
@@ -111,6 +117,7 @@
         });
 
         socket.on("settings configured", function (data) {
+            localStorage.setItem("username", data["username"]);
             localStorage.setItem("movement", "false");
             localStorage.setItem("user input", "{}");
             // localStorage.setItem("game completed", "false");
