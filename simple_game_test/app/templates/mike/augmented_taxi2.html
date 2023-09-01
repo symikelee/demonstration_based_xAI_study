@@ -36,6 +36,7 @@
         <div id="table_controlinfo"></div>
     </div>
     <div id="score"></div>
+<div id="feedback"></div>
     <div id="survey"></div>
     <hr>
     <br>
@@ -790,6 +791,8 @@
         localStorage.setItem("user input", final_data);
 
         data_sent = true
+
+        return same_traj
     }
 
       function draw()
@@ -865,32 +868,58 @@
             //requestAnimationFrame(draw);
 
             if (data_sent == false) {
-                record_data()
-            }
-            var it = window.interaction_type;
-            var last_test = localStorage.getItem("last test");
-            if (it == "final test"){
-                if(last_test){
-                    var score = 0;
-                    if (sessionStorage.getItem('augmented_taxi2_low_a') == 'true') score += 1;
-                    if (sessionStorage.getItem('augmented_taxi2_low_b') == 'true') score += 1;
-                    if (sessionStorage.getItem('augmented_taxi2_medium_a') == 'true') score += 1;
-                    if (sessionStorage.getItem('augmented_taxi2_medium_b') == 'true') score += 1;
-                    if (sessionStorage.getItem('augmented_taxi2_high_a') == 'true') score += 1;
-                    if (sessionStorage.getItem('augmented_taxi2_high_b') == 'true') score += 1;
-                    console.log("game score: ")
-                    console.log(score)
-                    $("#score").html('<div class="text-center"><h1>Score Results</h1><p>You scored<p id="score_val"></p>tests correctly.</p></div>')
-                    document.getElementById('score_val').innerHTML = score + "/6"
-                }
-                $("#next").replaceWith(`<button type="button" id="next"
+                var it = window.interaction_type;
+                var last_test = localStorage.getItem("last test");
+
+                same_traj = record_data()
+
+                var show_likert = false
+
+                if (it == "remedial test" || it == "diagnostic test") {
+                    if (same_traj && localStorage.getItem("already completed") === "false") {
+                        // if the test was answered correctly or page wasn't already shown previously, show likert scale
+                        show_likert = true
+
+                        if (localStorage.getItem("already completed") == 'false') $("#feedback").html('<div class="text-center"><p>Great, you answered correctly!</p></div>')
+                    }
+                    else {
+                        // if the test was answered incorrectly or page was already shown previously, simply enable the next button
+                        // set the likert value to 0 (changing from -1) so that you know that you've been to this page before
+                        localStorage.setItem("survey", 0)
+
+                        if (localStorage.getItem("already completed") == 'false') $("#feedback").html('<div class="text-center"><p>Oh no, you answered incorrectly! Let\'s review the difference on the next page!</p></div>')
+
+                        $("#next").replaceWith(`<button type="button" id="next"
+                        onclick="next()"
+                        value="next" class="btn btn-primary btn-lg continue">
+                        Next <span class="glyphicon glyphicon-arrow-right"></span>
+                        </button>` );
+                    }
+                } else if (it == "final test"){
+                    if(last_test){
+                        var score = 0;
+                        if (sessionStorage.getItem('augmented_taxi2_low_a') == 'true') score += 1;
+                        if (sessionStorage.getItem('augmented_taxi2_low_b') == 'true') score += 1;
+                        if (sessionStorage.getItem('augmented_taxi2_medium_a') == 'true') score += 1;
+                        if (sessionStorage.getItem('augmented_taxi2_medium_b') == 'true') score += 1;
+                        if (sessionStorage.getItem('augmented_taxi2_high_a') == 'true') score += 1;
+                        if (sessionStorage.getItem('augmented_taxi2_high_b') == 'true') score += 1;
+                        console.log("game score: ")
+                        console.log(score)
+                        $("#score").html('<div class="text-center"><h1>Score Results</h1><p>You scored<p id="score_val"></p>tests correctly.</p></div>')
+                        document.getElementById('score_val').innerHTML = score + "/6"
+                    }
+                    $("#next").replaceWith(`<button type="button" id="next"
                     onclick="next()"
                     value="next" class="btn btn-primary btn-lg continue">
                     Next <span class="glyphicon glyphicon-arrow-right"></span>
                     </button>` );
-            }
-            else if (localStorage.getItem("already completed") === "false"){
-                $("#survey").html(`<h3> This sequence improved my understanding of the game strategy.</h3>
+                } else if (localStorage.getItem("already completed") === "false") {
+                    show_likert = true
+                }
+
+                if (show_likert){
+                    $("#survey").html(`<h3> This sequence improved my understanding of the game strategy.</h3>
                 <div class="likert">
                 <label><input name="info" type="radio" value="1"/><span>Strongly Disagree</span></label>
                 <label><input name="info" type="radio" value="2"/><span>Disagree</span></label>
@@ -899,9 +928,8 @@
                 <label><input name="info" type="radio" value="5"/><span>Strongly Agree</span></label>
                 </div>
                 <br></br>` );
+                }
             }
-
-
         }
       }
 
