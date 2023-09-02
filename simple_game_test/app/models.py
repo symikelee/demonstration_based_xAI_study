@@ -57,6 +57,8 @@ class User(UserMixin, db.Model):
                               default=[])
     visited_env_traj_idxs_stack = db.Column(MutableList.as_mutable(db.PickleType),
                              default=[])
+    final_test_rand_idxs = db.Column(MutableList.as_mutable(db.PickleType),
+                             default=[])
 
     def __repr__(self):
         return "<User {}>".format(self.username)

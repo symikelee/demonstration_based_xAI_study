@@ -615,12 +615,9 @@ var spaceship =
         //console.log('colored_tiles_' + mdp_parameters.test_difficulty + '_' + mdp_parameters.tag.toString());
         //console.log(same_traj);
 
-        // the two test demonstrations at each level of difficulty are always pairs of an even and odd number
-        if (mdp_parameters.tag % 2 == 0) {
-            sessionStorage.setItem('colored_tiles_' + mdp_parameters.test_difficulty + '_a', same_traj)
-        }
-        else {
-            sessionStorage.setItem('colored_tiles_' + mdp_parameters.test_difficulty + '_b', same_traj)
+        var it = window.interaction_type
+        if(it == "final test") {
+            sessionStorage.setItem('colored_tiles_' + mdp_parameters.test_difficulty + '_' + mdp_parameters.tag.toString(), same_traj)
         }
 
         final_data = JSON.stringify({
@@ -736,14 +733,14 @@ var spaceship =
                         </button>` );
                     }
                 } else if (it == "final test"){
-                    if(last_test){
+                    if(last_test == 'true'){
                         var score = 0;
-                        if (sessionStorage.getItem('colored_tiles_low_a') == 'true') score += 1;
-                        if (sessionStorage.getItem('colored_tiles_low_b') == 'true') score += 1;
-                        if (sessionStorage.getItem('colored_tiles_medium_a') == 'true') score += 1;
-                        if (sessionStorage.getItem('colored_tiles_medium_b') == 'true') score += 1;
-                        if (sessionStorage.getItem('colored_tiles_high_a') == 'true') score += 1;
-                        if (sessionStorage.getItem('colored_tiles_high_b') == 'true') score += 1;
+                        if (sessionStorage.getItem('colored_tiles_low_0') == 'true') score += 1;
+                        if (sessionStorage.getItem('colored_tiles_low_1') == 'true') score += 1;
+                        if (sessionStorage.getItem('colored_tiles_medium_0') == 'true') score += 1;
+                        if (sessionStorage.getItem('colored_tiles_medium_1') == 'true') score += 1;
+                        if (sessionStorage.getItem('colored_tiles_high_0') == 'true') score += 1;
+                        if (sessionStorage.getItem('colored_tiles_high_1') == 'true') score += 1;
                         console.log("game score: ")
                         console.log(score)
                         $("#score").html('<div class="text-center"><h1>Score Results</h1><p>You scored<p id="score_val"></p>tests correctly.</p></div>')

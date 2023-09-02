@@ -771,12 +771,9 @@
         //console.log('augmented_taxi2_' + mdp_parameters.test_difficulty + '_' + mdp_parameters.tag.toString());
         //console.log(same_traj);
 
-        // the two test demonstrations at each level of difficulty are always pairs of an even and odd number
-        if((mdp_parameters.tag % 2 == 0) && (mdp_parameters.tag > 0)) {
-            sessionStorage.setItem('augmented_taxi2_' + mdp_parameters.test_difficulty + '_a', same_traj)
-        }
-        else {
-            sessionStorage.setItem('augmented_taxi2_' + mdp_parameters.test_difficulty + '_b', same_traj)
+        var it = window.interaction_type
+        if(it == "final test") {
+            sessionStorage.setItem('augmented_taxi2_' + mdp_parameters.test_difficulty + '_' + mdp_parameters.tag.toString(), same_traj)
         }
 
         final_data = JSON.stringify({
@@ -899,14 +896,14 @@
                         </button>` );
                     }
                 } else if (it == "final test"){
-                    if(last_test){
+                    if(last_test == "true"){
                         var score = 0;
-                        if (sessionStorage.getItem('augmented_taxi2_low_a') == 'true') score += 1;
-                        if (sessionStorage.getItem('augmented_taxi2_low_b') == 'true') score += 1;
-                        if (sessionStorage.getItem('augmented_taxi2_medium_a') == 'true') score += 1;
-                        if (sessionStorage.getItem('augmented_taxi2_medium_b') == 'true') score += 1;
-                        if (sessionStorage.getItem('augmented_taxi2_high_a') == 'true') score += 1;
-                        if (sessionStorage.getItem('augmented_taxi2_high_b') == 'true') score += 1;
+                        if (sessionStorage.getItem('augmented_taxi2_low_0') == 'true') score += 1;
+                        if (sessionStorage.getItem('augmented_taxi2_low_1') == 'true') score += 1;
+                        if (sessionStorage.getItem('augmented_taxi2_medium_0') == 'true') score += 1;
+                        if (sessionStorage.getItem('augmented_taxi2_medium_1') == 'true') score += 1;
+                        if (sessionStorage.getItem('augmented_taxi2_high_0') == 'true') score += 1;
+                        if (sessionStorage.getItem('augmented_taxi2_high_1') == 'true') score += 1;
                         console.log("game score: ")
                         console.log(score)
                         $("#score").html('<div class="text-center"><h1>Score Results</h1><p>You scored<p id="score_val"></p>tests correctly.</p></div>')

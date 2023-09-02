@@ -745,6 +745,7 @@ def next_domain():
     current_user.control_stack = []
     current_user.params_stack = []
     current_user.visited_env_traj_idxs_stack = []
+    current_user.final_test_rand_idxs = []
     print(current_user.curr_progress)
 
     if current_user.curr_progress == "post practice":
@@ -1193,13 +1194,20 @@ def settings(data):
                 print(current_user.iteration)
                 if loop_cond == "cl":
                     if current_user.interaction_type == "final test":
-                        # todo: randomize the order of the tests and also potentially account for train_test_set (currently only using the first set)
-                        if current_user.iteration < 2:
-                            response["params"] = jsons[domain_key][current_user.interaction_type]["low"][0][current_user.iteration]
-                        elif current_user.iteration < 4:
-                            response["params"] = jsons[domain_key][current_user.interaction_type]["medium"][0][current_user.iteration - 2]
+                        # randomize the order of the tests (todo: potentially account for train_test_set (currently only using the first set))
+                        if len(current_user.final_test_rand_idxs) == 0:
+                            current_user.final_test_rand_idxs = list(np.arange(6))
+                            np.random.shuffle(current_user.final_test_rand_idxs)
+                            final_test_idx = current_user.final_test_rand_idxs.pop()
                         else:
-                            response["params"] = jsons[domain_key][current_user.interaction_type]["high"][0][current_user.iteration - 4]
+                            final_test_idx = current_user.final_test_rand_idxs.pop()
+                        print("final_text_idx: {}".format(final_test_idx))
+                        if final_test_idx < 2:
+                            response["params"] = jsons[domain_key][current_user.interaction_type]["low"][0][final_test_idx]
+                        elif final_test_idx < 4:
+                            response["params"] = jsons[domain_key][current_user.interaction_type]["medium"][0][final_test_idx - 2]
+                        else:
+                            response["params"] = jsons[domain_key][current_user.interaction_type]["high"][0][final_test_idx - 4]
                     elif current_user.interaction_type == "diagnostic feedback" or current_user.interaction_type == "remedial feedback":
                         # normalize the actions of the optimal and (incorrect) human trajectory such that they're the same length
                         # (by causing the longer trajectory to wait at overlapping states)
@@ -1264,7 +1272,22 @@ def settings(data):
                         response["params"] = jsons[domain_key][current_user.interaction_type][str(current_user.iteration)]
                 else:
                     if "test" in current_user.interaction_type:
-                        response["params"] = jsons[domain_key]["final test"]["low"][0][0]
+                        if len(current_user.final_test_rand_idxs) == 0:
+                            current_user.final_test_rand_idxs = list(np.arange(6))
+                            np.random.shuffle(current_user.final_test_rand_idxs)
+                            final_test_idx = current_user.final_test_rand_idxs.pop()
+                        else:
+                            final_test_idx = current_user.final_test_rand_idxs.pop()
+                        print("final_text_idx: {}".format(final_test_idx))
+                        if final_test_idx < 2:
+                            response["params"] = jsons[domain_key][current_user.interaction_type]["low"][0][
+                                final_test_idx]
+                        elif final_test_idx < 4:
+                            response["params"] = jsons[domain_key][current_user.interaction_type]["medium"][0][
+                                final_test_idx - 2]
+                        else:
+                            response["params"] = jsons[domain_key][current_user.interaction_type]["high"][0][
+                                final_test_idx - 4]
                     else:
                         response["params"] = jsons[domain_key]["demo"]["0"]
 
