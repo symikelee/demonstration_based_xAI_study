@@ -157,70 +157,74 @@
             run_page(window.mdp_parameters);
         });
 
+        // Shuffle function
+        function shuffle(array) {
+            var currentIndex = array.length, temporaryValue, randomIndex;
+            while (0 !== currentIndex) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex -= 1;
+                temporaryValue = array[currentIndex];
+                array[currentIndex] = array[randomIndex];
+                array[randomIndex] = temporaryValue;
+            }
+            return array;
+        }
+
         // Assign html for interaction type 
-        function change_text(interaction_type){  
+        function change_text(interaction_type){
             console.log("changing text")
             if (interaction_type === "survey") {
-            $("#non-buttons").html(
-                `<h3> I lost myself in this experience.</h3>
+                var questions = [
+                    {
+                        question: "I lost myself in this experience.",
+                        name: "attn1"
+                    },
+                    {
+                        question: "The time I spent learning the game strategy just slipped away.",
+                        name: "attn2"
+                    },
+                    {
+                        question: "I was absorbed in this experience.",
+                        name: "attn3"
+                    },
+                    {
+                        question: "I felt frustrated while learning the game strategy.",
+                        name: "use1"
+                    },
+                    {
+                        question: "I found learning the game strategy confusing.",
+                        name: "use2"
+                    },
+                    {
+                        question: "Learning the game strategy was taxing.",
+                        name: "use3"
+                    },
+                ];
+            // Shuffle the questions
+            questions = shuffle(questions);
+
+            // Generate the HTML
+            var html = `<br></br>
+            <h2>The following statements ask you to reflect on your experience of learning the game strategy. For each statement, please use the following scale to indicate what is most true for you.</h2>
+            <br></br>`;
+
+            for (var i = 0; i < questions.length; i++) {
+                html += `<h3>${questions[i].question}</h3>
                 <div class="likert">
-                <label><input name="attn1" type="radio" value="1"/><span>Strongly Disagree</span></label>
-                <label><input name="attn1" type="radio" value="2"/><span>Disagree</span></label>
-                <label><input name="attn1" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
-                <label><input name="attn1" type="radio" value="4"/><span>Agree</span></label>
-                <label><input name="attn1" type="radio" value="5"/><span>Strongly Agree</span></label>
+                <label><input name="${questions[i].name}" type="radio" value="1"/><span>Strongly Disagree</span></label>
+                <label><input name="${questions[i].name}" type="radio" value="2"/><span>Disagree</span></label>
+                <label><input name="${questions[i].name}" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
+                <label><input name="${questions[i].name}" type="radio" value="4"/><span>Agree</span></label>
+                <label><input name="${questions[i].name}" type="radio" value="5"/><span>Strongly Agree</span></label>
                 </div>
-                <br></br>
-                <h3> The time I spent learning the game strategy just slipped away.</h3>
-                <div class="likert">
-                <label><input name="attn2" type="radio" value="1"/><span>Strongly Disagree</span></label>
-                <label><input name="attn2" type="radio" value="2"/><span>Disagree</span></label>
-                <label><input name="attn2" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
-                <label><input name="attn2" type="radio" value="4"/><span>Agree</span></label>
-                <label><input name="attn2" type="radio" value="5"/><span>Strongly Agree</span></label>
-                </div>
-                <br></br>
-                <h3> I was absorbed in this experience. </h3>
-                <div class="likert">
-                <label><input name="attn3" type="radio" value="1"/><span>Strongly Disagree</span></label>
-                <label><input name="attn3" type="radio" value="2"/><span>Disagree</span></label>
-                <label><input name="attn3" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
-                <label><input name="attn3" type="radio" value="4"/><span>Agree</span></label>
-                <label><input name="attn3" type="radio" value="5"/><span>Strongly Agree</span></label>
-                </div>
-                <br></br>
-                <h3> I felt frustrated while learning the game strategy.</h3>
-                <div class="likert">
-                <label><input name="use1" type="radio" value="1"/><span>Strongly Disagree</span></label>
-                <label><input name="use1" type="radio" value="2"/><span>Disagree</span></label>
-                <label><input name="use1" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
-                <label><input name="use1" type="radio" value="4"/><span>Agree</span></label>
-                <label><input name="use1" type="radio" value="5"/><span>Strongly Agree</span></label>
-                </div>
-                <br></br>
-                <h3> I found learning the game strategy confusing.</h3>
-                <div class="likert">
-                <label><input name="use2" type="radio" value="1"/><span>Strongly Disagree</span></label>
-                <label><input name="use2" type="radio" value="2"/><span>Disagree</span></label>
-                <label><input name="use2" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
-                <label><input name="use2" type="radio" value="4"/><span>Agree</span></label>
-                <label><input name="use2" type="radio" value="5"/><span>Strongly Agree</span></label>
-                </div>
-                <br></br>
-                <h3> Learning the game strategy was taxing. </h3>
-                <div class="likert">
-                <label><input name="use3" type="radio" value="1"/><span>Strongly Disagree</span></label>
-                <label><input name="use3" type="radio" value="2"/><span>Disagree</span></label>
-                <label><input name="use3" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
-                <label><input name="use3" type="radio" value="4"/><span>Agree</span></label>
-                <label><input name="use3" type="radio" value="5"/><span>Strongly Agree</span></label>
-                </div>
-                <br></br>
-                <h3> Any further comments/thoughts on the practice stage? </h3>
-                <textarea id="short answer" rows="4" cols="50"></textarea>
-                `
-            );
-        }
+                <br></br>`;
+            }
+
+            html += `<h3> Any further comments/thoughts on the practice stage? </h3>
+            <textarea id="short answer" rows="4" cols="50"></textarea>`;
+
+            $("#non-buttons").html(html);
+            }
         else if ((interaction_type == "diagnostic test") || (interaction_type == "remedial test") || (interaction_type == "final test")) {
             $("#table_controlinfo").replaceWith(`<div><br><br><br><br>
         <table width="500">
