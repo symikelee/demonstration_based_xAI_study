@@ -957,7 +957,7 @@
             if (passenger.picked_human){
                 passenger.grid_loc.human_x -= 1;
             }
-            if (agent_on_hotswap_station) {
+            if (human_on_hotswap_station) {
                 hotswap_station.visited_human = true;
             }
             }
@@ -987,8 +987,8 @@
             if (passenger.picked_human){
                 passenger.grid_loc.human_x += 1;
             }
-            if (agent_on_hotswap_station) {
-                hotswap_station.visited = true;
+            if (human_on_hotswap_station) {
+                hotswap_station.visited_human = true;
             }
             }
             }
@@ -1108,6 +1108,7 @@
         passenger.picked = false;
         passenger.picked_human = false;
         hotswap_station.visited = false;
+        hotswap_station.visited_human = false;
         window.agent_history = [];
         window.agent_history_nonoffset = [];
       }
