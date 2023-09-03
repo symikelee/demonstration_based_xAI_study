@@ -27,7 +27,7 @@
               </div>
           </div>
     <div id="preamble" class="pre_info">
-        <h1>Participant gameplay</h1> <hr/>
+        <h1 id="header">Participant gameplay</h1> <hr/>
         <div id = "info_main"></div>
     </div>
     <h2 id="debug"></h2><br><br><br>
@@ -126,6 +126,7 @@
             window.mdp_parameters = data["params"];
             window.interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, survey, final test
             localStorage.setItem("already completed", data["already completed"]);
+            localStorage.setItem("subiteration", data["subiteration"]);
             if (data["go prev"] === "false") {
                 $("#prev").replaceWith(`<button type="button" id="prev" disabled onclick="prev()" value="previous" class="btn btn-primary btn-lg continue"> Previous <span class="glyphicon glyphicon-arrow-left"></span>
             </button>`);
@@ -198,16 +199,16 @@
                         name: "use3"
                     },
                 ];
-            // Shuffle the questions
-            questions = shuffle(questions);
+                // Shuffle the questions
+                questions = shuffle(questions);
 
-            // Generate the HTML
-            var html = `<br></br>
+                // Generate the HTML
+                var html = `<br></br>
             <h2>The following statements ask you to reflect on your experience of learning the game strategy. For each statement, please use the following scale to indicate what is most true for you.</h2>
             <br></br>`;
 
-            for (var i = 0; i < questions.length; i++) {
-                html += `<h3>${questions[i].question}</h3>
+                for (var i = 0; i < questions.length; i++) {
+                    html += `<h3>${questions[i].question}</h3>
                 <div class="likert">
                 <label><input name="${questions[i].name}" type="radio" value="1"/><span>Strongly Disagree</span></label>
                 <label><input name="${questions[i].name}" type="radio" value="2"/><span>Disagree</span></label>
@@ -216,15 +217,14 @@
                 <label><input name="${questions[i].name}" type="radio" value="5"/><span>Strongly Agree</span></label>
                 </div>
                 <br></br>`;
-            }
+                }
 
-            html += `<h3> Any further comments/thoughts on the practice stage? </h3>
+                html += `<h3> Any further comments/thoughts on the practice stage? </h3>
             <textarea id="short answer" rows="4" cols="50"></textarea>`;
 
-            $("#non-buttons").html(html);
-            }
-            else if ((interaction_type == "diagnostic test") || (interaction_type == "remedial test") || (interaction_type == "final test")) {
-            $("#table_controlinfo").replaceWith(`<div><br><br><br><br>
+                $("#non-buttons").html(html);
+            } else if ((interaction_type == "diagnostic test") || (interaction_type == "remedial test") || (interaction_type == "final test")) {
+                $("#table_controlinfo").replaceWith(`<div><br><br><br><br>
         <table width="500">
             <tr><th>Key</th><th>Action</th></tr>
             <tr><td>up/down/left/right arrow keys</td><td>corresponding movement</td></tr>
@@ -233,19 +233,39 @@
             <tr><td>r</td><td>reset simulation</td></tr>
         </table>
         <br></div>`);
-            $("#info_main").replaceWith('<h3>Now its your turn to play six games! Please demonstrate how you would complete this games task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.<br> <h3>Please answer the question below on the confidence of your gameplay <b>after</b> providing your demonstration.</h3>');
-            }
-        else {
-            $("#table_controlinfo").replaceWith(`<div><br><br><br>
+                if (interaction_type == "final test") {
+                    $("#header").replaceWith('<h1>Final assessment</h1>');
+                    $("#info_main").replaceWith('<h3>Let\'s see how much you learned! Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.');
+                } else if (interaction_type == "diagnostic test") {
+                    $("#header").replaceWith('<h1>Check-in test</h1>');
+                    $("#info_main").replaceWith('<h3>Let\'s see if you understood the previous demonstration(s)!<br>Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.');
+                } else if (interaction_type == "remedial test") {
+                    $("#header").replaceWith('<h1>Remedial test</h1>');
+                    $("#info_main").replaceWith('<h3>Let\'s see if you can correctly apply the strategy this time!<br>Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.');
+                }
+            } else {
+                $("#table_controlinfo").replaceWith(`<div><br><br><br>
         <table width="500">
             <tr><th>Key</th><th>Action</th></tr>
             <tr><td>space bar</td><td>next movement</td></tr>
             <tr><td>r</td><td>reset simulation</td></tr>
         </table>
         <br></div>`);
-            $("#info_main").replaceWith('<h3> Look at the demonstration on how you should complete this games task while minimizing Chips energy loss.</h3><h3>Please answer the question below on the confidence of your <b>understanding</b> of the demonstration.</h3>');
+                if (interaction_type == "diagnostic feedback" || interaction_type == "remedial feedback") {
+                    $("#header").replaceWith('<h1>Corrective feedback</h1>');
+                    $("#info_main").replaceWith('<h3>Step through how your answer (lighter color) differs from Chip\'s (darker color) using your space bar.<br>Feel free to run through it as many times as you wish by resetting, and at least once to continue!</h3>');
+                }
+                else if (interaction_type == "remedial demo") {
+                    $("#header").replaceWith('<h1>(Remedial) demonstration of best strategy</h1>');
+                    $("#info_main").replaceWith('<h3>Given your previously incorrect test response, here\'s a demonstration that might help address any misunderstandings.<br>Step through the demonstration using your space bar. Feel free to run through it as many times as you wish by resetting, and at least once to continue!</h3>');
+                }
+                else {
+                    $("#header").replaceWith('<h1>Demonstration of best strategy</h1>');
+                    $("#info_main").replaceWith('<h3>Step through the demonstration using your space bar.<br>Feel free to run through it as many times as you wish by resetting, and at least once to continue!</h3>');
+                }
+            }
         }
-        }
+
         // socket.on("", function (data) {
         //     if (data["passed"]) {
         //         $("button").replaceWith(`<button type="button" id="next"
@@ -880,14 +900,17 @@
                         // if the test was answered correctly or page wasn't already shown previously, show likert scale
                         show_likert = true
 
-                        if (localStorage.getItem("already completed") == 'false') $("#feedback").html('<div class="text-center"><p>Great, you answered correctly!</p></div>')
+                        if (localStorage.getItem("already completed") == 'false') $("#feedback").html('<div class="text-center"><p>Great, you answered correctly! On to the next demonstration!</p></div>')
                     }
                     else {
                         // if the test was answered incorrectly or page was already shown previously, simply enable the next button
                         // set the likert value to 0 (changing from -1) so that you know that you've been to this page before
                         localStorage.setItem("survey", 0)
-
-                        if (localStorage.getItem("already completed") == 'false') $("#feedback").html('<div class="text-center"><p>Oh no, you answered incorrectly! Let\'s review the difference on the next page!</p></div>')
+                        const subiteration = localStorage.getItem("subiteration")
+                        if (localStorage.getItem("already completed") == 'false') {
+                            if (subiteration == 3) $("#feedback").html('<div class="text-center"><p>Oh no, you answered incorrectly! But for the sake of time, let\'s move on to the next demonstration!</p></div>')
+                            else $("#feedback").html('<div class="text-center"><p>Oh no, you answered incorrectly! Let\'s review on the next page!</p></div>')
+                        }
 
                         $("#next").replaceWith(`<button type="button" id="next"
                         onclick="next()"

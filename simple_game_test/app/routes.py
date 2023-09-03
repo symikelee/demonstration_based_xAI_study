@@ -1323,7 +1323,8 @@ def settings(data):
     if (current_user.iteration == 0 and current_user.interaction_type == "demo") or ("test" in current_user.interaction_type and already_completed == "false"):
         go_prev = "false"
 
-    debug_string = f"domain={domain}, interaction type={current_user.interaction_type}, iteration={current_user.iteration}, subiteration={current_user.subiteration}"
+    # debug_string = f"domain={domain}, interaction type={current_user.interaction_type}, iteration={current_user.iteration}, subiteration={current_user.subiteration}"
+    debug_string = ''
     response["debug string"] = debug_string
     response["username"] = current_user.username
     response["last test"] = last_test
@@ -1331,9 +1332,8 @@ def settings(data):
     response["already completed"] = already_completed
     response["go prev"] = go_prev
     # response["domain"] = domain
-    # response["interaction type"] = current_user.interaction_type
     # response["iteration"] = current_user.iteration
-    # response["subiteration"] = current_user.subiteration
+    response["subiteration"] = current_user.subiteration
     db.session.commit()
     socketio.emit("settings configured", response, to=request.sid)
 
