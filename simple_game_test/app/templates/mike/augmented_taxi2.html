@@ -126,6 +126,7 @@
             window.mdp_parameters = data["params"];
             window.interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, survey, final test
             localStorage.setItem("already completed", data["already completed"]);
+            localStorage.setItem("iteration", data["iteration"]);
             localStorage.setItem("subiteration", data["subiteration"]);
             if (data["go prev"] === "false") {
                 $("#prev").replaceWith(`<button type="button" id="prev" disabled onclick="prev()" value="previous" class="btn btn-primary btn-lg continue"> Previous <span class="glyphicon glyphicon-arrow-left"></span>
@@ -234,8 +235,8 @@
         </table>
         <br></div>`);
                 if (interaction_type == "final test") {
-                    $("#header").replaceWith('<h1>Final assessment</h1>');
-                    $("#info_main").replaceWith('<h3>Let\'s see how much you learned! Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.');
+                    $("#header").replaceWith('<h1>Final assessment (' + (Number(localStorage.getItem("iteration")) + 1).toString() + '/6)</h1>');
+                    $("#info_main").replaceWith('<h3>Chip has finished teaching the strategy -- let\'s see how much you learned!<br>Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.<br>(We\'ll reveal how many of the six tests you answered correctly after the final one.)');
                 } else if (interaction_type == "diagnostic test") {
                     $("#header").replaceWith('<h1>Check-in test</h1>');
                     $("#info_main").replaceWith('<h3>Let\'s see if you understood the previous demonstration(s)!<br>Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.');
@@ -253,7 +254,7 @@
         <br></div>`);
                 if (interaction_type == "diagnostic feedback" || interaction_type == "remedial feedback") {
                     $("#header").replaceWith('<h1>Corrective feedback</h1>');
-                    $("#info_main").replaceWith('<h3>Step through how your answer (lighter color) differs from Chip\'s (darker color) using your space bar.<br>Feel free to run through it as many times as you wish by resetting, and at least once to continue!</h3>');
+                    $("#info_main").replaceWith('<h3>Step through how your answer (replayed by <img src=\'static/img/agent_light.png\' width=\"30\" height=auto/>, on bottom) differs from Chip\'s (replayed by <img src=\'static/img/agent_dark.png\' width=\"30\" height=auto/>, on top) using your space bar.<br>Feel free to run through it as many times as you wish by resetting, and at least once to continue!</h3>');
                 }
                 else if (interaction_type == "remedial demo") {
                     $("#header").replaceWith('<h1>(Remedial) demonstration of best strategy</h1>');
@@ -900,7 +901,7 @@
                         // if the test was answered correctly or page wasn't already shown previously, show likert scale
                         show_likert = true
 
-                        if (localStorage.getItem("already completed") == 'false') $("#feedback").html('<div class="text-center"><p>Great, you answered correctly! On to the next demonstration!</p></div>')
+                        if (localStorage.getItem("already completed") == 'false') $("#feedback").html('<div class="text-center"><h4>Great, you answered correctly!</h4></div>')
                     }
                     else {
                         // if the test was answered incorrectly or page was already shown previously, simply enable the next button
@@ -908,8 +909,8 @@
                         localStorage.setItem("survey", 0)
                         const subiteration = localStorage.getItem("subiteration")
                         if (localStorage.getItem("already completed") == 'false') {
-                            if (subiteration == 3) $("#feedback").html('<div class="text-center"><p>Oh no, you answered incorrectly! But for the sake of time, let\'s move on to the next demonstration!</p></div>')
-                            else $("#feedback").html('<div class="text-center"><p>Oh no, you answered incorrectly! Let\'s review on the next page!</p></div>')
+                            if (subiteration == 3) $("#feedback").html('<div class="text-center"><h4>Oh no, you answered incorrectly! But for the sake of time, let\'s move on without review!</h4></div>')
+                            else $("#feedback").html('<div class="text-center"><h4>Oh no, you answered incorrectly! Let\'s review on the next page!</h4></div>')
                         }
 
                         $("#next").replaceWith(`<button type="button" id="next"
