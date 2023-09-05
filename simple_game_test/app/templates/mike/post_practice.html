@@ -38,7 +38,7 @@
       localStorage.setItem("use3", "-1");
       localStorage.setItem("short answer", "");
       let socket = io();
-      socket.emit("next domain");
+      socket.emit("next domain", []);
       socket.on("next domain is", function(data) {
         console.log("I have received next domain");
         let url = "";

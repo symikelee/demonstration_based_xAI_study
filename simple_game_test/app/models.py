@@ -155,7 +155,8 @@ class Trial(db.Model):
     is_opt_response = db.Column(db.Boolean)
     percent_seen = db.Column(db.Float)
     mdp_parameters = db.Column(db.PickleType)
-    human_model = db.Column(db.PickleType)
+    human_model_pf_pos = db.Column(db.PickleType)
+    human_model_pf_weights = db.Column(db.PickleType)
 
 class Domain(db.Model):
     id = db.Column(db.Integer, primary_key=True)

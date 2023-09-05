@@ -97,7 +97,7 @@
 
       var socket = io();
 
-      socket.on("connect", function () {
+      function populateData() {
             let data = {};
             data["domain"] = localStorage.getItem("domain");
             data["interaction type"] = localStorage.getItem("interaction type");
@@ -114,7 +114,13 @@
             data["use3"] = localStorage.getItem("use3");
             data["short answer"] = localStorage.getItem("short answer");
             data["already completed"] = localStorage.getItem("already completed");
-            socket.emit("settings", data);
+
+          return data
+      }
+
+      socket.on("connect", function () {
+          data = populateData()
+          socket.emit("settings", data);
         });
         socket.on("settings configured", function (data) {
             localStorage.setItem("username", data["username"]);
@@ -126,6 +132,8 @@
             window.mdp_parameters = data["params"];
             window.interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, survey, final test
             localStorage.setItem("already completed", data["already completed"]);
+            localStorage.setItem("domain", data["domain"]);
+            localStorage.setItem("interaction type", data["interaction type"]);
             localStorage.setItem("iteration", data["iteration"]);
             localStorage.setItem("subiteration", data["subiteration"]);
             if (data["go prev"] === "false") {
@@ -290,7 +298,11 @@
             //localStorage.setItem("survey completed", "false");
             if (localStorage.getItem("last test") === "true") {
                 localStorage.setItem("last test", "false");
-                socket.emit("next domain");
+
+                // save the information of the final test
+                page_data = populateData()
+                socket.emit("next domain", page_data);
+
                 socket.on("next domain is", function(data) {
                     console.log("I have received next domain");
                     let url = "";

@@ -98,12 +98,13 @@
       };
 
         var socket = io();
-        socket.on("connect", function () {
+
+      function populateData() {
             let data = {};
             data["domain"] = localStorage.getItem("domain");
             data["interaction type"] = localStorage.getItem("interaction type");
-            data["iteration"] = Number(localStorage.getItem("iteration"));
             data["survey"] = localStorage.getItem("survey")
+            data["iteration"] = Number(localStorage.getItem("iteration"));
             data["subiteration"] = Number(localStorage.getItem("subiteration"));
             data["user input"] = JSON.parse(localStorage.getItem("user input"));
             data["movement"] = localStorage.getItem("movement");
@@ -115,6 +116,12 @@
             data["use3"] = localStorage.getItem("use3");
             data["short answer"] = localStorage.getItem("short answer");
             data["already completed"] = localStorage.getItem("already completed");
+
+          return data
+      }
+
+        socket.on("connect", function () {
+            data = populateData()
             socket.emit("settings", data);
         });
 
@@ -126,6 +133,8 @@
             window.mdp_parameters = data["params"];
             window.interaction_type = data["interaction type"]; // types possible: demo, diagnostic test, diagnostic feedback, remedial demo, remedial test, remedial feedback, survey, final test
             localStorage.setItem("already completed", data["already completed"]);
+            localStorage.setItem("domain", data["domain"]);
+            localStorage.setItem("interaction type", data["interaction type"]);
             localStorage.setItem("iteration", data["iteration"]);
             localStorage.setItem("subiteration", data["subiteration"]);
             if (data["go prev"] === "false") {
@@ -279,7 +288,11 @@
             localStorage.setItem("movement", "next");
             if (localStorage.getItem("last test") === "true") {
                 localStorage.setItem("last test", "false");
-                socket.emit("next domain");
+
+                // save the information of the final test
+                page_data = populateData()
+                socket.emit("next domain", page_data);
+
                 socket.on("next domain is", function(data) {
                     console.log("I have received next domain");
                     let url = "";

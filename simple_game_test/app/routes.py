@@ -738,7 +738,27 @@ def post_practice():
     return render_template("mike/post_practice.html", preamble=preamble)
 
 @socketio.on("next domain")
-def next_domain():
+def next_domain(data):
+    # save any remaining data (from final test) before moving on to the next domain
+    if len(data) > 0:
+        trial = Trial(
+            user_id=current_user.id,
+            domain=data["domain"],
+            interaction_type=data["interaction type"],
+            iteration=data["iteration"],
+            subiteration=data["subiteration"],
+            likert=int(data["survey"]),
+            moves=data["user input"]["moves"],
+            coordinates=data["user input"]["agent_history_nonoffset"],
+            is_opt_response=data["user input"]["opt_response"],
+            percent_seen=-1,  # TODO: later?
+            mdp_parameters=data["user input"]["mdp_parameters"],
+            duration_ms=data["user input"]["simulation_rt"],
+            human_model_pf_pos = current_user.pf_model.positions,  # todo: verify that different snapshots of the PF are being saved (and previous snapshots aren't being updated)
+            human_model_pf_weights = current_user.pf_model.weights
+        )
+        db.session.add(trial)
+
     print("yassss")
     current_user.interaction_type = "demo"
     current_user.iteration = -1
@@ -747,6 +767,7 @@ def next_domain():
     current_user.params_stack = []
     current_user.visited_env_traj_idxs_stack = []
     current_user.final_test_rand_idxs = []
+    current_user.pf_model = None
     print(current_user.curr_progress)
 
     if current_user.curr_progress == "post practice":
@@ -764,7 +785,6 @@ def next_domain():
         socketio.emit("next domain is", {"domain": "final survey"}, to=request.sid)
 
     db.session.commit()
-
 
 @app.route("/at_intro", methods=["GET", "POST"])
 @login_required
@@ -1060,7 +1080,8 @@ def settings(data):
             percent_seen = -1, #TODO: later?
             mdp_parameters = data["user input"]["mdp_parameters"],
             duration_ms = data["user input"]["simulation_rt"],
-            human_model = current_user.pf_model # todo: verify that different snapshots of the PF are being saved (and previous snapshots aren't being updated)
+            human_model_pf_pos = current_user.pf_model.positions,  # todo: verify that different snapshots of the PF are being saved (and previous snapshots aren't being updated)
+            human_model_pf_weights = current_user.pf_model.weights
         )
         db.session.add(trial)
 
