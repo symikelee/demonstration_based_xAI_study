@@ -29,7 +29,10 @@ from flask_socketio import join_room, leave_room
 import pickle
 from multiprocessing import Pool
 
-with open(os.path.join(os.path.dirname(__file__), 'user_study_dict.json'), 'r') as f:
+# change to the directory of this file
+os.chdir(os.path.join(os.path.dirname(__file__)))
+
+with open('user_study_dict.json', 'r') as f:
     jsons = json.load(f)
 
 # rule_str = None

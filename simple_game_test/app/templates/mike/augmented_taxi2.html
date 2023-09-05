@@ -74,28 +74,25 @@
           // for the first page, simply make up a placeholder which statistically won't conflict (and the first page of each domain should load instantaneously anyways)
           roomIdentifier = Math.floor(Math.random() * 100000000000000);
       }
-      const websocket = new WebSocket(`ws://localhost:8765/${roomIdentifier}`);
-
-      websocket.onopen = function(event) {
-          console.log('Connected to server');
-      };
-
-      const loadingText = document.getElementById('loading-text');
-      websocket.onmessage = function(event) {
-          const data = event.data;
-          if (data === "Progress updates complete") {
-              console.log('Progress updates complete');
-              websocket.close(); // Close the WebSocket connection
-          } else {
-              var progress = parseInt(data);
-              if (isNaN(progress)) {
-                  progress = 0
-              }
-              loadingText.innerHTML = `Loading the next instruction... (${progress}% completed)`
-          }
-      };
 
       var socket = io();
+
+    socket.on('connect', function() {
+        console.log('Connected to server');
+    });
+
+    const loadingText = document.getElementById('loading-text');
+    socket.on('message', function(data) {
+        if (data === "Progress updates complete") {
+            console.log('Progress updates complete');
+        } else {
+            var progress = parseInt(data);
+            if (isNaN(progress)) {
+                progress = 0
+            }
+            loadingText.innerHTML = `Loading the next instruction... (${progress}% completed)`
+        }
+    });
 
       function populateData() {
             let data = {};
