@@ -1332,8 +1332,8 @@ def settings(data):
     response["interaction type"] = current_user.interaction_type
     response["already completed"] = already_completed
     response["go prev"] = go_prev
-    # response["domain"] = domain
-    # response["iteration"] = current_user.iteration
+    response["domain"] = domain
+    response["iteration"] = current_user.iteration
     response["subiteration"] = current_user.subiteration
     db.session.commit()
     socketio.emit("settings configured", response, to=request.sid)
@@ -1781,9 +1781,7 @@ def final_survey():
         current_user.age = form.age.data
         current_user.gender = form.gender.data
         current_user.ethnicity = form.ethnicity.data
-        current_user.education = form.education.data
         current_user.robot = form.robot.data
-        current_user.final_robot_choice = form.robot_choice.data
         current_user.final_feedback = form.opt_text.data
         current_user.set_completion(1)
 

@@ -102,6 +102,7 @@ class User(UserMixin, db.Model):
         self.study_type = cond_type
         return min_cond
 
+    # todo: replace with my prolific code
     def set_code(self, code='CYTO5M8C'):
         self.code = code
         return code

@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField, RadioField, TextAreaField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField, RadioField, TextAreaField, IntegerField
 from wtforms import (SubmitField, SelectMultipleField, widgets)
 from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length, Regexp, StopValidation, InputRequired
 from app.models import User
@@ -64,17 +64,14 @@ class AttentionCheckForm(FlaskForm):
     submit_check = SubmitField("Continue")
 
 class FinalForm(FlaskForm):
-    age = RadioField("", choices=[(0, "18-24"), (1, "25-34"), (2, "35-44"), (3, "45-54"), (4, "55-64"), (5, "65-74"), (6, "75-84"), (7, "85 or older")])
-    gender =  RadioField("", choices=[(0, "Man"), (1, "Woman"), (2, "Transgender"), (3, "Non-binary/Non-conforming"), (4,  "Prefer Not to Respond")])
-    education = RadioField("", choices=[(0, "Less than high school degree"), (1, "High school graduate (high school diploma or equivalent including GED)"), (2, "Some college but no degree"), (3, "Associate degree in college (2-year)"), (4, "Bachelor’s degree in college (4-year)"), (5, "Master’s degree"), (5, "Doctoral degree"), (5, "Professional degree (JD, MD)")])
-    # ethnicity = BooleanField("", choices=[])
+    gender =  RadioField("", choices=[(0, "Man"), (1, "Woman"), (3, "Non-binary"), (4,  "Prefer Not to Respond")])
     ethnicity = MultiCheckboxField("",
                                coerce=int,
-                               choices=get_ethnicities(), 
+                               choices=get_ethnicities(),
                                validators=[MultiCheckboxAtLeastOne()])
     robot = RadioField("", choices=[(0, "Not at all"), (1, "Slightly"), (2, "Moderately"), (3, "Very"), (4, "Extremely")])
-    robot_choice = RadioField("", choices=[(0, "First Robot"), (1, "Second Robot")])
-    opt_text = TextAreaField(InputRequired())
+    opt_text = TextAreaField()
+    age = IntegerField(InputRequired)
     submit_final = SubmitField("Continue")
 
 class ConsentForm(FlaskForm):
