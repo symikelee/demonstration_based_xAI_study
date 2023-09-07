@@ -328,6 +328,7 @@
             }
             if (window.interaction_type === "survey") {
                 localStorage.setItem("short answer", document.getElementById("short answer").value);
+                // todo: could also potentially try and store the short answer of training demonstrations and tests
             }
 
             else {
@@ -839,7 +840,16 @@ var spaceship =
                 <label><input name="info" type="radio" value="4"/><span>Agree</span></label>
                 <label><input name="info" type="radio" value="5"/><span>Strongly Agree</span></label>
                 </div>
-                <br></br>` );
+                <br></br>
+
+<h5>Please feel free to explain your selection if you wish!</h5>
+            <textarea id="short answer" rows="2" cols="50"></textarea>
+` );
+    var textarea = document.querySelector('textarea');
+    textarea.addEventListener('keydown', function(event) {
+        event.stopPropagation();
+    });
+
                 }
             }
         }

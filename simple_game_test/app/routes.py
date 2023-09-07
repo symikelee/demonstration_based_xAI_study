@@ -770,7 +770,8 @@ def next_domain(data):
             mdp_parameters=data["user input"]["mdp_parameters"],
             duration_ms=data["user input"]["simulation_rt"],
             human_model_pf_pos=update_pf_model_positions,
-            human_model_pf_weights=update_pf_model_weights
+            human_model_pf_weights=update_pf_model_weights,
+            short_answer=data["short_answer"],
         )
         db.session.add(trial)
 
