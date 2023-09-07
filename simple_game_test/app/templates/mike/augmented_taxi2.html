@@ -230,7 +230,17 @@
 
                 $("#non-buttons").html(html);
             } else if ((interaction_type == "diagnostic test") || (interaction_type == "remedial test") || (interaction_type == "final test")) {
-                $("#table_controlinfo").replaceWith(`<div><br><br><br><br>
+                if (localStorage.getItem("already completed") == 'true') {
+                     $("#table_controlinfo").replaceWith(`<div><br><br><br>
+        <table width="500">
+            <tr><th>Key</th><th>Action</th></tr>
+            <tr><td>space bar</td><td>next movement</td></tr>
+            <tr><td>r</td><td>reset simulation</td></tr>
+        </table>
+        <br></div>`);
+                }
+                else {
+                    $("#table_controlinfo").replaceWith(`<div><br><br><br><br>
         <table width="500">
             <tr><th>Key</th><th>Action</th></tr>
             <tr><td>up/down/left/right arrow keys</td><td>corresponding movement</td></tr>
@@ -239,15 +249,26 @@
             <tr><td>r</td><td>reset simulation</td></tr>
         </table>
         <br></div>`);
+                }
                 if (interaction_type == "final test") {
                     $("#header").replaceWith('<h1>Final assessment (' + (Number(localStorage.getItem("iteration")) + 1).toString() + '/6)</h1>');
-                    $("#info_main").replaceWith('<h3>Chip has finished teaching the strategy -- let\'s see how much you learned!<br>Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.<br>(We\'ll reveal how many of the six tests you answered correctly after the final one.)');
+                    $("#info_main").replaceWith('<h3>Chip has finished teaching the strategy -- let\'s see how much you learned!<br>Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.<br>(We\'ll reveal which and how many of the six tests you answered correctly after the final one.)');
                 } else if (interaction_type == "diagnostic test") {
                     $("#header").replaceWith('<h1>Check-in test</h1>');
-                    $("#info_main").replaceWith('<h3>Let\'s see if you understood the previous demonstration(s)!<br>Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.');
+                    if (localStorage.getItem("already completed") == 'true') {
+                        $("#info_main").replaceWith('<h3>Let\'s see if you understood the previous demonstration(s)!<br>Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.<br><br><p><b>(Edit: You navigated back to this interaction so you may step through the answer using your space bar.)</b></p>');
+                    }
+                    else {
+                        $("#info_main").replaceWith('<h3>Let\'s see if you understood the previous demonstration(s)!<br>Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.');
+                    }
                 } else if (interaction_type == "remedial test") {
                     $("#header").replaceWith('<h1>Additional test</h1>');
-                    $("#info_main").replaceWith('<h3>Let\'s see if you can correctly apply the strategy this time!<br>Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.');
+                    if (localStorage.getItem("already completed") == 'true') {
+                        $("#info_main").replaceWith('<h3>Let\'s see if you can correctly apply the strategy this time!<br>Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.<br><br><p><b>(Edit: You navigated back to this interaction so you may step through the answer using your space bar.)</b></p>');
+                    }
+                    else {
+                        $("#info_main").replaceWith('<h3>Let\'s see if you can correctly apply the strategy this time!<br>Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.');
+                    }
                 }
             } else {
                 $("#table_controlinfo").replaceWith(`<div><br><br><br>
@@ -803,7 +824,7 @@
 
         var it = window.interaction_type
         if(it == "final test") {
-            sessionStorage.setItem('augmented_taxi2_' + mdp_parameters.test_difficulty + '_' + mdp_parameters.tag.toString(), same_traj)
+            sessionStorage.setItem('augmented_taxi2_' + localStorage.getItem("iteration").toString(), same_traj)
         }
 
         final_data = JSON.stringify({
@@ -930,16 +951,41 @@
                 } else if (it == "final test"){
                     if(last_test == "true"){
                         var score = 0;
-                        if (sessionStorage.getItem('augmented_taxi2_low_0') == 'true') score += 1;
-                        if (sessionStorage.getItem('augmented_taxi2_low_1') == 'true') score += 1;
-                        if (sessionStorage.getItem('augmented_taxi2_medium_0') == 'true') score += 1;
-                        if (sessionStorage.getItem('augmented_taxi2_medium_1') == 'true') score += 1;
-                        if (sessionStorage.getItem('augmented_taxi2_high_0') == 'true') score += 1;
-                        if (sessionStorage.getItem('augmented_taxi2_high_1') == 'true') score += 1;
+                        var first = 0;
+                        var second = 0;
+                        var third = 0;
+                        var fourth = 0;
+                        var fifth = 0;
+                        var sixth = 0;
+                        if (sessionStorage.getItem('augmented_taxi2_0') == 'true') {
+                            score += 1;
+                            first += 1;
+                        }
+                        if (sessionStorage.getItem('augmented_taxi2_1') == 'true') {
+                            score += 1;
+                            second += 1;
+                        }
+                        if (sessionStorage.getItem('augmented_taxi2_2') == 'true') {
+                            score += 1;
+                            third += 1;
+                        }
+                        if (sessionStorage.getItem('augmented_taxi2_3') == 'true') {
+                            score += 1;
+                            fourth += 1;
+                        }
+                        if (sessionStorage.getItem('augmented_taxi2_4') == 'true') {
+                            score += 1;
+                            fifth += 1;
+                        }
+                        if (sessionStorage.getItem('augmented_taxi2_5') == 'true') {
+                            score += 1;
+                            sixth += 1;
+                        }
                         console.log("game score: ")
                         console.log(score)
-                        $("#score").html('<div class="text-center"><h1>Score Results</h1><p>You scored<p id="score_val"></p>tests correctly.</p></div>')
-                        document.getElementById('score_val').innerHTML = score + "/6"
+                        $("#score").html('<div class="text-center"><h1>Score Results</h1><p>In order of the tests you took, you scored <p id="score_val"></p>getting <p id="score_val2" style="display:inline"></p> tests correctly out of 6.</p></div>')
+                        document.getElementById('score_val').innerHTML = first + ' + ' + second + ' + ' + third  + ' + ' + fourth  + ' + ' + fifth + ' + ' + sixth + ' = ' + score
+                        document.getElementById('score_val2').innerHTML = score
                     }
                     $("#next").replaceWith(`<button type="button" id="next"
                     onclick="next()"

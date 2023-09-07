@@ -40,6 +40,7 @@ class User(UserMixin, db.Model):
 
     curr_progress = db.Column(db.String(50))
     loop_condition = db.Column(db.String(4))
+    final_test_condition = db.Column(db.Integer)
     domain_1 = db.Column(db.String(2))
     domain_2 = db.Column(db.String(2))
     domain_3 = db.Column(db.String(2))

@@ -595,6 +595,7 @@ def index():
     current_user.domain_1 = domains[0]
     current_user.domain_2 = domains[1]
     current_user.domain_3 = domains[2]
+    current_user.final_test_condition = np.random.randint(0, 3)
     db.session.commit()
 
     return render_template("index.html",
@@ -682,7 +683,7 @@ def sandbox():
     if version == "sandbox_1":
         preamble = ("<h1>Free play</h1> <hr/> " + "<h4>A subset of the keys in the table below will be available to control Chip in each game.</h4><br>" +
         "<h4>Feel free to play around in the game below and get used to the controls.</h4>" +
-        "<h4>If you accidentally take a wrong action, you may reset the simulation and start over.</h4><br>" +
+        "<h4>If you accidentally take a wrong action, you may reset the simulation and start over by pressing 'r'.</h4><br>" +
         "<h4>You can click the continue button whenever you feel ready to move on.</h4><br>" +
         "<h5> As a reminder this game consists of a <b>location</b> (e.g. <img src = 'static/img/star.png' width=\"20\" height=auto />), <b>an object that you can pick up and drop</b> (e.g. <img src = 'static/img/pentagon.png' width=\"20\" height=auto />), <b>an object that you can move through</b> (e.g. <img src = 'static/img/diamond.png' width=\"20\" height=auto />), and <b>walls </b>that you can't move through (<img src = 'static/img/wall.png' width=\"20\" height=auto />).</h5>")
         # params = {
@@ -741,7 +742,7 @@ def post_practice():
             "For example, note the '???' in the Energy Change column below. <table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr><tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>???</td></tr></table> <br>" +
             "<h3>Instead, you will have to <u>figure that out</u> and subsequently the best strategy for completing the task while minimizing Chip's energy loss <u>by observing Chip's demonstrations</u> and <u>testing your knowledge of Chip's behavior!</u></h3><br>" +
                 "<h3>If you incorrectly predict Chip's behavior on check-in tests in between demonstrations, Chip will <u>give you corrective feedback and provide additional demonstrations and tests<sup>*</sup></u> to help you learn!</h3><br>" +
-            "<h4><sup>*</sup>Please be patient as additional demonstrations and tests may take a while to load.</h4>")
+            "<h4><sup>*</sup>Please be patient as these may take a while to load.<br>And you may navigate back to previous interactions (e.g. demonstrations) to refresh your memory when you're not actively being tested!</h4>")
     return render_template("mike/post_practice.html", preamble=preamble)
 
 @socketio.on("next domain")
@@ -1247,11 +1248,11 @@ def settings(data):
                             final_test_idx = current_user.final_test_rand_idxs.pop()
                         print("final_text_idx: {}".format(final_test_idx))
                         if final_test_idx < 2:
-                            response["params"] = jsons[domain_key][current_user.interaction_type]["low"][0][final_test_idx]
+                            response["params"] = jsons[domain_key][current_user.interaction_type]["low"][current_user.final_test_condition][final_test_idx]
                         elif final_test_idx < 4:
-                            response["params"] = jsons[domain_key][current_user.interaction_type]["medium"][0][final_test_idx - 2]
+                            response["params"] = jsons[domain_key][current_user.interaction_type]["medium"][current_user.final_test_condition][final_test_idx - 2]
                         else:
-                            response["params"] = jsons[domain_key][current_user.interaction_type]["high"][0][final_test_idx - 4]
+                            response["params"] = jsons[domain_key][current_user.interaction_type]["high"][current_user.final_test_condition][final_test_idx - 4]
                     elif current_user.interaction_type == "diagnostic feedback" or current_user.interaction_type == "remedial feedback":
                         # normalize the actions of the optimal and (incorrect) human trajectory such that they're the same length
                         # (by causing the longer trajectory to wait at overlapping states)
@@ -1325,13 +1326,13 @@ def settings(data):
                             final_test_idx = current_user.final_test_rand_idxs.pop()
                         print("final_text_idx: {}".format(final_test_idx))
                         if final_test_idx < 2:
-                            response["params"] = jsons[domain_key][current_user.interaction_type]["low"][0][
+                            response["params"] = jsons[domain_key][current_user.interaction_type]["low"][current_user.final_test_condition][
                                 final_test_idx]
                         elif final_test_idx < 4:
-                            response["params"] = jsons[domain_key][current_user.interaction_type]["medium"][0][
+                            response["params"] = jsons[domain_key][current_user.interaction_type]["medium"][current_user.final_test_condition][
                                 final_test_idx - 2]
                         else:
-                            response["params"] = jsons[domain_key][current_user.interaction_type]["high"][0][
+                            response["params"] = jsons[domain_key][current_user.interaction_type]["high"][current_user.final_test_condition][
                                 final_test_idx - 4]
                     else:
                         response["params"] = jsons[domain_key]["demo"]["0"]

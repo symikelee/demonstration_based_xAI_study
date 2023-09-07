@@ -603,7 +603,7 @@
         else if (continue_condition == 'free_play') {}
         else if(spaceship.exited){
             if (continue_condition == 'exit') {
-                drawString(context, "Good job exiting right away! \n Click 'Continue' below.", text_loc_x, text_loc_y, text_color_success, 0, "'serif", 20)
+                drawString(context, "Good job exiting right away! \n Click 'Next' below.", text_loc_x, text_loc_y, text_color_success, 0, "'serif", 20)
             }
 
             if (data_sent == false) {
@@ -612,10 +612,10 @@
             }
         }else {
             if (continue_condition == 'optimal_traj_1') {
-                drawString(context, "Good job completing the task with the maximum possible energy remaining! \n Click 'Continue' below.", text_loc_x, text_loc_y, text_color_success, 0, "'serif", 20)
+                drawString(context, "Good job completing the task with the maximum possible energy remaining! \n Click 'Next' below.", text_loc_x, text_loc_y, text_color_success, 0, "'serif", 20)
             }
             else if (continue_condition == 'optimal_traj_2') {
-                drawString(context, "Good job delivering the pentagon in the fewest number of actions! \n However, you see that you ended up with a lower score than you started with. \n Click 'Continue' below.", text_loc_x, text_loc_y, text_color_success, 0, "'serif", 20)
+                drawString(context, "Good job delivering the pentagon in the fewest number of actions! \n However, you see that you ended up with a lower score than you started with. \n Click 'Next' below.", text_loc_x, text_loc_y, text_color_success, 0, "'serif", 20)
             }
             localStorage.setItem("passed_attention_check", "true");
             socket.emit("attention check", {"passed" : true});
