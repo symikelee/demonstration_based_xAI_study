@@ -1386,7 +1386,11 @@
                 requestAnimationFrame(draw);
             }
         }
-    }
+
+          if(event.keyCode == 32 && event.target == document.body) {
+              event.preventDefault();
+          }
+      }
 
     // reset();
     // document.addEventListener('keydown', _.debounce(keyPressed, 200))
