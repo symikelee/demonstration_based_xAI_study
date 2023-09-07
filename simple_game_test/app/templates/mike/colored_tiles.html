@@ -208,7 +208,7 @@
 
             // Generate the HTML
             var html = `<br></br>
-            <h2>The following statements ask you to reflect on your experience of learning the game strategy. For each statement, please use the following scale to indicate what is most true for you.</h2>
+            <h2>The following statements ask you to <u>reflect on your experience of engaging with Chip</u> to learn the game strategy. For each statement, please use the following scale to indicate what is most true for you.</h2>
             <br></br>`;
 
             for (var i = 0; i < questions.length; i++) {
@@ -223,7 +223,7 @@
                 <br></br>`;
             }
 
-            html += `<h3> Any further comments/thoughts on the practice stage? </h3>
+            html += `<h3>Please feel free to explain any of your selections above or any comments or thoughts you'd like to share!</h3>
             <textarea id="short answer" rows="4" cols="50"></textarea>`;
 
             $("#non-buttons").html(html);
@@ -243,7 +243,7 @@
                     $("#header").replaceWith('<h1>Check-in test</h1>');
                     $("#info_main").replaceWith('<h3>Let\'s see if you understood the previous demonstration(s)!<br>Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.');
                 } else if (interaction_type == "remedial test") {
-                    $("#header").replaceWith('<h1>Remedial test</h1>');
+                    $("#header").replaceWith('<h1>Additional test</h1>');
                     $("#info_main").replaceWith('<h3>Let\'s see if you can correctly apply the strategy this time!<br>Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.');
                 }
             }
@@ -260,11 +260,11 @@
                     $("#info_main").replaceWith('<h3>Step through how your answer (replayed by <img src=\'static/img/agent_light.png\' width=\"30\" height=auto/>, on bottom) differs from Chip\'s (replayed by <img src=\'static/img/agent_dark.png\' width=\"30\" height=auto/>, on top) using your space bar.<br>Feel free to run through it as many times as you wish by resetting, and at least once to continue!</h3>');
                 }
                 else if (interaction_type == "remedial demo") {
-                    $("#header").replaceWith('<h1>(Remedial) demonstration of best strategy</h1>');
+                    $("#header").replaceWith('<h1>Additional demonstration of best strategy</h1>');
                     $("#info_main").replaceWith('<h3>Given your previously incorrect test response, here\'s a demonstration that might help address any misunderstandings.<br>Step through the demonstration using your space bar. Feel free to run through it as many times as you wish by resetting, and at least once to continue!</h3>');
                 }
                 else {
-                    $("#header").replaceWith('<h1>Demonstration of best strategy</h1>');
+                    $("#header").replaceWith('<h1>Demonstration of best strategy (' + (Number(localStorage.getItem("iteration")) + 1).toString() + '/5)</h1>');
                     $("#info_main").replaceWith('<h3>Step through the demonstration using your space bar.<br>Feel free to run through it as many times as you wish by resetting, and at least once to continue!</h3>');
                 }
         }
@@ -577,7 +577,7 @@ var spaceship =
         context.font = "30px Arial";
         context.fillStyle = text_color;
         context.textAlign = "center";
-        context.fillText("Click on the game below to start controlling Chip", offset_x*100+270, 50);
+        //context.fillText("Click on the game below to start controlling Chip", offset_x*100+270, 50);
 
         //draw grid
         for (i = 0; i <= mdp_parameters.height; i++) {
@@ -743,7 +743,7 @@ var spaceship =
                         // if the test was answered correctly or page wasn't already shown previously, show likert scale
                         show_likert = true
 
-                        if (localStorage.getItem("already completed") == 'false') $("#feedback").html('<div class="text-center"><p>Great, you answered correctly!</p></div>')
+                        if (localStorage.getItem("already completed") == 'false') $("#feedback").html('<div class="text-center"><h4>Great, you answered correctly!</h4><br></div>')
                     }
                     else {
                         // if the test was answered incorrectly or page was already shown previously, simply enable the next button
@@ -752,8 +752,7 @@ var spaceship =
 
                         const subiteration = localStorage.getItem("subiteration")
                         if (localStorage.getItem("already completed") == 'false') {
-                            if (subiteration == 3) $("#feedback").html('<div class="text-center"><p>Oh no, you answered incorrectly! But for the sake of time, let\'s move on without review!</p></div>')
-                            else $("#feedback").html('<div class="text-center"><p>Oh no, you answered incorrectly! Let\'s review on the next page!</p></div>')
+                            $("#feedback").html('<div class="text-center"><h4>Oh no, you answered incorrectly! Let\'s review on the next page!</h4><br></div>')
                         }
 
                         $("#next").replaceWith(`<button type="button" id="next"
@@ -786,7 +785,7 @@ var spaceship =
                 }
 
                 if (show_likert){
-                    $("#survey").html(`<h3> This sequence improved my understanding of the game strategy.</h3>
+                    $("#survey").html(`<h3>Did this interaction improve your understanding of the game strategy?</h3>
                 <div class="likert">
                 <label><input name="info" type="radio" value="1"/><span>Strongly Disagree</span></label>
                 <label><input name="info" type="radio" value="2"/><span>Disagree</span></label>

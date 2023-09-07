@@ -28,6 +28,7 @@ from app import socketio
 from flask_socketio import join_room, leave_room
 import pickle
 from multiprocessing import Pool
+import copy
 
 # change to the directory of this file
 os.chdir(os.path.join(os.path.dirname(__file__)))
@@ -679,9 +680,11 @@ def sandbox():
     version = current_user.curr_progress
     print(version)
     if version == "sandbox_1":
-        preamble = ''' <h3>Feel free to play around in the game below and get used to the controls. </h3> <h4>You can click the continue button whenever you feel ready to move on.</h4><br>
-        <h4>If you accidentally take a wrong action, you may reset the simulation and start over.</h4><h4>A subset of the following keys will be available to control Chip in each game:</h4><br>
-        '''
+        preamble = ("<h1>Free play</h1> <hr/> " + "<h4>A subset of the keys in the table below will be available to control Chip in each game.</h4><br>" +
+        "<h4>Feel free to play around in the game below and get used to the controls.</h4>" +
+        "<h4>If you accidentally take a wrong action, you may reset the simulation and start over.</h4><br>" +
+        "<h4>You can click the continue button whenever you feel ready to move on.</h4><br>" +
+        "<h5> As a reminder this game consists of a <b>location</b> (e.g. <img src = 'static/img/star.png' width=\"20\" height=auto />), <b>an object that you can pick up and drop</b> (e.g. <img src = 'static/img/pentagon.png' width=\"20\" height=auto />), <b>an object that you can move through</b> (e.g. <img src = 'static/img/diamond.png' width=\"20\" height=auto />), and <b>walls </b>that you can't move through (<img src = 'static/img/wall.png' width=\"20\" height=auto />).</h5>")
         # params = {
         #     'agent': {'x': 4, 'y': 3, 'has_passenger': 0},
         #     'walls': [{'x': 2, 'y': 3}, {'x': 2, 'y': 2}, {'x': 3, 'y': 2}, {'x': 4, 'y': 2}],
@@ -694,15 +697,15 @@ def sandbox():
         # continue_condition = "free_play"
     elif version == "sandbox_2":
         preamble = ("<h1>Practice game</h1> <hr/> " +
-        "<h3>As previously mentioned, the task in this practice game is the following: </h3> <br>" +
+        "<h4>As previously mentioned, the task in this practice game is the following: </h4> <br>" +
         "<table class=\"center\"><tr><th>Task</th><th>Sample sequence</th></tr><tr><td>Dropping off the green pentagon at the purple star</td><td><img src = 'static/img/sandbox_dropoff1.png' width=\"75\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/sandbox_dropoff2.png' width=\"75\" height=auto /></td></tr></table> <br>" +
-        "<h3>Each game will consist of <b>actions that change your energy level</b> differently. In this game, the following actions affect your energy:</h3> <br>" +
+        "<h4>Each game will consist of <b>actions that change your energy level</b> differently. In this game, the following actions affect your energy:</h4> <br>" +
         "<table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr>" +
         "<tr><td>Moving through the orange diamond</td><td><img src = 'static/img/sandbox_diamond1.png' width=\"225\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/sandbox_diamond2.png' width=\"225\" height=auto /> <img src='static/img/arrow.png' width=\"30\" height=auto /><img src ='static/img/sandbox_diamond3.png' width=\"225\" height=auto/> <td>+10%</td></tr>" +
         "<tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>-5%</td></tr></table> <br>" +
-        "<h3><b>Pick up the green pentagon</b> and <b>drop it off at the purple star</b> with the <b>maximum possible energy remaining</b>. </h3> " +
-        "<h4>You should end with 40% energy left (you won't be able to move if energy falls to 0%). <u>You will have 3 chances to get it right to continue on with the study!</u></h4>" +
-        "<h4>Note: Since this is practice, we have revealed each actions's effect on Chip's energy and also provide a running counter of Chip's current energy level below.</h4> <br>")
+        "<h4><b>Pick up the green pentagon</b> and <b>drop it off at the purple star</b> with the <b>maximum possible energy remaining</b>. </h4> " +
+        "<h5>You should end with 40% energy left (you won't be able to move if energy falls to 0%). <u>You will have 3 chances to get it right to continue on with the study!</u></h5>" +
+        "<h5>Note: Since this is practice, we have revealed each actions's effect on Chip's energy and also provide a running counter of Chip's current energy level below.</h5> <br>")
         # params = {
         #     'agent': {'x': 4, 'y': 1, 'has_passenger': 0},
         #     'walls': [{'x': 1, 'y': 3}, {'x': 2, 'y': 3}, {'x': 3, 'y': 3}],
@@ -737,13 +740,21 @@ def post_practice():
             "<h3>In these games, you will <b>not</b> be told how each action changes Chip's energy level.</h3><br>" +
             "For example, note the '???' in the Energy Change column below. <table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr><tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>???</td></tr></table> <br>" +
             "<h3>Instead, you will have to <u>figure that out</u> and subsequently the best strategy for completing the task while minimizing Chip's energy loss <u>by observing Chip's demonstrations</u> and <u>testing your knowledge of Chip's behavior!</u></h3><br>" +
-                "<h3>If you incorrectly predict Chip's behavior, he will <u>walk you through differences between your predictions and his actions, and may provide additional demonstrations and tests</u> to help you learn!")
+                "<h3>If you incorrectly predict Chip's behavior on check-in tests in between demonstrations, Chip will <u>give you corrective feedback and provide additional demonstrations and tests<sup>*</sup></u> to help you learn!</h3><br>" +
+            "<h4><sup>*</sup>Please be patient as additional demonstrations and tests may take a while to load.</h4>")
     return render_template("mike/post_practice.html", preamble=preamble)
 
 @socketio.on("next domain")
 def next_domain(data):
     # save any remaining data (from final test) before moving on to the next domain
     if len(data) > 0:
+        if data["interaction type"] == "final test":
+            # no need to save the pf model during the final tests
+            update_pf_model_positions = []
+            update_pf_model_weights = []
+        else:
+            update_pf_model_positions = copy.deepcopy(current_user.pf_model.positions)
+            update_pf_model_weights = copy.deepcopy(current_user.pf_model.weights)
         trial = Trial(
             user_id=current_user.id,
             domain=data["domain"],
@@ -757,8 +768,8 @@ def next_domain(data):
             percent_seen=-1,  # TODO: later?
             mdp_parameters=data["user input"]["mdp_parameters"],
             duration_ms=data["user input"]["simulation_rt"],
-            human_model_pf_pos = current_user.pf_model.positions,  # todo: verify that different snapshots of the PF are being saved (and previous snapshots aren't being updated)
-            human_model_pf_weights = current_user.pf_model.weights
+            human_model_pf_pos=update_pf_model_positions,
+            human_model_pf_weights=update_pf_model_weights
         )
         db.session.add(trial)
 
@@ -1070,6 +1081,14 @@ def settings(data):
             # update the visited_env_traj_idxs_stack with the env_traj indices of the most recent interaction
             current_user.visited_env_traj_idxs_stack.append(data['user input']['mdp_parameters']['env_traj_idxs'])
 
+        if data["interaction type"] == "final test":
+            # no need to save the pf model during the final tests
+            update_pf_model_positions = []
+            update_pf_model_weights = []
+        else:
+            update_pf_model_positions = copy.deepcopy(current_user.pf_model.positions)
+            update_pf_model_weights = copy.deepcopy(current_user.pf_model.weights)
+
         trial = Trial(
             user_id = current_user.id,
             domain = domain,
@@ -1083,8 +1102,8 @@ def settings(data):
             percent_seen = -1, #TODO: later?
             mdp_parameters = data["user input"]["mdp_parameters"],
             duration_ms = data["user input"]["simulation_rt"],
-            human_model_pf_pos = current_user.pf_model.positions,  # todo: verify that different snapshots of the PF are being saved (and previous snapshots aren't being updated)
-            human_model_pf_weights = current_user.pf_model.weights
+            human_model_pf_pos = update_pf_model_positions,
+            human_model_pf_weights = update_pf_model_weights
         )
         db.session.add(trial)
 
@@ -1284,8 +1303,9 @@ def settings(data):
 
                         particles = current_user.pf_model
 
+                        # send in a copy of the visited_env_traj_idxs_stack so that it doesn't get modified
                         remedial_mdp_dict, visited_env_traj_idxs = obtain_remedial_demonstrations(domain_key, pool, particles, params.BEC['n_human_models'], constraint,
-                        min_subset_constraints_record, env_record, traj_record, traj_features_record, [], current_user.visited_env_traj_idxs_stack, variable_filter, mdp_features_record, consistent_state_count, [],
+                        min_subset_constraints_record, env_record, traj_record, traj_features_record, [], current_user.visited_env_traj_idxs_stack.copy(), variable_filter, mdp_features_record, consistent_state_count, [],
                         params.step_cost_flag, type=type, n_human_models_precomputed=params.BEC['n_human_models_precomputed'], web_based=True)
 
                         response["params"] = remedial_mdp_dict
