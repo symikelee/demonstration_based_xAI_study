@@ -171,6 +171,7 @@ class Domain(db.Model):
     use1 = db.Column(db.Integer)
     use2 = db.Column(db.Integer)
     use3 = db.Column(db.Integer)
+    understanding = db.Column(db.Integer)
     short_answer = db.Column(db.PickleType)
 
 class Demo(db.Model):

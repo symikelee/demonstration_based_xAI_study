@@ -591,7 +591,7 @@ def index():
     domains = ["at", "ct", "sb"]
     # domains = ["ct", "sb", "at"]
     # domains = ["sb", "at", "ct"]
-    # rand.shuffle(domains)
+    rand.shuffle(domains)
     current_user.domain_1 = domains[0]
     current_user.domain_2 = domains[1]
     current_user.domain_3 = domains[2]
@@ -1024,6 +1024,7 @@ def settings(data):
             use1=int(data["use1"]),
             use2=int(data["use2"]),
             use3=int(data["use3"]),
+            understanding=int(data["understanding"]),
             short_answer=data["short answer"]
         )
         db.session.add(dom)
@@ -1033,6 +1034,7 @@ def settings(data):
         print(data["use1"])
         print(data["use2"])
         print(data["use3"])
+        print(data["understanding"])
         print(data["short answer"])
     elif iter != -1 and prev_already_completed == "false" and data['movement'] != 'prev':
         # update particle filter

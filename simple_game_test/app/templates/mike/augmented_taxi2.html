@@ -109,6 +109,7 @@
             data["use1"] = localStorage.getItem("use1");
             data["use2"] = localStorage.getItem("use2");
             data["use3"] = localStorage.getItem("use3");
+            data["understanding"] = localStorage.getItem("understanding");
             data["short answer"] = localStorage.getItem("short answer");
             data["already completed"] = localStorage.getItem("already completed");
 
@@ -157,7 +158,7 @@
                 document.getElementById('prev').style.display = 'none';
             }
             console.log(window.interaction_type);
-            console.log(window.mdp_parameters);
+            //console.log(window.mdp_parameters);
             change_text(window.interaction_type);
             run_page(window.mdp_parameters);
         });
@@ -224,6 +225,16 @@
                 </div>
                 <br></br>`;
                 }
+
+                html += `<h3>Finally, do you feel that you now understand the game strategy?</h3>
+            <div class="likert">
+                <label><input name="understanding" type="radio" value="1"/><span>Strongly Disagree</span></label>
+                <label><input name="understanding" type="radio" value="2"/><span>Disagree</span></label>
+                <label><input name="understanding" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
+                <label><input name="understanding" type="radio" value="4"/><span>Agree</span></label>
+                <label><input name="understanding" type="radio" value="5"/><span>Strongly Agree</span></label>
+                </div>
+                <br></br>`;
 
                 html += `<h3>Please feel free to explain any of your selections above or any comments or thoughts you'd like to share!</h3>
             <textarea id="short answer" rows="4" cols="50"></textarea>`;
@@ -414,8 +425,12 @@
                 if(use3) {
                     localStorage.setItem("use3", use3);
                 }
+                let understanding = $("input[name='understanding']:checked").val();
+                if(use3) {
+                    localStorage.setItem("understanding", understanding);
+                }
 
-                if (attn1 && attn2 && attn3 && use1 && use2 && use3) {
+                if (attn1 && attn2 && attn3 && use1 && use2 && use3 && understanding) {
                     $("#next").replaceWith(`<button type="button" id="next"
                         onclick="next()"
                         value="next" class="btn btn-primary btn-lg continue">
@@ -1388,8 +1403,8 @@
       }
 
     // reset();
-    // document.addEventListener('keydown', _.debounce(keyPressed, 200))
-    document.addEventListener('keydown', keyPressed)
+    document.addEventListener('keydown', _.debounce(keyPressed, 100))
+    //document.addEventListener('keydown', keyPressed)
     start_screen();
     canvas.addEventListener('click', draw);
     context.restore();
