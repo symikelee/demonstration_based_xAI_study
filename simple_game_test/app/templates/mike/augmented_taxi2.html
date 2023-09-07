@@ -436,7 +436,6 @@
     var data_sent = false;
 
     window.start_time = 0;
-    window.start_time_set = false;
     window.moves = [];
     window.agent_history = [];            // for drawing a history of the agent's path
     window.agent_history_nonoffset = [];  // for keeping track of the agent's location in gridworld integers
@@ -849,10 +848,6 @@
 
       function draw()
       {
-          if (!window.start_time_set) {
-              window.start_time = performance.now();
-              window.start_time_set = true
-          }
           if (!map_layout.set){
             set_grids();
             map_layout.set = true;
