@@ -845,11 +845,11 @@ var spaceship =
                 if (show_likert){
                     $("#survey").html(`<h3>Did this interaction improve your understanding of the game strategy?</h3>
                 <div class="likert">
-                <label><input name="info" type="radio" value="1"/><span>Strongly Disagree</span></label>
-                <label><input name="info" type="radio" value="2"/><span>Disagree</span></label>
-                <label><input name="info" type="radio" value="3"/><span>Neither Agree nor Disagree</span></label>
-                <label><input name="info" type="radio" value="4"/><span>Agree</span></label>
-                <label><input name="info" type="radio" value="5"/><span>Strongly Agree</span></label>
+                <label><input name="info" type="radio" value="1"/><span>Not at all</span></label>
+                <label><input name="info" type="radio" value="2"/><span>Not so much</span></label>
+                <label><input name="info" type="radio" value="3"/><span>Somewhat</span></label>
+                <label><input name="info" type="radio" value="4"/><span>Very much so</span></label>
+                <label><input name="info" type="radio" value="5"/><span>Extremely</span></label>
                 </div>
                 <br></br>
 
@@ -1084,12 +1084,25 @@ var spaceship =
                 requestAnimationFrame(draw);
             }
         }
-          if(event.keyCode == 32 && event.target == document.body) {
-              event.preventDefault();
-          }
     }
-    document.addEventListener('keydown', _.debounce(keyPressed, 100)) // prevent quick key presses
-    //document.addEventListener('keydown', keyPressed);
+
+        function filterMovementKeys(event) {
+            // This function will run every time a key is pressed...
+            if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(event.code) > -1) {
+                event.preventDefault();
+                console.log('hereeee')
+            }
+        }
+
+        // Debounce the keyPressed function
+        var debouncedKeyPressed = _.debounce(keyPressed, 100);
+
+        // Create a new function that calls both functions
+        function keydownHandler(event) {
+            filterMovementKeys(event);
+            debouncedKeyPressed(event);
+        }
+        document.addEventListener('keydown', keydownHandler);
     start_screen();
     canvas.addEventListener('click', draw);
     context.restore();

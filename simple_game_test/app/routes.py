@@ -771,7 +771,7 @@ def next_domain(data):
             duration_ms=data["user input"]["simulation_rt"],
             human_model_pf_pos=update_pf_model_positions,
             human_model_pf_weights=update_pf_model_weights,
-            short_answer=data["short_answer"],
+            # short_answer=data["short_answer"], # todo: need to save short answer correctly (there are two fields with the same name)
         )
         db.session.add(trial)
 
