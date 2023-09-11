@@ -138,7 +138,7 @@
     var offset_x = 2.75;
     var offset_y = 1;
 
-    var n_tries = 2;
+    var n_tries = Infinity;
     
     // let mdp_parameters;
     // let continue_condition;
@@ -280,7 +280,7 @@
         //context.fillText("Score:", offset_x*100-100, 150);
         //context.fillText(spaceship.score, offset_x*100-100, 175);
         context.fillText("Current energy: " + Math.max(spaceship.score, 0)  + "%", offset_x*100-275, 200);
-        context.fillText("Retries remaining: " + Math.max(n_tries, 0), offset_x*100-275, 250);
+        //context.fillText("Retries remaining: " + Math.max(n_tries, 0), offset_x*100-275, 250);
     }
 
       function drawTaxi()
@@ -634,7 +634,7 @@
                 }
                 else {
                     if (n_tries > 0) {
-                        drawString(context, "You completed the task with less than 40% energy remaining! \n Press 'r' to reset and try again. \n Retries remaining: " + n_tries, text_loc_x, text_loc_y, text_color_error, 0, "'serif", 20)
+                        drawString(context, "You completed the task with less than 40% energy remaining! \n Press 'r' to reset and try again.", text_loc_x, text_loc_y, text_color_error, 0, "'serif", 20)
                     } else {
                         drawString(context, "You completed the task with less than 40% energy remaining! I'm sorry to inform you \n that you don't qualify for this study. Please contact ml5@andrew.cmu.edu \n if you believe you were unfairly disqualified. Thank you!", text_loc_x, text_loc_y, text_color_error, 0, "'serif", 20)
                     }
