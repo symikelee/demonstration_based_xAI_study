@@ -31,7 +31,7 @@
             <h1 id="header">Participant gameplay</h1> <hr/>
             <div id = "info_main"></div>
         </div>
-        <h2 id="debug"></h2><br><br><br>
+        <!--<h2 id="debug"></h2><br><br><br>-->
         <div class="row justify-content-around">
             <canvas id="game" width="750" height="550"></canvas>
             <div id="table_controlinfo"></div>
@@ -178,11 +178,11 @@
             if (interaction_type === "survey") {
                 var questions = [
                     {
-                        question: "I lost myself in this experience.",
+                        question: "I lost myself in this experience as I fully engaged with learning.",
                         name: "attn1"
                     },
                     {
-                        question: "The time I spent learning the game strategy just slipped away.",
+                        question: "The time I spent learning the game strategy just slipped away and passed by quickly.",
                         name: "attn2"
                     },
                     {
@@ -689,6 +689,17 @@
         context.fillStyle = text_color;
         context.textAlign = "center";
         //context.fillText("Click on the game below to start controlling Chip", offset_x*100+305, 50);
+        if (window.interaction_type.includes("demo") || window.interaction_type.includes("feedback")) {
+            context.fillText("Chip will demonstrate!", offset_x*100+305, 60);
+        }
+        else if (window.interaction_type.includes("test")) {
+            if (localStorage.getItem("already completed") == 'true') {
+                context.fillText("Chip will demonstrate!", offset_x*100+305, 60);
+            } else {
+                context.fillText("Your turn to play!", offset_x * 100 + 305, 60);
+            }
+        }
+
 
         //draw grid
         for (i = 0; i <= mdp_parameters.height; i++) {
@@ -789,6 +800,19 @@
         context.fill();
         context.closePath();
 
+        context.font = "25px Arial";
+        context.fillStyle = text_color;
+        context.textAlign = "center";
+        if (window.interaction_type.includes("demo") || window.interaction_type.includes("feedback")) {
+            context.fillText("Chip will demonstrate!", offset_x*100+305, 60);
+        }
+        else if (window.interaction_type.includes("test")) {
+            if (localStorage.getItem("already completed") == 'true') {
+                context.fillText("Chip will demonstrate!", offset_x*100+305, 60);
+            } else {
+                context.fillText("Your turn to play!", offset_x * 100 + 305, 60);
+            }
+        }
 
         //draw grid
         for (i = 0; i <= mdp_parameters.height; i++) {
