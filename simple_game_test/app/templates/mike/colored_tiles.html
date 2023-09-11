@@ -36,8 +36,7 @@
         <canvas id="game" width="750" height="650"></canvas>
         <div id="table_controlinfo"></div>
     </div>
-            <div id="score"></div>
-             <div id="feedback"></div>
+            <div id="feedback"></div>
     <div id="survey">
     </div>
     <hr>
@@ -105,8 +104,13 @@
             data["use2"] = localStorage.getItem("use2");
             data["use3"] = localStorage.getItem("use3");
             data["understanding"] = localStorage.getItem("understanding");
-            data["short answer"] = localStorage.getItem("short answer");
-            data["already completed"] = localStorage.getItem("already completed");
+          let understanding_sa = document.getElementById("understanding short answer")
+          let improvement_sa = document.getElementById("improvement short answer")
+          if (understanding_sa != null) data["understanding short answer"] = understanding_sa.value;
+          else data["understanding short answer"] = '';
+          if (improvement_sa != null) data["improvement short answer"] = improvement_sa.value;
+            else data["improvement short answer"] = '';
+          data["already completed"] = localStorage.getItem("already completed");
 
           return data
       }
@@ -237,7 +241,7 @@
 
 
             html += `<h3>Please feel free to explain any of your selections above or any comments or thoughts you'd like to share!</h3>
-            <textarea id="short answer" rows="4" cols="50"></textarea>`;
+            <textarea id="understanding short answer" rows="4" cols="50"></textarea>`;
 
             $("#non-buttons").html(html);
             }
@@ -340,7 +344,7 @@
                 event.returnValue = "Are you sure you want to leave? The task is incomplete.";
             }
             if (window.interaction_type === "survey") {
-                localStorage.setItem("short answer", document.getElementById("short answer").value);
+                localStorage.setItem("understanding short answer", document.getElementById("understanding short answer").value);
                 // todo: could also potentially try and store the short answer of training demonstrations and tests
             }
 
@@ -366,13 +370,11 @@
         addEventListener("input", (event) => {
             if (window.interaction_type !== "survey") {
                 localStorage.setItem("survey completed", "true");
-                //localStorage.setItem("survey completed", "true");
                 // checked based on input name
                 let radioValue = $("input[name='info']:checked").val();
                 if(radioValue) {
                     localStorage.setItem("survey", radioValue);
-                }
-                $("#next").replaceWith(`<button type="button" id="next"
+                    $("#next").replaceWith(`<button type="button" id="next"
                         onclick="next()"
                         value="next" class="btn btn-primary btn-lg continue">
                         Next <span class="glyphicon glyphicon-arrow-right"></span>
@@ -856,7 +858,7 @@ var spaceship =
                         }
                         console.log("game score: ")
                         console.log(score)
-                        $("#score").html('<div class="text-center"><h1>Score Results</h1><p>In order of the tests you took, you scored <p id="score_val"></p>getting <p id="score_val2" style="display:inline"></p> tests correctly out of 6.</p></div>')
+                        $("#feedback").html('<div class="text-center"><h1>Score Results</h1><p>In order of the tests you took, you scored <p id="score_val"></p>getting <p id="score_val2" style="display:inline"></p> tests correctly out of 6.</p></div>')
                         document.getElementById('score_val').innerHTML = first + ' + ' + second + ' + ' + third  + ' + ' + fourth  + ' + ' + fifth + ' + ' + sixth + ' = ' + score
                         document.getElementById('score_val2').innerHTML = score
                     }
@@ -881,7 +883,7 @@ var spaceship =
                 <br></br>
 
 <h5>Please feel free to explain your selection if you wish!</h5>
-            <textarea id="short answer" rows="2" cols="50"></textarea>
+            <textarea id="improvement short answer" rows="2" cols="50"></textarea>
 ` );
     var textarea = document.querySelector('textarea');
     textarea.addEventListener('keydown', function(event) {
@@ -1117,7 +1119,6 @@ var spaceship =
             // This function will run every time a key is pressed...
             if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(event.code) > -1) {
                 event.preventDefault();
-                console.log('hereeee')
             }
         }
 

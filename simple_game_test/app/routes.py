@@ -771,7 +771,7 @@ def next_domain(data):
             duration_ms=data["user input"]["simulation_rt"],
             human_model_pf_pos=update_pf_model_positions,
             human_model_pf_weights=update_pf_model_weights,
-            # short_answer=data["short_answer"], # todo: need to save short answer correctly (there are two fields with the same name)
+            improvement_short_answer=data["improvement short answer"],
         )
         db.session.add(trial)
 
@@ -1025,7 +1025,7 @@ def settings(data):
             use2=int(data["use2"]),
             use3=int(data["use3"]),
             understanding=int(data["understanding"]),
-            short_answer=data["short answer"]
+            understanding_short_answer=data["understanding short answer"]
         )
         db.session.add(dom)
         print(data["attn1"])
@@ -1035,7 +1035,7 @@ def settings(data):
         print(data["use2"])
         print(data["use3"])
         print(data["understanding"])
-        print(data["short answer"])
+        print(data["understanding short answer"])
     elif iter != -1 and prev_already_completed == "false" and data['movement'] != 'prev':
         # update particle filter
         update_pf = False
@@ -1107,7 +1107,8 @@ def settings(data):
             mdp_parameters = data["user input"]["mdp_parameters"],
             duration_ms = data["user input"]["simulation_rt"],
             human_model_pf_pos = update_pf_model_positions,
-            human_model_pf_weights = update_pf_model_weights
+            human_model_pf_weights = update_pf_model_weights,
+            improvement_short_answer = data["improvement short answer"]
         )
         db.session.add(trial)
 

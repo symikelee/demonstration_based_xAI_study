@@ -158,7 +158,7 @@ class Trial(db.Model):
     mdp_parameters = db.Column(db.PickleType)
     human_model_pf_pos = db.Column(db.PickleType)
     human_model_pf_weights = db.Column(db.PickleType)
-    short_answer = db.Column(db.PickleType)
+    improvement_short_answer = db.Column(db.PickleType)
 
 class Domain(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -172,7 +172,7 @@ class Domain(db.Model):
     use2 = db.Column(db.Integer)
     use3 = db.Column(db.Integer)
     understanding = db.Column(db.Integer)
-    short_answer = db.Column(db.PickleType)
+    understanding_short_answer = db.Column(db.PickleType)
 
 class Demo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
