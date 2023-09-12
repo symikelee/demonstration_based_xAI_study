@@ -36,7 +36,7 @@
       localStorage.setItem("use1", "-1");
       localStorage.setItem("use2", "-1");
       localStorage.setItem("use3", "-1");
-      localStorage.setItem("short answer", "");
+
       let socket = io();
       socket.emit("next domain", []);
       socket.on("next domain is", function(data) {

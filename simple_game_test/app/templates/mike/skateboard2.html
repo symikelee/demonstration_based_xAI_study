@@ -111,6 +111,7 @@
           if (improvement_sa != null) data["improvement short answer"] = improvement_sa.value;
             else data["improvement short answer"] = '';
           data["already completed"] = localStorage.getItem("already completed");
+          data["reward_ft_weights"] = []
 
           return data
       }
@@ -803,7 +804,7 @@
         context.fill();
         context.closePath();
 
-        context.font = "25px Arial";
+        context.font = "30px Arial";
         context.fillStyle = text_color;
         context.textAlign = "center";
         if (window.interaction_type.includes("demo") || window.interaction_type.includes("feedback")) {

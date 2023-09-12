@@ -111,6 +111,7 @@
           if (improvement_sa != null) data["improvement short answer"] = improvement_sa.value;
             else data["improvement short answer"] = '';
           data["already completed"] = localStorage.getItem("already completed");
+          data["reward_ft_weights"] = [];
 
           return data
       }
@@ -372,13 +373,14 @@
                 localStorage.setItem("survey completed", "true");
                 // checked based on input name
                 let radioValue = $("input[name='info']:checked").val();
-                if(radioValue) {
+                if (radioValue) {
                     localStorage.setItem("survey", radioValue);
                     $("#next").replaceWith(`<button type="button" id="next"
                         onclick="next()"
                         value="next" class="btn btn-primary btn-lg continue">
                         Next <span class="glyphicon glyphicon-arrow-right"></span>
-                        </button>` );
+                        </button>`);
+                }
             }
             else {
                 let attn1 = $("input[name='attn1']:checked").val();
@@ -618,9 +620,6 @@ var spaceship =
         context.fillStyle = text_color;
         context.textAlign = "center";
         //context.fillText("Click on the game below to start controlling Chip", offset_x*100+270, 50);
-        context.font = "25px Arial";
-        context.fillStyle = text_color;
-        context.textAlign = "center";
         if (window.interaction_type.includes("demo") || window.interaction_type.includes("feedback")) {
             context.fillText("Chip will demonstrate!", offset_x*100+250, 60);
         }
@@ -731,7 +730,7 @@ var spaceship =
           context.fill();
           context.closePath();
 
-        context.font = "25px Arial";
+        context.font = "30px Arial";
         context.fillStyle = text_color;
         context.textAlign = "center";
         if (window.interaction_type.includes("demo") || window.interaction_type.includes("feedback")) {

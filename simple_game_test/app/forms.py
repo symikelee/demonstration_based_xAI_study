@@ -69,7 +69,11 @@ class FinalForm(FlaskForm):
                                coerce=int,
                                choices=get_ethnicities(),
                                validators=[MultiCheckboxAtLeastOne()])
-    robot = RadioField("", choices=[(0, "Not at all"), (1, "Slightly"), (2, "Moderately"), (3, "Very"), (4, "Extremely")])
+    education = RadioField("", choices=[(0, "Less than high school degree"),
+                                        (1, "High school graduate (high school diploma or equivalent including GED)"),
+                                        (2, "Some college but no degree"), (3, "Associate degree in college (2-year)"),
+                                        (4, "Bachelor’s degree in college (4-year)"), (5, "Master’s degree"),
+                                        (5, "Doctoral degree"), (5, "Professional degree (JD, MD)")])
     opt_text = TextAreaField()
     age = IntegerField(InputRequired)
     submit_final = SubmitField("Continue")

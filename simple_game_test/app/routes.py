@@ -766,12 +766,12 @@ def next_domain(data):
             moves=data["user input"]["moves"],
             coordinates=data["user input"]["agent_history_nonoffset"],
             is_opt_response=data["user input"]["opt_response"],
-            percent_seen=-1,  # TODO: later?
             mdp_parameters=data["user input"]["mdp_parameters"],
             duration_ms=data["user input"]["simulation_rt"],
             human_model_pf_pos=update_pf_model_positions,
             human_model_pf_weights=update_pf_model_weights,
             improvement_short_answer=data["improvement short answer"],
+            reward_ft_weights=data["reward_ft_weights"]
         )
         db.session.add(trial)
 
@@ -1103,12 +1103,12 @@ def settings(data):
             moves = data["user input"]["moves"],
             coordinates = data["user input"]["agent_history_nonoffset"],
             is_opt_response = data["user input"]["opt_response"],
-            percent_seen = -1, #TODO: later?
             mdp_parameters = data["user input"]["mdp_parameters"],
             duration_ms = data["user input"]["simulation_rt"],
             human_model_pf_pos = update_pf_model_positions,
             human_model_pf_weights = update_pf_model_weights,
-            improvement_short_answer = data["improvement short answer"]
+            improvement_short_answer = data["improvement short answer"],
+            reward_ft_weights=data["reward_ft_weights"]
         )
         db.session.add(trial)
 
@@ -1830,7 +1830,7 @@ def final_survey():
         current_user.age = form.age.data
         current_user.gender = form.gender.data
         current_user.ethnicity = form.ethnicity.data
-        current_user.robot = form.robot.data
+        current_user.education = form.education.data
         current_user.final_feedback = form.opt_text.data
         current_user.set_completion(1)
 
