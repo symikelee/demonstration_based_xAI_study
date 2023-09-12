@@ -748,7 +748,7 @@
                 if (map_layout.destination[i][j] == 1){
                     context.beginPath();
                     context.rect(100*j + 15+offset_x*100, 100*i + 15 + offset_y*100, 19,15);
-                    context.fillStyle = passenger.color;
+                    context.fillStyle = "#8a8a8a";
                     context.fill();
                     context.closePath();
                 }
@@ -804,9 +804,9 @@
         }
         else if (window.interaction_type.includes("test")) {
             if (localStorage.getItem("already completed") == 'true') {
-                context.fillText("Chip will demonstrate!", offset_x*100+200, 80);
+                context.fillText("Chip will demonstrate", offset_x*100+200, 80);
             } else {
-                context.fillText("Your turn to play!", offset_x * 100 + 200, 80);
+                context.fillText("!! Your turn to play !!", offset_x * 100 + 200, 80);
             }
         }
 
@@ -923,9 +923,9 @@
         }
         else if (window.interaction_type.includes("test")) {
             if (localStorage.getItem("already completed") == 'true') {
-                context.fillText("Chip will demonstrate!", offset_x*100+200, 80);
+                context.fillText("Chip will demonstrate", offset_x*100+200, 80);
             } else {
-                context.fillText("Your turn to play!", offset_x * 100 + 200, 80);
+                context.fillText("!! Your turn to play !!", offset_x * 100 + 200, 80);
             }
         }
 

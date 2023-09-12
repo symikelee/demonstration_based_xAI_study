@@ -844,7 +844,25 @@
           requestAnimationFrame(draw);
       }
 
-    document.addEventListener('keydown', keyPressed);
+    //document.addEventListener('keydown', keyPressed);
+
+        function filterMovementKeys(event) {
+            // This function will run every time a key is pressed...
+            if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(event.code) > -1) {
+                event.preventDefault();
+            }
+        }
+
+        // Debounce the keyPressed function
+        var debouncedKeyPressed = _.debounce(keyPressed, 100); // limit consecutive keystrokes
+
+        // Create a new function that calls both functions
+        function keydownHandler(event) {
+            filterMovementKeys(event);
+            debouncedKeyPressed(event);
+        }
+        document.addEventListener('keydown', keydownHandler);
+
     start_screen();
     canvas.addEventListener('click', draw);
     context.restore();

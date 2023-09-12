@@ -627,7 +627,7 @@ var spaceship =
             if (localStorage.getItem("already completed") == 'true') {
                 context.fillText("Chip will demonstrate!", offset_x*100+250, 60);
             } else {
-                context.fillText("Your turn to play!", offset_x * 100 + 250, 60);
+                context.fillText("!! Your turn to play !!", offset_x * 100 + 250, 60);
             }
         }
 
@@ -738,9 +738,9 @@ var spaceship =
         }
         else if (window.interaction_type.includes("test")) {
             if (localStorage.getItem("already completed") == 'true') {
-                context.fillText("Chip will demonstrate!", offset_x*100+250, 60);
+                context.fillText("Chip will demonstrate", offset_x*100+250, 60);
             } else {
-                context.fillText("Your turn to play!", offset_x * 100 + 250, 60);
+                context.fillText("!! Your turn to play !!", offset_x * 100 + 250, 60);
             }
         }
 
