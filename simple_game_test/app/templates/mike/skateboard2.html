@@ -111,7 +111,13 @@
           if (improvement_sa != null) data["improvement short answer"] = improvement_sa.value;
             else data["improvement short answer"] = '';
           data["already completed"] = localStorage.getItem("already completed");
-          data["reward_ft_weights"] = []
+          let reward_ft_wt_1_field = document.getElementById("reward_ft_wt_1")
+          let reward_ft_wt_2_field = document.getElementById("reward_ft_wt_2")
+          if ((reward_ft_wt_1_field != null) && (reward_ft_wt_2_field != null)) {
+                data["reward_ft_weights"] = [reward_ft_wt_1_field.value, reward_ft_wt_2_field.value]
+            } else {
+                data["reward_ft_weights"] = []
+          }
 
           return data
       }
@@ -368,7 +374,28 @@
         });
 
       addEventListener("input", (event) => {
-            if (window.interaction_type !== "survey") {
+            if ((window.interaction_type == "final test") && (localStorage.getItem("last test") == "true")) {
+                var reward_ft_wt_1 = document.getElementById('reward_ft_wt_1')
+                var reward_ft_wt_2 = document.getElementById('reward_ft_wt_2')
+                if (reward_ft_wt_1.value !== "" && reward_ft_wt_2.value !== "") {
+                    localStorage.setItem("reward feature weight 1", reward_ft_wt_1.value);
+                    localStorage.setItem("reward feature weight 2", reward_ft_wt_2.value);
+                    $("#next").replaceWith(`<button type="button" id="next"
+                        onclick="next()"
+                        value="next" class="btn btn-primary btn-lg continue">
+                        Next <span class="glyphicon glyphicon-arrow-right"></span>
+                        </button>`);
+                }
+                else {
+                    // disable button again if one of the fields is deleted
+                    $("#next").replaceWith(`<button type="button" id="next" disabled
+                            onclick="next()"
+                            value="next" class="btn btn-primary btn-lg continue">
+                        Next <span class="glyphicon glyphicon-arrow-right"></span>
+                    </button>`);
+                }
+            }
+            else if (window.interaction_type !== "survey") {
                 localStorage.setItem("survey completed", "true");
                 // checked based on input name
                 let radioValue = $("input[name='info']:checked").val();
@@ -934,12 +961,18 @@
                         $("#feedback").html('<div class="text-center"><h1>Score Results</h1><p>In order of the tests you took, you scored <p id="score_val"></p>getting <p id="score_val2" style="display:inline"></p> tests correctly out of 6.</p></div>')
                         document.getElementById('score_val').innerHTML = first + ' + ' + second + ' + ' + third  + ' + ' + fourth  + ' + ' + fifth + ' + ' + sixth + ' = ' + score
                         document.getElementById('score_val2').innerHTML = score
+
+                        // exploratory data collection on whether people are able to explicitly predict the weights
+                        $("#survey").html("<br><h3>Finally, please provide your best guess of energy change of the actions below (the last one is given!):</h3><table class='center'><tr><th>Action</th><th>Sample sequence(s)</th><th>Energy change</th></tr><tr><td>Any action that you take with the orange rectangle (e.g. picking it up or moving with it)</td><td><img src = 'static/img/skateboard2_skateboard1.png' width='75' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/skateboard2_skateboard2.png' width='75' height=auto /><br><br><img src = 'static/img/skateboard2_skateboard2.png' width='75' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/skateboard2_skateboard3.png' width='75' height=auto /></td><td><input id='reward_ft_wt_1' type='number' style='width: 3em;'</>%</td></tr><tr><td>Moving <u>out of</u> a purple square (into purple <u>or</u> white square)</td><td><img src = 'static/img/skateboard2_purple1.png' width='150' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/skateboard2_purple2.png' width='150' height=auto /></td><td><input id='reward_ft_wt_2' type='number' style='width: 3em;'</>%</td></tr><tr><td>Moving <u>out of</u> a white square (into purple <u>or</u> white square)</td><td><img src = 'static/img/right1.png' width='150' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/right2.png' width='150' height=auto /></td><td>-1%</td></tr></table>");
+
                     }
-                    $("#next").replaceWith(`<button type="button" id="next"
+                    else {
+                        $("#next").replaceWith(`<button type="button" id="next"
                     onclick="next()"
                     value="next" class="btn btn-primary btn-lg continue">
                     Next <span class="glyphicon glyphicon-arrow-right"></span>
                     </button>` );
+                    }
                 } else if (localStorage.getItem("already completed") === "false") {
                     show_likert = true
                 }
