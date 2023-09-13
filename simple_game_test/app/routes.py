@@ -681,7 +681,7 @@ def sandbox():
     version = current_user.curr_progress
     print(version)
     if version == "sandbox_1":
-        preamble = ("<h1>Free play</h1> <hr/> " + "<h4>A subset of the keys in the table below will be available to control Chip in each game.</h4><br>" +
+        preamble = ("<h1>Free play</h1> <hr/> " + "<h4>A subset of the keys in the table below will be available to control Chip in each game.<br>All game instances that you decide how Chip behaves in will be marked with a <font color='blue'>blue border</font>, like below.</h4><br>" +
         "<h4>Feel free to play around in the game below and get used to the controls.</h4>" +
         "<h4>If you accidentally take a wrong action, you may reset the simulation and start over by pressing 'r'.</h4><br>" +
         "<h4>You can click the continue button whenever you feel ready to move on.</h4><br>" +

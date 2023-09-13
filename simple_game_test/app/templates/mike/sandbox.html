@@ -31,7 +31,7 @@
         <div id="container-instructions" class="text-center">
             <div id="preamble" class="pre_info">{{preamble | safe}}</div>
             <div class="row justify-content-around">
-                <canvas id="game" width="850" height="500"></canvas>
+                <canvas id="game" width="850" height="525"></canvas>
                 <div><br><br><br><br><br>
                     <table width="500">
                         <tr><th>Key</th><th>Action</th></tr>
@@ -490,6 +490,15 @@
           drawDestination();
           drawHotswapStation();
           drawTaxi();
+
+
+          // Draw blue border around the grid
+          context.beginPath();
+          context.rect(offset_x*100 - 3, offset_y*100 - 3, mdp_parameters.width*100 + 6, mdp_parameters.height*100 + 6);
+          context.strokeStyle = "blue";
+          context.lineWidth = 2;
+          context.stroke();
+
       }
 
     /* https://gist.github.com/chriskoch/366054
@@ -578,6 +587,13 @@
                 context.fill();
                 context.closePath();
           }
+
+          // Draw blue border around the grid
+          context.beginPath();
+          context.rect(offset_x*100 - 3, offset_y*100 - 3, mdp_parameters.width*100 + 6, mdp_parameters.height*100 + 6);
+          context.strokeStyle = "blue";
+          context.lineWidth = 2;
+          context.stroke();
 
           context.beginPath();
           // Begin drawing
