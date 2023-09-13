@@ -272,7 +272,7 @@
         <br></div>`);
                 }
                 if (interaction_type == "final test") {
-                    $("#header").replaceWith('<h1>Final assessment (' + (Number(localStorage.getItem("iteration")) + 1).toString() + '/6)</h1>');
+                    $("#header").replaceWith('<h1>Strategy assessment (' + (Number(localStorage.getItem("iteration")) + 1).toString() + '/6)</h1>');
                     $("#info_main").replaceWith('<h3>Chip has finished teaching the strategy -- let\'s see how much you learned!<br>Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.<br>(We\'ll reveal which and how many of the six tests you answered correctly after the final one.)');
                 } else if (interaction_type == "diagnostic test") {
                     $("#header").replaceWith('<h1>Check-in test</h1>');
@@ -795,23 +795,9 @@
         context.fill();
         context.closePath();
 
-        context.font = "25px Arial";
-        context.fillStyle = text_color;
-        context.textAlign = "center";
-        //context.fillText("Click on the game below to start controlling Chip", offset_x*100+200, 50);
-        if (window.interaction_type.includes("demo") || window.interaction_type.includes("feedback")) {
-            context.fillText("Chip will demonstrate!", offset_x*100+200, 80);
-        }
-        else if (window.interaction_type.includes("test")) {
-            if (localStorage.getItem("already completed") == 'true') {
-                context.fillText("Chip will demonstrate", offset_x*100+200, 80);
-            } else {
-                context.fillText("!! Your turn to play !!", offset_x * 100 + 200, 80);
-            }
-        }
-
 
         //draw grid
+        // vertical
         for (i = 0; i <= mdp_parameters.height; i++) {
             context.beginPath();
             context.moveTo(0+offset_x*100, 100*i-1+offset_y*100);
@@ -822,6 +808,8 @@
             context.fill();
             context.closePath();
         }
+
+        // horizontal
         for (i = 0; i <= mdp_parameters.width; i++) {
             context.beginPath();
             context.moveTo(100*i-1+offset_x*100, 0+offset_y*100);
@@ -831,6 +819,21 @@
             context.fillStyle = "black";
             context.fill();
             context.closePath();
+        }
+
+          // indicate to the participant that it's their turn play
+          if ((window.interaction_type.includes("test")) && (localStorage.getItem("already completed") == 'false')) {
+            context.font = "25px Arial";
+            context.fillStyle = text_color;
+            context.textAlign = "center";
+            context.fillText("Your turn to play!", offset_x * 100 + 200, 80);
+
+            // Draw blue border around the grid
+            context.beginPath();
+            context.rect(offset_x*100 - 3, offset_y*100 - 3, mdp_parameters.width*100 + 6, mdp_parameters.height*100 + 6);
+            context.strokeStyle = "blue";
+            context.lineWidth = 2;
+            context.stroke();
         }
 
         context.beginPath();
@@ -915,20 +918,6 @@
           context.fill();
           context.closePath();
 
-        context.font = "25px Arial";
-        context.fillStyle = text_color;
-        context.textAlign = "center";
-        if (window.interaction_type.includes("demo") || window.interaction_type.includes("feedback")) {
-            context.fillText("Chip will demonstrate!", offset_x*100+200, 80);
-        }
-        else if (window.interaction_type.includes("test")) {
-            if (localStorage.getItem("already completed") == 'true') {
-                context.fillText("Chip will demonstrate", offset_x*100+200, 80);
-            } else {
-                context.fillText("!! Your turn to play !!", offset_x * 100 + 200, 80);
-            }
-        }
-
           //draw grid
           for (i = 0; i <= mdp_parameters.height; i++) {
                 context.beginPath();
@@ -950,6 +939,21 @@
                 context.fill();
                 context.closePath();
           }
+
+          // indicate to the participant that it's their turn play
+          if ((window.interaction_type.includes("test")) && (localStorage.getItem("already completed") == 'false')) {
+            context.font = "25px Arial";
+            context.fillStyle = text_color;
+            context.textAlign = "center";
+            context.fillText("Your turn to play!", offset_x * 100 + 200, 80);
+
+            // Draw blue border around the grid
+            context.beginPath();
+            context.rect(offset_x*100 - 3, offset_y*100 - 3, mdp_parameters.width*100 + 6, mdp_parameters.height*100 + 6);
+            context.strokeStyle = "blue";
+            context.lineWidth = 2;
+            context.stroke();
+        }
 
         context.beginPath();
         // Begin drawing
@@ -1053,7 +1057,7 @@
                         document.getElementById('score_val2').innerHTML = score
 
                         // exploratory data collection on whether people are able to explicitly predict the weights
-                        $("#survey").html("<br><h3>Finally, please provide your best guess of energy change of the actions below (the last one is given!):</h3><table class='center'><tr><th>Actions</th><th>Sample sequence(s)</th><th>Energy change</th></tr><tr><td>Moving <u>out of</u> a yellow square (into yellow <u>or</u> white square)</td><td><img src = 'static/img/augmented_taxi2_toll1.png' width=auto height='125' /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/augmented_taxi2_toll2.png' width=auto height='125' /></td><td><input id='reward_ft_wt_1' type='number' style='width: 3em;'</>%</td></tr><tr><td>Moving through the green hexagon</td><td><img src = 'static/img/augmented_taxi2_battery1.png' width='75' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/augmented_taxi2_battery2.png' width='75' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/augmented_taxi2_battery3.png' width='75' height=auto /></td><td><input id='reward_ft_wt_2' type='number' style='width: 3em;'</>%</td></tr><tr><td>Any action that you take (e.g. moving right, picking up, etc)</td><td><img src = 'static/img/right1.png' width='150' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/right2.png' width='150' height=auto /></td><td>-1%</td></tr></table>")
+                        $("#survey").html("<br><h3>Finally, please provide your best guess of energy change of the actions below (the last one is given and decimals are allowed!):</h3><table class='center'><tr><th>Actions</th><th>Sample sequence(s)</th><th>Energy change</th></tr><tr><td>Moving <u>out of</u> a yellow square (into yellow <u>or</u> white square)</td><td><img src = 'static/img/augmented_taxi2_toll1.png' width=auto height='125' /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/augmented_taxi2_toll2.png' width=auto height='125' /></td><td><input id='reward_ft_wt_1' type='number' style='width: 3em;'</>%</td></tr><tr><td>Moving through the green hexagon</td><td><img src = 'static/img/augmented_taxi2_battery1.png' width='75' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/augmented_taxi2_battery2.png' width='75' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/augmented_taxi2_battery3.png' width='75' height=auto /></td><td><input id='reward_ft_wt_2' type='number' style='width: 3em;'</>%</td></tr><tr><td>Any action that you take (e.g. moving right, picking up, etc)</td><td><img src = 'static/img/right1.png' width='150' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/right2.png' width='150' height=auto /></td><td>-1.0%</td></tr></table>")
                     }
                     else {
                         $("#next").replaceWith(`<button type="button" id="next"
