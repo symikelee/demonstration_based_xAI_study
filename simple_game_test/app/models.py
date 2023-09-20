@@ -164,7 +164,7 @@ class Domain(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     user_id = db.Column(db.String(64))
-    domain_name = db.Column(db.String(2))
+    domain = db.Column(db.String(2))
     attn1 = db.Column(db.Integer)
     attn2 = db.Column(db.Integer)
     attn3 = db.Column(db.Integer)
@@ -172,7 +172,7 @@ class Domain(db.Model):
     use2 = db.Column(db.Integer)
     use3 = db.Column(db.Integer)
     understanding = db.Column(db.Integer)
-    understanding_short_answer = db.Column(db.PickleType)
+    engagement_short_answer = db.Column(db.PickleType)
 
 class Demo(db.Model):
     id = db.Column(db.Integer, primary_key=True)

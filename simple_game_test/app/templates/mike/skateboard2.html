@@ -70,9 +70,6 @@
 
         var socket = io();
 
-            socket.on('connect', function() {
-        console.log('Connected to server');
-    });
 
     const loadingText = document.getElementById('loading-text');
     socket.on('message', function(data) {
@@ -104,13 +101,10 @@
             data["use2"] = localStorage.getItem("use2");
             data["use3"] = localStorage.getItem("use3");
             data["understanding"] = localStorage.getItem("understanding");
-          let understanding_sa = document.getElementById("understanding short answer")
-          let improvement_sa = document.getElementById("improvement short answer")
-          if (understanding_sa != null) data["understanding short answer"] = understanding_sa.value;
-          else data["understanding short answer"] = '';
-          if (improvement_sa != null) data["improvement short answer"] = improvement_sa.value;
-            else data["improvement short answer"] = '';
+          data["engagement short answer"] = localStorage.getItem("engagement short answer");
+          data["improvement short answer"] = localStorage.getItem("improvement short answer");
           data["already completed"] = localStorage.getItem("already completed");
+
           let reward_ft_wt_1_field = document.getElementById("reward_ft_wt_1")
           let reward_ft_wt_2_field = document.getElementById("reward_ft_wt_2")
           if ((reward_ft_wt_1_field != null) && (reward_ft_wt_2_field != null)) {
@@ -189,11 +183,11 @@
             if (interaction_type === "survey") {
                 var questions = [
                     {
-                        question: "I lost myself in this experience as I fully engaged with learning.",
+                        question: "I was fully engaged with learning the game strategy.",
                         name: "attn1"
                     },
                     {
-                        question: "The time I spent learning the game strategy just slipped away and passed by quickly.",
+                        question: "The time I spent learning the game strategy passed by quickly.",
                         name: "attn2"
                     },
                     {
@@ -246,7 +240,7 @@
 
 
             html += `<h3>Please feel free to explain any of your selections above or any comments or thoughts you'd like to share!</h3>
-            <textarea id="understanding short answer" rows="4" cols="50"></textarea>`;
+            <textarea id="engagement short answer" rows="4" cols="50"></textarea>`;
 
             $("#non-buttons").html(html);
             }
@@ -350,11 +344,17 @@
                 event.returnValue = "Are you sure you want to leave? The task is incomplete.";
             }
             if (window.interaction_type === "survey") {
-                localStorage.setItem("understanding short answer", document.getElementById("understanding short answer").value);
-                // todo: could also potentially try and store the short answer of training demonstrations and tests
+                localStorage.setItem("engagement short answer", document.getElementById("engagement short answer").value);
             }
-
             else {
+                let engagement_sa = document.getElementById("engagement short answer")
+                let improvement_sa = document.getElementById("improvement short answer")
+
+                if (engagement_sa) localStorage.setItem("engagement short answer", engagement_sa.value.trim());
+                else localStorage.setItem("engagement short answer", '');
+                if (improvement_sa) localStorage.setItem("improvement short answer", improvement_sa.value.trim());
+                else localStorage.setItem("improvement short answer", '');
+
                 let simulation_rt = 0;
                 if (localStorage.getItem("user input") === "{}") {
                     if (window.moves.length > 0) {
@@ -378,8 +378,6 @@
                 var reward_ft_wt_1 = document.getElementById('reward_ft_wt_1')
                 var reward_ft_wt_2 = document.getElementById('reward_ft_wt_2')
                 if (reward_ft_wt_1.value !== "" && reward_ft_wt_2.value !== "") {
-                    localStorage.setItem("reward feature weight 1", reward_ft_wt_1.value);
-                    localStorage.setItem("reward feature weight 2", reward_ft_wt_2.value);
                     $("#next").replaceWith(`<button type="button" id="next"
                         onclick="next()"
                         value="next" class="btn btn-primary btn-lg continue">
@@ -983,9 +981,9 @@
                     $("#survey").html(`<h3>Did this interaction improve your understanding of the game strategy?</h3>
                 <div class="likert">
                 <label><input name="info" type="radio" value="1"/><span>Not at all</span></label>
-                <label><input name="info" type="radio" value="2"/><span>Not so much</span></label>
-                <label><input name="info" type="radio" value="3"/><span>Somewhat</span></label>
-                <label><input name="info" type="radio" value="4"/><span>Very much so</span></label>
+                <label><input name="info" type="radio" value="2"/><span>Slightly</span></label>
+                <label><input name="info" type="radio" value="3"/><span>Moderately</span></label>
+                <label><input name="info" type="radio" value="4"/><span>Very</span></label>
                 <label><input name="info" type="radio" value="5"/><span>Extremely</span></label>
                 </div>
                 <br></br>

@@ -588,14 +588,15 @@ def index():
     completed = True if current_user.study_completed == 1 else False
 
     current_user.loop_condition = "cl"
-    domains = ["at", "ct", "sb"]
-    # domains = ["ct", "sb", "at"]
-    # domains = ["sb", "at", "ct"]
-    rand.shuffle(domains)
+    # domains = ["at", "ct", "sb"]
+    domains = ["at", "sb"]
+    # domains = ["sb", "at"]
+    # rand.shuffle(domains)
+
     current_user.domain_1 = domains[0]
     current_user.domain_2 = domains[1]
-    current_user.domain_3 = domains[2]
-    current_user.final_test_condition = np.random.randint(0, 3)
+    # current_user.domain_3 = domains[2]
+    current_user.final_test_condition = 0
     db.session.commit()
 
     return render_template("index.html",
@@ -737,7 +738,7 @@ def post_practice():
     current_user.set_curr_progress("post practice")
     print(current_user.curr_progress)
     db.session.commit()
-    preamble = ("<h3>Good job on completing the practice game! Let's now head over to the <b>three main games</b> and <b>begin the real study</b>.</h3><br>" +
+    preamble = ("<h3>Good job on completing the practice game! Let's now head over to the <b>two main games</b> and <b>begin the real study</b>.</h3><br>" +
             "<h3>In these games, you will <b>not</b> be told how each action changes Chip's energy level.</h3><br>" +
             "For example, note the '???' in the Energy Change column below. <table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr><tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>???</td></tr></table> <br>" +
             "<h3>Instead, you will have to <u>figure that out</u> and subsequently the best strategy for completing the task while minimizing Chip's energy loss <u>by observing Chip's demonstrations</u> and <u>testing your knowledge of Chip's behavior!</u></h3><br>" +
@@ -793,10 +794,13 @@ def next_domain(data):
     elif current_user.curr_progress == "domain 1":
         current_user.set_curr_progress("domain 2")
         socketio.emit("next domain is", {"domain": current_user.domain_2}, to=request.sid)
+    # elif current_user.curr_progress == "domain 2":
+    #     current_user.set_curr_progress("domain 3")
+    #     socketio.emit("next domain is", {"domain": current_user.domain_3}, to=request.sid)
+    # elif current_user.curr_progress == "domain 3":
+    #     current_user.set_curr_progress("final survey")
+    #     socketio.emit("next domain is", {"domain": "final survey"}, to=request.sid)
     elif current_user.curr_progress == "domain 2":
-        current_user.set_curr_progress("domain 3")
-        socketio.emit("next domain is", {"domain": current_user.domain_3}, to=request.sid)
-    elif current_user.curr_progress == "domain 3":
         current_user.set_curr_progress("final survey")
         socketio.emit("next domain is", {"domain": "final survey"}, to=request.sid)
 
@@ -849,8 +853,8 @@ def settings(data):
         domain = current_user.domain_1
     elif curr_domain == "2":
         domain = current_user.domain_2
-    elif curr_domain == "3":
-        domain = current_user.domain_3
+    # elif curr_domain == "3":
+    #     domain = current_user.domain_3
     it = current_user.interaction_type
     print("CURRENT interaction: {}".format(it))
     iter = current_user.iteration
@@ -1017,7 +1021,7 @@ def settings(data):
     if it == "survey":
         dom = Domain(
             user_id=current_user.id,
-            domain_name=domain,
+            domain=domain,
             attn1=int(data["attn1"]),
             attn2=int(data["attn2"]),
             attn3=int(data["attn3"]),
@@ -1025,7 +1029,7 @@ def settings(data):
             use2=int(data["use2"]),
             use3=int(data["use3"]),
             understanding=int(data["understanding"]),
-            understanding_short_answer=data["understanding short answer"]
+            engagement_short_answer=data["engagement short answer"]
         )
         db.session.add(dom)
         print(data["attn1"])
@@ -1035,7 +1039,7 @@ def settings(data):
         print(data["use2"])
         print(data["use3"])
         print(data["understanding"])
-        print(data["understanding short answer"])
+        print(data["engagement short answer"])
     elif iter != -1 and prev_already_completed == "false" and data['movement'] != 'prev':
         # update particle filter
         update_pf = False
