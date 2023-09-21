@@ -645,14 +645,14 @@
     function completed() {
         if (continue_condition == 'optimal_traj_1' || continue_condition == 'optimal_traj_2'){
             if (passenger.dropped) {
-                if ((continue_condition == 'optimal_traj_1' && spaceship.score == 40) || (continue_condition == 'optimal_traj_2' && moves.length == 18)) {
+                if ((continue_condition == 'optimal_traj_1' && spaceship.score == 89) || (continue_condition == 'optimal_traj_2' && moves.length == 18)) {
                     return true
                 }
                 else {
                     if (n_tries > 0) {
-                        drawString(context, "You completed the task with less than 40% energy remaining! \n Press 'r' to reset and try again.", text_loc_x, text_loc_y, text_color_error, 0, "'serif", 20)
+                        drawString(context, "You completed the task with less than 89% energy remaining! \n Press 'r' to reset and try again.", text_loc_x, text_loc_y, text_color_error, 0, "'serif", 20)
                     } else {
-                        drawString(context, "You completed the task with less than 40% energy remaining! I'm sorry to inform you \n that you don't qualify for this study. Please contact ml5@andrew.cmu.edu \n if you believe you were unfairly disqualified. Thank you!", text_loc_x, text_loc_y, text_color_error, 0, "'serif", 20)
+                        drawString(context, "You completed the task with less than 89% energy remaining! I'm sorry to inform you \n that you don't qualify for this study. Please contact ml5@andrew.cmu.edu \n if you believe you were unfairly disqualified. Thank you!", text_loc_x, text_loc_y, text_color_error, 0, "'serif", 20)
                     }
                 }
             }
@@ -740,13 +740,13 @@
                   if (spaceship.grid_loc.x > offset_x && map_layout.color_blocks[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x-1-offset_x] != 1){
                       spaceship.grid_loc.x -= 1;
                       moves.push("left");
-                      spaceship.score -= 5;
+                      spaceship.score -= 1;
                       if (passenger.picked){
                           passenger.grid_loc.x -= 1;
                       }
                       if (agent_on_hotswap_station) {
                           hotswap_station.visited = true;
-                          spaceship.score += 10;
+                          spaceship.score += 3;
                       }
                   }
                   break;
@@ -766,13 +766,13 @@
                   if (spaceship.grid_loc.x < mdp_parameters.width-1+offset_x && map_layout.color_blocks[spaceship.grid_loc.y-offset_y][spaceship.grid_loc.x+1-offset_x] != 1){
                       spaceship.grid_loc.x += 1;
                       moves.push("right");
-                      spaceship.score -= 5;
+                      spaceship.score -= 1;
                       if (passenger.picked){
                           passenger.grid_loc.x += 1;
                       }
                       if (agent_on_hotswap_station) {
                           hotswap_station.visited = true;
-                          spaceship.score += 10;
+                          spaceship.score += 3;
                       }
 
                   }
@@ -792,13 +792,13 @@
                   if (spaceship.grid_loc.y > offset_y && map_layout.color_blocks[spaceship.grid_loc.y-1-offset_y][spaceship.grid_loc.x-offset_x] != 1){
                       spaceship.grid_loc.y -= 1;
                       moves.push("up");
-                      spaceship.score -= 5;
+                      spaceship.score -= 1;
                       if (passenger.picked){
                           passenger.grid_loc.y -= 1;
                       }
                       if (agent_on_hotswap_station) {
                           hotswap_station.visited = true;
-                          spaceship.score += 10;
+                          spaceship.score += 3;
                       }
                   }
                   break;
@@ -817,13 +817,13 @@
                   if (spaceship.grid_loc.y < mdp_parameters.height-1+offset_y && map_layout.color_blocks[spaceship.grid_loc.y+1-offset_y][spaceship.grid_loc.x-offset_x] != 1){
                       spaceship.grid_loc.y += 1;
                       moves.push("down");
-                      spaceship.score -= 5;
+                      spaceship.score -= 1;
                       if (passenger.picked){
                           passenger.grid_loc.y += 1;
                       }
                       if (agent_on_hotswap_station) {
                           hotswap_station.visited = true;
-                          spaceship.score += 10;
+                          spaceship.score += 3;
                       }
                   }
                   break;
@@ -835,7 +835,7 @@
                   if (spaceship.grid_loc.x == passenger.grid_loc.x && spaceship.grid_loc.y == passenger.grid_loc.y && passenger.picked == false){
                       passenger.picked = true;
                       moves.push("pickup");
-                      spaceship.score -= 5;
+                      spaceship.score -= 1;
                   }
                   break;
               case 68:
@@ -848,7 +848,7 @@
                           passenger.dropped = true;
                       }
                       passenger.picked = false;
-                      spaceship.score -= 5;
+                      spaceship.score -= 1;
                       moves.push("dropoff");
                   }
                   break;
