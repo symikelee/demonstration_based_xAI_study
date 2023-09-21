@@ -878,20 +878,22 @@ def settings(data):
                    ["final test",  0], ["final test", 1]]
         },
         "open": {
-            "at": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4],
+            "at": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4], ["demo", 5], ["demo", 6], ["demo", 7], ["demo", 8], ["demo", 9],
+                   ["demo", 10], ["demo", 11], ["demo", 12], ["demo", 13], ["demo", 14], ["demo", 15], ["demo", 16], ["demo", 17], ["demo", 18],
                    ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
             "ct": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4],
                    ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
-            "sb": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4], ["demo", 5], ["demo", 6],
+            "sb": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4], ["demo", 5], ["demo", 6], ["demo", 7], ["demo", 8], ["demo", 9],
+                   ["demo", 10], ["demo", 11], ["demo", 12], ["demo", 13], ["demo", 14], ["demo", 15], ["demo", 16], ["demo", 17], ["demo", 18],
                    ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]]
         },
         "pl": {
-            "at": [["demo", -1], ["demo", 0], ["demo", 1], ["diagnostic test", 0], ["diagnostic feedback", 0],
-                   ["demo", 2], ["demo", 3], ["diagnostic test", 1], ["diagnostic feedback", 1], ["diagnostic test", 2], ["diagnostic feedback", 2],
-                   ["demo", 4], ["diagnostic test", 3], ["diagnostic feedback", 3],
+            "at": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4], ["demo", 5], ["diagnostic test", 0], ["diagnostic feedback", 0],
+                   ["demo", 6], ["demo", 7], ["demo", 8],  ["demo", 9], ["demo", 10], ["demo", 11],  ["diagnostic test", 1], ["diagnostic feedback", 1], ["diagnostic test", 2], ["diagnostic feedback", 2],
+                   ["demo", 12], ["demo", 13], ["demo", 14], ["diagnostic test", 3], ["diagnostic feedback", 3],
                    ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
             "ct": [["demo", -1], ["demo", 0], ["demo", 1], ["diagnostic test", 0], ["diagnostic feedback", 0], ["diagnostic test", 1], ["diagnostic feedback", 1],
@@ -899,9 +901,9 @@ def settings(data):
                    ["demo", 4], ["diagnostic test", 4], ["diagnostic feedback", 4],
                    ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
-            "sb": [["demo", -1], ["demo", 0], ["demo", 1], ["diagnostic test", 0], ["diagnostic feedback", 0], ["diagnostic test", 1], ["diagnostic feedback", 1],
-                   ["demo", 2], ["demo", 3], ["diagnostic test", 2], ["diagnostic feedback", 2], ["diagnostic test", 3], ["diagnostic feedback", 3],
-                   ["demo", 4], ["demo", 5], ["demo", 6], ["diagnostic test", 4], ["diagnostic feedback", 4], ["diagnostic test", 5], ["diagnostic feedback", 5], ["diagnostic test", 6], ["diagnostic feedback", 6],
+            "sb": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["diagnostic test", 0], ["diagnostic feedback", 0], ["diagnostic test", 1], ["diagnostic feedback", 1],
+                   ["demo", 3], ["demo", 4], ["demo", 5], ["diagnostic test", 2], ["diagnostic feedback", 2], ["diagnostic test", 3], ["diagnostic feedback", 3],
+                   ["demo", 6], ["demo", 7], ["demo", 8], ["demo", 9], ["demo", 10], ["demo", 11], ["diagnostic test", 4], ["diagnostic feedback", 4], ["diagnostic test", 5], ["diagnostic feedback", 5], ["diagnostic test", 6], ["diagnostic feedback", 6],
                    ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]]
         },
@@ -1245,7 +1247,7 @@ def settings(data):
 
                 print(current_user.interaction_type)
                 print(current_user.iteration)
-                if loop_cond == "cl":
+                if loop_cond != "debug":
                     if current_user.interaction_type == "final test":
                         # randomize the order of the tests (todo: potentially account for train_test_set (currently only using the first set))
                         if len(current_user.final_test_rand_idxs) == 0:
@@ -1323,8 +1325,21 @@ def settings(data):
                         # if current_user.interaction_type == "remedial demo": response["params"] = jsons[domain_key]['demo'][str(0)]
                         # else: response["params"] = jsons[domain_key]['diagnostic test'][str(0)]
                     elif current_user.interaction_type != "survey":
-                        response["params"] = jsons[domain_key][current_user.interaction_type][str(current_user.iteration)]
+                        if current_user.interaction_type == "demo":
+                            if loop_cond == "open":
+                                response["params"] = jsons["open"][domain_key][current_user.interaction_type][
+                                    str(current_user.iteration)]
+                            elif loop_cond == "pl":
+                                response["params"] = jsons["pl"][domain_key][current_user.interaction_type][
+                                    str(current_user.iteration)]
+                            else:
+                                response["params"] = jsons[domain_key][current_user.interaction_type][
+                                    str(current_user.iteration)]
+                        else:
+                            response["params"] = jsons[domain_key][current_user.interaction_type][
+                                str(current_user.iteration)]
                 else:
+                    # the code below is for debugging
                     if "test" in current_user.interaction_type:
                         if len(current_user.final_test_rand_idxs) == 0:
                             current_user.final_test_rand_idxs = list(np.arange(6))
