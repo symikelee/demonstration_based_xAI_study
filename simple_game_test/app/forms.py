@@ -64,7 +64,7 @@ class AttentionCheckForm(FlaskForm):
     submit_check = SubmitField("Continue")
 
 class FinalForm(FlaskForm):
-    gender =  RadioField("", choices=[(0, "Man"), (1, "Woman"), (3, "Non-binary"), (4,  "Prefer Not to Respond")])
+    gender = RadioField("", choices=[(0, "Man"), (1, "Woman"), (2, "Non-binary"), (3, "Prefer Not to Respond")])
     ethnicity = MultiCheckboxField("",
                                coerce=int,
                                choices=get_ethnicities(),
@@ -73,7 +73,7 @@ class FinalForm(FlaskForm):
                                         (1, "High school graduate (high school diploma or equivalent including GED)"),
                                         (2, "Some college but no degree"), (3, "Associate degree in college (2-year)"),
                                         (4, "Bachelor’s degree in college (4-year)"), (5, "Master’s degree"),
-                                        (5, "Doctoral degree"), (5, "Professional degree (JD, MD)")])
+                                        (6, "Doctoral degree"), (7, "Professional degree (JD, MD)")])
     opt_text = TextAreaField()
     age = IntegerField(InputRequired)
     submit_final = SubmitField("Continue")
