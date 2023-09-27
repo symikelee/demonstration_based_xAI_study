@@ -1116,6 +1116,8 @@ def settings(data):
             improvement_short_answer = data["improvement short answer"],
             reward_ft_weights=data["reward_ft_weights"]
         )
+        print("improvement: ")
+        print(data["improvement short answer"])
         db.session.add(trial)
 
         # pop the params from the params_stack once you've saved it

@@ -104,8 +104,8 @@ def print_demographics(df_users):
     print(ages.describe())
 
     print("Genders: ")
-    gender_vals = [0, 0, 0, 0, 0]
-    mapping = {0: 'Male', 1: 'Female', 2: 'None', 3: 'Non-binary', 4: 'Prefer not to disclose'} # todo: change to 0, 1, 2, 3 for the new data
+    gender_vals = [0, 0, 0, 0]
+    mapping = {0: 'Male', 1: 'Female', 2: 'Non-binary', 3: 'Prefer not to disclose'} # todo: change to 0, 1, 2, 3 for the new data
     answers = df_users.gender
     for answer in answers:
         gender_vals[int(answer)] += 1
@@ -247,22 +247,46 @@ def calculate_avg_num_interactions(df_trials):
     avg_interactions_sb = np.sum(df_trials[(df_trials.domain == 'sb') & (df_trials.loop_condition == 'cl')].interaction_type != 'final test') / len(
         df_trials[df_trials.loop_condition == 'cl'].username.unique())
 
+    exclude = ['diagnostic feedback', 'remedial feedback', 'final test']
+
+    # obtain the number of times each person interacted with Chip in each domain
     num_interactions_at = []
     num_interactions_sb = []
+    perfect_training = []
     for username in df_trials[df_trials.loop_condition == 'cl'].username.unique():
-        num_interactions_at.append(sum(df_trials[(df_trials.domain == 'at') & (
-                    df_trials.loop_condition == 'cl') & (df_trials.username == username)].interaction_type != 'final test'))
-        num_interactions_sb.append(sum(df_trials[(df_trials.domain == 'sb') & (
-                    df_trials.loop_condition == 'cl') & (df_trials.username == username)].interaction_type != 'final test'))
+        num_interactions_at_user = sum(~df_trials[(df_trials.domain == 'at') & (
+                df_trials.loop_condition == 'cl') & (df_trials.username == username)].interaction_type.isin(exclude))
+        num_interactions_sb_user = sum(~df_trials[(df_trials.domain == 'sb') & (
+                df_trials.loop_condition == 'cl') & (df_trials.username == username)].interaction_type.isin(exclude))
+        num_interactions_at.append(num_interactions_at_user)
+        num_interactions_sb.append(num_interactions_sb_user)
 
+        if num_interactions_at_user == 9 and num_interactions_sb_user == 14:
+            perfect_training.append(username)
+
+    # calculate the average and median number of interactions for each domain
     print("Avg number of closed-loop interactions for taxi: {}".format(avg_interactions_at))
     print("Avg number of closed-loop interactions for skateboard: {}".format(avg_interactions_sb))
 
-    print("Median number of closed-loop interactions for taxi: {}".format(np.median(num_interactions_at)))
-    print("Median number of closed-loop interactions for skateboard: {}".format(np.median(num_interactions_sb)))
+    median_interactions_at = np.median(num_interactions_at)
+    median_interactions_sb = np.median(num_interactions_sb)
+    print("Median number of closed-loop interactions for taxi: {}".format(median_interactions_at))
+    print("Median number of closed-loop interactions for skateboard: {}".format(median_interactions_sb))
 
-    print("Number of people who got all taxi interactions: {}".format(np.sum(np.array(num_interactions_at) == 9)))
-    print("Number of people who got all skateboard interactions: {}".format(np.sum(np.array(num_interactions_sb) == 14)))
+    # did anyone go through the training perfectly?
+    print("Number of people who perfectly underwent taxi training: {}".format(np.sum(np.array(num_interactions_at) == 9)))
+    print("Number of people who perfectly underwent skateboard training: {}".format(np.sum(np.array(num_interactions_sb) == 14)))
+    print("People who perfectly went through both training: {}".format(perfect_training))
+
+    # obtain the participants who saw the median number of interactions
+    median_interactions_at_users = np.array(df_trials[df_trials.loop_condition == 'cl'].username.unique())[np.array(num_interactions_at) == median_interactions_at]
+    median_interactions_sb_users = np.array(df_trials[df_trials.loop_condition == 'cl'].username.unique())[np.array(num_interactions_sb) == median_interactions_sb]
+    median_training = []
+    for at_user in median_interactions_at_users:
+        if at_user in median_interactions_sb_users:
+            median_training.append(at_user)
+    print("People who went through both median training: {}".format(perfect_training))
+
 
 def compare_education_domain_on_performance(df_trials):
     print("\n========== ANOVA: EDUCATION ON TEST DEMONSTRATION PERFORMANCE ==========")
@@ -278,7 +302,7 @@ def compare_education_domain_on_performance(df_trials):
         print("There is no interaction effect between {} and {}".format(aov['Source'][0], aov['Source'][1]))
 
 
-def composition_closed_loop(df_trials):
+def composition_closed_loop(df_trials, summation=True):
     '''Calculate the composition of the closed-loop condition (i.e., how many users did the demo, test, feedback)'''
 
     # 'demo', 'final test', 'diagnostic test', 'diagnostic feedback',
@@ -287,23 +311,39 @@ def composition_closed_loop(df_trials):
     interaction_types = ['demo', 'final test', 'diagnostic test', 'diagnostic feedback',
     'remedial demo', 'remedial test', 'remedial feedback']
 
-    for domain in df_trials.domain.unique():
-        for interaction_type in interaction_types:
-            avg_interaction_count = np.sum(df_trials[(df_trials.domain == domain) & (df_trials.interaction_type == interaction_type)].loop_condition == 'cl') / len(df_trials.username.unique())
-            print("Avg # of {} interactions for {}: {}".format(interaction_type, domain, avg_interaction_count))
+    if summation:
+        for domain in df_trials.domain.unique():
+            for interaction_type in interaction_types:
+                avg_interaction_count = np.sum(df_trials[(df_trials.domain == domain) & (df_trials.interaction_type == interaction_type)].loop_condition == 'cl') / len(df_trials.username.unique())
+                print("Avg # of {} interactions for {}: {}".format(interaction_type, domain, avg_interaction_count))
+    else:
+        for username in df_trials.username.unique():
+            print(username)
+            for domain in df_trials.domain.unique():
+                print(domain)
+                if domain == 'at':
+                    print(df_trials[(df_trials.username == username) & (df_trials.domain == domain)].interaction_type)
 
 def individual_performances(df_trials):
+    counter = 0
     for username in df_trials.username.unique():
         for domain in df_trials.domain.unique():
             if len(df_trials[(df_trials.username == username) & (df_trials.domain == domain)]) > 0:
                 print("Performance for {} on {}: {}".format(username, domain, np.sum(df_trials[(df_trials.username == username) & (df_trials.domain == domain) & (df_trials.interaction_type == 'final test')].is_opt_response) / len(df_trials[(df_trials.username == username) & (df_trials.domain == domain) & (df_trials.interaction_type == 'final test')])))
+                counter += 1
+
+    print("Number of people who completed both domains: {}".format(counter))
 
 def individual_reward_weight_predictions(df_trials):
     data = df_trials[df_trials['unpickled_reward_ft_weights'].map(lambda d: len(d) > 0)].unpickled_reward_ft_weights
     for username in df_trials.username.unique():
         for domain in df_trials.domain.unique():
             if len(df_trials[(df_trials.username == username) & (df_trials.domain == domain)]) > 0:
-                print("Estimation for {} on {}: {}".format(username, domain, data[(df_trials.username == username) & (df_trials.domain == domain)].iloc[0]))
+                # this person's data didn't get properly saved but they responded [-2, 1, -1] for the reward weights separately
+                if username in ['5d49d17b3dad1f0001e2aba1']:
+                    continue
+                print("Estimation for {} on {}: {}".format(username, domain, data[
+                    (df_trials.username == username) & (df_trials.domain == domain)].iloc[0]))
 
 
 def print_qualitative_feedback(df_trials, df_users, df_domain):
@@ -311,23 +351,25 @@ def print_qualitative_feedback(df_trials, df_users, df_domain):
 
     data = df_trials[df_trials['unpickled_improvement_short_answer'].map(
         lambda d: len(d) > 0)]
+    data_domain = df_domain[df_domain['unpickled_engagement_short_answer'].map(
+        lambda d: len(d) > 0)]
+    data_users = df_users[df_users['unpickled_final_feedback'].map(
+        lambda d: len(d) > 0)]
 
-    # data.style.set_properties(**{'text-align': 'left'}).set_table_styles(
-    #     [dict(selector='th', props=[('text-align', 'left')])])
-
-    # data.style.set_properties(**{'text-align': 'left'})
+    data.style.set_properties(**{'text-align': 'left'})
     pd.set_option('display.max_colwidth', None)
     width = data['unpickled_improvement_short_answer'].str.len().max()
     data2 = data.copy()
-    # data2['unpickled_improvement_short_answer'] = data['unpickled_improvement_short_answer'].str.ljust(width)
+    data2['unpickled_improvement_short_answer'] = data['unpickled_improvement_short_answer'].str.ljust(width)
 
-    # pd.set_option('display.max_colwidth', None)
     for username in df_trials.username.unique():
-        print("Username: {}".format(username))
-        # print("Improvement Feedback: {}".format(data[data.username == username].unpickled_improvement_short_answer))
-        print(data2[data.username == username].unpickled_improvement_short_answer)
-
-
+        # print("Username: {}".format(username))
+        if len(data2[data.username == username].unpickled_improvement_short_answer) > 0:
+            print(data2[data.username == username].unpickled_improvement_short_answer)
+        if len(data_domain[data_domain.username == username].unpickled_engagement_short_answer) > 0:
+            print(data_domain[data_domain.username == username].unpickled_engagement_short_answer)
+        if len(data_users[data_users.username == username].unpickled_final_feedback) > 0:
+            print(data_users[data_users.username == username].unpickled_final_feedback)
 
 def analyze_time_spent(df_trials):
     np.mean(df_trials[df_trials.interaction_type == 'final test'].duration_ms) / 1000
@@ -349,7 +391,7 @@ if __name__ == '__main__':
     #------------------------ descriptive statistics ------------------------#
     individual_performances(df_trials)
     individual_reward_weight_predictions(df_trials)
-    print_qualitative_feedback(df_trials, df_users, df_domain)
+    # print_qualitative_feedback(df_trials, df_users, df_domain)
 
 
     # ------------------------ primary analyses ------------------------#
@@ -370,7 +412,7 @@ if __name__ == '__main__':
     compare_education_domain_on_performance(df_trials)
 
     # composition of closed-loop per domain
-    composition_closed_loop(df_trials)
+    # composition_closed_loop(df_trials, summation=False)
 
     # time spent
     analyze_time_spent(df_trials)
