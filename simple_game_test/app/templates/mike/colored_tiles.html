@@ -136,6 +136,7 @@
             localStorage.setItem("interaction type", data["interaction type"]);
             localStorage.setItem("iteration", data["iteration"]);
             localStorage.setItem("subiteration", data["subiteration"]);
+            localStorage.setItem("demo total", data["demo total"]);
             if (data["go prev"] === "false") {
                 $("#prev").replaceWith(`<button type="button" id="prev" disabled onclick="prev()" value="previous" class="btn btn-primary btn-lg continue"> Previous <span class="glyphicon glyphicon-arrow-left"></span>
             </button>`);
@@ -303,7 +304,7 @@
                     $("#info_main").replaceWith('<h3>Given your previously incorrect test response, here\'s a demonstration that might help address any misunderstandings.<br>Step through the demonstration using your space bar. Feel free to run through it as many times as you wish by resetting, and at least once to continue!</h3>');
                 }
                 else {
-                    $("#header").replaceWith('<h1>Demonstration of best strategy (' + (Number(localStorage.getItem("iteration")) + 1).toString() + '/5)</h1>');
+                    $("#header").replaceWith('<h1>Demonstration of best strategy (' + (Number(localStorage.getItem("iteration")) + 1).toString() + '/' + localStorage.getItem("demo total") + ')</h1>');
                     $("#info_main").replaceWith('<h3>Step through the demonstration <u>using your space bar</u>.<br>Feel free to run through it as many times as you wish by resetting, and at least once to continue!</h3>');
                 }
         }

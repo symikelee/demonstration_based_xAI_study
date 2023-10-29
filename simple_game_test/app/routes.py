@@ -587,12 +587,14 @@ def index():
 
     completed = True if current_user.study_completed == 1 else False
 
-    current_user.loop_condition = "cl"
+    loop_conditions = ["open"]
+    rand.shuffle(loop_conditions)
     # domains = ["at", "ct", "sb"]
     domains = ["at", "sb"]
     # domains = ["sb", "at"]
-    rand.shuffle(domains)
+    # rand.shuffle(domains)
 
+    current_user.loop_condition = loop_conditions[0]
     current_user.domain_1 = domains[0]
     current_user.domain_2 = domains[1]
     # current_user.domain_3 = domains[2]
@@ -738,12 +740,18 @@ def post_practice():
     current_user.set_curr_progress("post practice")
     print(current_user.curr_progress)
     db.session.commit()
+    # preamble = ("<h3>Good job on completing the practice game! Let's now head over to the <b>two main games</b> and <b>begin the real study</b>.</h3><br>" +
+    #         "<h3>In these games, you will <b>not</b> be told how each action changes Chip's energy level.</h3><br>" +
+    #         "For example, note the '???' in the Energy Change column below. <table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr><tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>???</td></tr></table> <br>" +
+    #         "<h3>Instead, you will have to <u>figure that out</u> and subsequently the best strategy for completing the task while minimizing Chip's energy loss <u>by observing Chip's demonstrations</u> and <u>testing your knowledge of Chip's behavior!</u></h3><br>" +
+    #             "<h3>If you incorrectly predict Chip's behavior on check-in tests in between demonstrations, <u>Chip will give you corrective feedback and provide additional demonstrations and tests</u> to help you learn!</h3><br>" +
+    #         "<h4>Finally, <u>you may navigate back to previous interactions</u> (e.g. demonstrations, feedback, etc) to refresh your memory <u>when you're not being tested!</u></h4>")
     preamble = ("<h3>Good job on completing the practice game! Let's now head over to the <b>two main games</b> and <b>begin the real study</b>.</h3><br>" +
             "<h3>In these games, you will <b>not</b> be told how each action changes Chip's energy level.</h3><br>" +
             "For example, note the '???' in the Energy Change column below. <table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr><tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>???</td></tr></table> <br>" +
-            "<h3>Instead, you will have to <u>figure that out</u> and subsequently the best strategy for completing the task while minimizing Chip's energy loss <u>by observing Chip's demonstrations</u> and <u>testing your knowledge of Chip's behavior!</u></h3><br>" +
-                "<h3>If you incorrectly predict Chip's behavior on check-in tests in between demonstrations, <u>Chip will give you corrective feedback and provide additional demonstrations and tests</u> to help you learn!</h3><br>" +
-            "<h4>Finally, <u>you may navigate back to previous interactions</u> (e.g. demonstrations, feedback, etc) to refresh your memory <u>when you're not being tested!</u></h4>")
+            "<h3>Instead, you will have to <u>figure that out</u> and subsequently the best strategy for completing the task while minimizing Chip's energy loss <u>by observing Chip's demonstrations!</u></h3><br>" +
+                "<h4>In between demonstrations, Chip may test your understanding by asking you to predict the best strategy and giving you corrective feedback to help you learn!</h4><br>" +
+            "<h4>Finally, <u>you may navigate back to previous interactions</u> (e.g. demonstrations) to refresh your memory <u>when you're not being tested!</u></h4>")
     return render_template("mike/post_practice.html", preamble=preamble)
 
 @socketio.on("next domain")
@@ -879,21 +887,21 @@ def settings(data):
         },
         "open": {
             "at": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4], ["demo", 5], ["demo", 6], ["demo", 7], ["demo", 8], ["demo", 9],
-                   ["demo", 10], ["demo", 11], ["demo", 12], ["demo", 13], ["demo", 14], ["demo", 15], ["demo", 16], ["demo", 17], ["demo", 18],
+                   ["demo", 10],
                    ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
             "ct": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4],
                    ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
             "sb": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4], ["demo", 5], ["demo", 6], ["demo", 7], ["demo", 8], ["demo", 9],
-                   ["demo", 10], ["demo", 11], ["demo", 12], ["demo", 13], ["demo", 14], ["demo", 15], ["demo", 16], ["demo", 17], ["demo", 18],
+                   ["demo", 10], ["demo", 11], ["demo", 12], ["demo", 13], ["demo", 14], ["demo", 15], ["demo", 16], ["demo", 17], ["demo", 18], ["demo", 19], ["demo", 20], ["demo", 21],
                    ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]]
         },
         "pl": {
-            "at": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4], ["demo", 5], ["diagnostic test", 0], ["diagnostic feedback", 0],
-                   ["demo", 6], ["demo", 7], ["demo", 8],  ["demo", 9], ["demo", 10], ["demo", 11],  ["diagnostic test", 1], ["diagnostic feedback", 1], ["diagnostic test", 2], ["diagnostic feedback", 2],
-                   ["demo", 12], ["demo", 13], ["demo", 14], ["diagnostic test", 3], ["diagnostic feedback", 3],
+            "at": [["demo", -1], ["demo", 0], ["demo", 1], ["diagnostic test", 0], ["diagnostic feedback", 0],
+                   ["demo", 2], ["demo", 3], ["demo", 4], ["diagnostic test", 1], ["diagnostic feedback", 1], ["diagnostic test", 2], ["diagnostic feedback", 2],
+                   ["demo", 5], ["demo", 6], ["diagnostic test", 3], ["diagnostic feedback", 3],
                    ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
             "ct": [["demo", -1], ["demo", 0], ["demo", 1], ["diagnostic test", 0], ["diagnostic feedback", 0], ["diagnostic test", 1], ["diagnostic feedback", 1],
@@ -901,9 +909,9 @@ def settings(data):
                    ["demo", 4], ["diagnostic test", 4], ["diagnostic feedback", 4],
                    ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]],
-            "sb": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["diagnostic test", 0], ["diagnostic feedback", 0], ["diagnostic test", 1], ["diagnostic feedback", 1],
-                   ["demo", 3], ["demo", 4], ["demo", 5], ["diagnostic test", 2], ["diagnostic feedback", 2], ["diagnostic test", 3], ["diagnostic feedback", 3],
-                   ["demo", 6], ["demo", 7], ["demo", 8], ["demo", 9], ["demo", 10], ["demo", 11], ["diagnostic test", 4], ["diagnostic feedback", 4], ["diagnostic test", 5], ["diagnostic feedback", 5], ["diagnostic test", 6], ["diagnostic feedback", 6],
+            "sb": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["diagnostic test", 0], ["diagnostic feedback", 0], ["diagnostic test", 1], ["diagnostic feedback", 1],
+                   ["demo", 4], ["demo", 5], ["demo", 6], ["demo", 7], ["diagnostic test", 2], ["diagnostic feedback", 2], ["diagnostic test", 3], ["diagnostic feedback", 3],
+                   ["demo", 8], ["demo", 9], ["demo", 10], ["demo", 11], ["demo", 12], ["demo", 13], ["demo", 14], ["diagnostic test", 4], ["diagnostic feedback", 4], ["diagnostic test", 5], ["diagnostic feedback", 5], ["diagnostic test", 6], ["diagnostic feedback", 6],
                    ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]]
         },
@@ -1405,6 +1413,23 @@ def settings(data):
     response["domain"] = domain
     response["iteration"] = current_user.iteration
     response["subiteration"] = current_user.subiteration
+    if domain == "at":
+        if loop_cond == "open":
+            response["demo total"] = 11
+        elif loop_cond == "pl":
+            response["demo total"] = 7
+        else:
+            response["demo total"] = 5
+    elif domain == "sb":
+        if loop_cond == "open":
+            response["demo total"] = 22
+        elif loop_cond == "pl":
+            response["demo total"] = 15
+        else:
+            response["demo total"] = 7
+    else:
+        # for colored tiles
+        response["demo total"] = 5
     db.session.commit()
     socketio.emit("settings configured", response, to=request.sid)
 

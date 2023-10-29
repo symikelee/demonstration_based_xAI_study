@@ -8,6 +8,8 @@ from statsmodels.stats.power import TTestIndPower
 import pdb
 import pingouin as pg
 import sys, os
+import csv
+from datetime import datetime
 
 cur_dir = os.path.dirname(__file__)
 sys.path.insert(0, os.path.abspath(cur_dir + '/../simple_game_test/app/augmented_taxi/policy_summarization'))
@@ -31,6 +33,16 @@ FRUSTRATION_MAPPING = {0: '0 - Extremely Frustrating', 1: '1 - Somewhat Frustrat
 ONLINE_INTERACTION_TYPES = ['no_feedback', 'showing', 'preference', 'binary_combined', 'credit_assignment']
 
 alpha = 0.05
+
+skip_users = []
+# remove users who are missing data (reward weight estimates)
+skip_users.extend(['58aca85e0da7f10001de92d4', '602fb33786b077cdbad2d5bb'])
+# remove users who did not complete the study
+skip_users.extend(['614b55e22ff3944a165736bb', '5f0214e58782120a8c970fd6'])
+# remove users who perfectly went through the closed-loop teaching framework (and thus did not see any remedial instruction)
+skip_users.extend(['59dbbdce5de9b000017ebf19'])
+# remove users who underwent more than 3 std dev more interactions than the average in the closed-loop teaching framework
+skip_users.extend(['5ebd5fa512c47d04402403da'])
 
 # ---------------------------------- Data Processing ---------------------------------- #
 def get_data():
