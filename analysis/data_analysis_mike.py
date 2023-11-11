@@ -10,17 +10,14 @@ import pingouin as pg
 import sys, os
 import csv
 from datetime import datetime
+from scipy.stats import wilcoxon
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pdb
 
 cur_dir = os.path.dirname(__file__)
 sys.path.insert(0, os.path.abspath(cur_dir + '/../simple_game_test/app/augmented_taxi/policy_summarization'))
 # import policy_summarization.BEC_helpers as BEC_helpers
-
-
-# Pallavi To-do Items:
-# [ ] Users never get the same rule 2x
-# [ ] Disallow clicking on a card that has already been clicked
-# [ ] Make "which of the two robots did you prefer" a radio response option, with a textbox for explanation afterwards.
-# [ ] df_users['unpickled_feedback_counts'] = df_users['feedback_counts'].apply(pickle.loads) THIS IS A HOLDOVER FROM ROSHNI, DELETE FROM MODEL.
 
 
 # ---------------------------------- Global Variables ---------------------------------- #
@@ -32,19 +29,31 @@ FRUSTRATION_MAPPING = {0: '0 - Extremely Frustrating', 1: '1 - Somewhat Frustrat
 
 ONLINE_INTERACTION_TYPES = ['no_feedback', 'showing', 'preference', 'binary_combined', 'credit_assignment']
 
+LOOP_MAPPING = {'cl': 'Full', 'pl': 'Partial', 'open': 'Open', 'wt': 'Weights', 'wtcl': "Weights + Full"}
+
 alpha = 0.05
 
 skip_users = []
-# remove users who are missing data (reward weight estimates)
+# remove users who are missing data (reward weight estimates and one of the final tests)
 skip_users.extend(['58aca85e0da7f10001de92d4', '602fb33786b077cdbad2d5bb'])
 # remove users who did not complete the study
 skip_users.extend(['614b55e22ff3944a165736bb', '5f0214e58782120a8c970fd6'])
+# remove users who restarted the study after a partial first attempt (weight only condition)
+skip_users.extend(['5cf7796a99ccba000193a8f1'])
+
+# the rationale for the users below are explained in the paper
 # remove users who perfectly went through the closed-loop teaching framework (and thus did not see any remedial instruction)
 skip_users.extend(['59dbbdce5de9b000017ebf19'])
 # remove users who underwent more than 3 std dev more interactions than the average in the closed-loop teaching framework
 skip_users.extend(['5ebd5fa512c47d04402403da'])
 
 # ---------------------------------- Data Processing ---------------------------------- #
+
+def safe_unpickle(x, default_value):
+    try:
+        return pickle.loads(x)
+    except Exception:
+        return default_value
 def get_data():
     conn = sqlite3.connect('app.db')
 
@@ -52,10 +61,12 @@ def get_data():
     df_users = pd.read_sql_query('SELECT * FROM user', conn)
     df_users['user_id'] = df_users['id'].astype(np.int64)
     df_users = df_users[df_users['study_completed'] != 0]
-    # df_users = df_users[df_users['username'].map(lambda d: d not in ['mt1', 'mt3'])]  # remove users who didn't complete the study
+    df_users = df_users[df_users['username'].map(lambda d: d not in skip_users)]
+    df_users['username'] = df_users.username.str.strip()
     df_users['unpickled_study_type'] = df_users['study_type'].apply(pickle.loads)
     df_users['unpickled_ethnicity'] = df_users['ethnicity'].apply(pickle.loads)
     df_users['unpickled_final_feedback'] = df_users['final_feedback'].apply(pickle.loads)
+    df_users['education'] = df_users['education'].apply(lambda x: min(x, 5))
 
     # only parse the columns that I want
     df_users = df_users[['username', 'consent', 'age', 'gender', 'unpickled_ethnicity', 'education', 'unpickled_final_feedback', 'loop_condition', 'domain_1', 'domain_2', 'domain_3', 'user_id']]
@@ -68,23 +79,63 @@ def get_data():
     df_trials['unpickled_human_model_pf_pos'] = df_trials['human_model_pf_pos'].apply(pickle.loads)
     df_trials['unpickled_mdp_parameters'] = df_trials['mdp_parameters'].apply(pickle.loads)
     df_trials['unpickled_reward_ft_weights'] = df_trials['reward_ft_weights'].apply(pickle.loads)
-    df_trials['unpickled_improvement_short_answer'] = df_trials['improvement_short_answer'].apply(pickle.loads)
+    df_trials['unpickled_improvement_short_answer'] = df_trials['improvement_short_answer'].apply(
+        lambda x: safe_unpickle(x, '')) # some data wasn't stored as bytes
     df_trials['unpickled_moves'] = df_trials['moves'].apply(pickle.loads)
     df_trials['test_difficulty'] = df_trials['unpickled_mdp_parameters'].apply(lambda x: x['test_difficulty'])
+    df_trials['tag'] = df_trials['unpickled_mdp_parameters'].apply(lambda x: x['tag'])
+    df_trials['opt_traj_reward'] = df_trials['unpickled_mdp_parameters'].apply(lambda x: x['opt_traj_reward'])
 
 
     # Set up Domain db (which contains the training likert scales)
     df_domain = pd.read_sql_query('SELECT * FROM domain', conn)
     df_domain['user_id'] = df_domain['user_id'].astype(np.int64)
     df_domain = df_domain[df_domain['user_id'].map(lambda d: d in df_users.user_id.unique())] # remove users who didn't complete the study
-    df_domain['unpickled_engagement_short_answer'] = df_domain['engagement_short_answer'].apply(pickle.loads)
+    df_domain['unpickled_engagement_short_answer'] = df_domain['engagement_short_answer'].apply(
+        lambda x: safe_unpickle(x, '')) # some data wasn't stored as bytes
+
     df_domain = df_domain[['user_id', 'domain', 'attn1', 'attn2', 'attn3', 'use1', 'use2', 'use3', 'understanding', 'unpickled_engagement_short_answer']]
+    # reverse the codes for use1, use2, use3
+    df_domain['use1'] = df_domain['use1'].apply(lambda x: 6 - x)
+    df_domain['use2'] = df_domain['use2'].apply(lambda x: 6 - x)
+    df_domain['use3'] = df_domain['use3'].apply(lambda x: 6 - x)
 
     df_trials = df_trials[df_trials.user_id.isin(df_users.user_id)]
     df_domain = df_domain[df_domain.user_id.isin(df_users.user_id)]
 
     df_trials = pd.merge(df_trials, df_users, on='user_id')
     df_domain = pd.merge(df_domain, df_users, on='user_id')
+
+    # individual data clean up
+    # user '6176b584db27cdcecc3896c8' (user id 299) wt only condition has a redundant high difficulty test recorded
+    df_trials = df_trials.drop(df_trials[(df_trials.username == '6176b584db27cdcecc3896c8') & (df_trials.test_difficulty == 'high')].index[4])
+    # user '64699c39810132db3b4250b1' (user id 303) wt only condition has a dud low difficulty test recorded
+    df_trials = df_trials.drop(df_trials[(df_trials.username == '64699c39810132db3b4250b1') & (df_trials.test_difficulty == 'low')].index[2])
+    # user '62b44f66a16d45783569fad6' (user id 155) has a duplicate row
+    df_domain = df_domain.drop(df_domain[df_domain.user_id == 155][:1].index)
+
+    # these people went through the study more than once (for curiosity's sake I'm guessing). remove the second time (all in the weight only condition)
+    repeat_usernames = ['5d5fc0ad29b1d80001430de0', '6527e1e86d48566d81c6557c', '6176b584db27cdcecc3896c8', '64699c39810132db3b4250b1', '6511e688100fd33b378fa688']
+    drop_indices_trials = []
+    for username in repeat_usernames:
+        drop_indices_trials.extend(
+            df_trials[(df_trials.username == username) & (df_trials.interaction_type == 'final test')].index[12:])
+    df_trials = df_trials.drop(drop_indices_trials)
+
+    drop_indices_domain = []
+    for username in repeat_usernames:
+        drop_indices_domain.extend(df_domain[(df_domain.username == username)].index[2:])
+    df_domain = df_domain.drop(drop_indices_domain)
+
+    # this person's data didn't get properly saved but they responded [-2, 1, -1] for the reward weights in a separate message on Prolific
+    df_trials = df_trials.copy()
+    missing_idx = (df_trials[df_trials.username == '5d49d17b3dad1f0001e2aba1'].interaction_type == 'final test').index[-1]
+    df_trials.iloc[missing_idx].unpickled_reward_ft_weights.append('-2')
+    df_trials.iloc[missing_idx].unpickled_reward_ft_weights.append('1')
+
+    # string versions of the loop conditions
+    df_trials['loop_condition_string'] = df_trials['loop_condition'].apply(lambda x: LOOP_MAPPING[x])
+    df_domain['loop_condition_string'] = df_domain['loop_condition'].apply(lambda x: LOOP_MAPPING[x])
 
     conn.close()
 
@@ -99,17 +150,20 @@ def id_to_frustration(id):
 
 def print_demographics(df_users):
     print("\n========== DEMOGRAPHICS ==========")
-    a = 2
 
-    print("Conditions Represented (want 64 of each): ")
+    print("Conditions Represented (want 68 of each): ")
     print(df_users.loop_condition.value_counts())
-    print("Conditions Represented (want 32 of each): ")
+    print("Conditions Represented (want 34 of each): ")
     print("cl: ")
     print(df_users[df_users.loop_condition == 'cl'].domain_1.value_counts())
     print("pl: ")
     print(df_users[df_users.loop_condition == 'pl'].domain_1.value_counts())
     print("open: ")
     print(df_users[df_users.loop_condition == 'open'].domain_1.value_counts())
+    print("wt: ")
+    print(df_users[df_users.loop_condition == 'wt'].domain_1.value_counts())
+    print("wtcl: ")
+    print(df_users[df_users.loop_condition == 'wtcl'].domain_1.value_counts())
 
     print("Ages (description)")
     ages = pd.to_numeric(df_users.age)
@@ -117,13 +171,130 @@ def print_demographics(df_users):
 
     print("Genders: ")
     gender_vals = [0, 0, 0, 0]
-    mapping = {0: 'Male', 1: 'Female', 2: 'Non-binary', 3: 'Prefer not to disclose'} # todo: change to 0, 1, 2, 3 for the new data
+    mapping = {0: 'Male', 1: 'Female', 2: 'Non-binary', 3: 'Prefer not to disclose'}
     answers = df_users.gender
     for answer in answers:
         gender_vals[int(answer)] += 1
 
     for idx, num in enumerate(gender_vals):
         print(mapping[idx] + " : " + str(num) + " (" + str(num / (np.sum(gender_vals))) + "%)")
+
+def validate_submissions(df_users, df_trials, df_domain, use_csv=False):
+    if use_csv:
+        usernames = []
+
+        # reading csv file
+        with open('prolific.csv', 'r') as csvfile:
+            # creating a csv reader object
+            csvreader = csv.reader(csvfile)
+
+            # extracting each data row one by one
+            for row in csvreader:
+                usernames.append(row[1])
+
+        # reward_weight_data = df_trials[df_trials['unpickled_reward_ft_weights'].map(lambda d: len(d) > 0)].unpickled_reward_ft_weights
+        # improvement_likert_data = df_trials[df_trials.likert > 0]
+
+        # first entry is the column title
+        usernames = usernames[1:]
+    else:
+        usernames = df_domain.username.unique()
+
+    reward_weight_data = df_trials[df_trials['unpickled_reward_ft_weights'].map(lambda d: len(d) > 0)].unpickled_reward_ft_weights
+    improvement_likert_data = df_trials[df_trials.likert > 0]
+
+    for j, username in enumerate(usernames):
+        flag = False
+
+        if sum(df_trials[df_trials.username == username].interaction_type == 'final test') != 12:
+            print("Has more or fewer than 12 tests")
+            flag = True
+
+        if len(df_domain[(df_domain.username == username)]) != 2:
+            print("Has more or fewer teaching surveys")
+            flag = True
+
+        if df_trials[df_trials.username == username].loop_condition.iloc[0] in ['cl', 'pl', 'open']:
+            if len(reward_weight_data[df_trials.username == username]) != 2:
+                print("Didn't complete all 2 reward weight tests")
+                flag = True
+
+            if len(improvement_likert_data[improvement_likert_data.username == username].likert) < 23:
+                print("Not enough improvement likert scales")
+                flag = True
+
+        if flag:
+            print(username)
+
+
+def print_means(data, dv, iv):
+    for i in data[iv].unique():
+        print("{} on {} mean: {}".format(i, dv, data[data[iv] == i][dv].mean()))
+
+def perform_mixed_anova(dv, within, subject, between, data):
+    aov = pg.mixed_anova(dv=dv, within=within, subject=subject, between=between,
+                      data=data, correction=True)
+
+    try: print(aov['p-GG-corr'])
+    except: print(aov['p-unc'])
+    pg.print_table(aov)
+
+    df_between = data.groupby('username').agg({
+        between: 'first',  # get the first loop_condition for each username
+        dv: 'mean'  # get the mean of reward_diff for each username
+    }).reset_index()
+
+    df_between_within = data.groupby(['username', within]).agg({
+        between: 'first',  # get the first loop_condition for each username
+        dv: 'mean'  # get the mean of reward_diff for each username
+    }).reset_index()
+
+    post_hoc(aov, 0, dv, between, df_between)
+    post_hoc(aov, 1, dv, within, df_between_within)
+
+    if within == 'domain':
+        data_at = data[data.domain == 'at']
+        data_loop_at = data_at.groupby('username').agg({
+            between: 'first',  # get the first loop_condition for each username
+            dv: 'mean'  # get the mean of reward_diff for each username
+        }).reset_index()
+
+        data_sb = data[data.domain == 'sb']
+        data_loop_sb = data_sb.groupby('username').agg({
+            between: 'first',  # get the first loop_condition for each username
+            dv: 'mean'  # get the mean of reward_diff for each username
+        }).reset_index()
+
+        print("at tukey")
+        post_hoc(aov, 2, dv, between, data_loop_at)
+
+        print("sb tukey")
+        post_hoc(aov, 2, dv, between, data_loop_sb)
+    else:
+        data_low = data[data.test_difficulty == 'low']
+        data_loop_low = data_low.groupby('username').agg({
+            between: 'first',  # get the first loop_condition for each username
+            dv: 'mean'  # get the mean of reward_diff for each username
+        }).reset_index()
+        data_medium = data[data.test_difficulty == 'medium']
+        data_loop_medium = data_medium.groupby('username').agg({
+            between: 'first',  # get the first loop_condition for each username
+            dv: 'mean'  # get the mean of reward_diff for each username
+        }).reset_index()
+        data_high = data[data.test_difficulty == 'high']
+        data_loop_high = data_high.groupby('username').agg({
+            between: 'first',  # get the first loop_condition for each username
+            dv: 'mean'  # get the mean of reward_diff for each username
+        }).reset_index()
+
+        print("low tukey")
+        post_hoc(aov, 2, dv, between, data_loop_low)
+
+        print("medium tukey")
+        post_hoc(aov, 2, dv, between, data_loop_medium)
+
+        print("high tukey")
+        post_hoc(aov, 2, dv, between, data_loop_high)
 
 
 # ---------------------------------- Subjective Metrics ---------------------------------- #
@@ -133,69 +304,207 @@ def print_demographics(df_users):
 def post_hoc(aov, location, dv, between, data):
     if ('p-GG-corr' in aov and aov['p-GG-corr'].iloc[location] < alpha) or ('p-GG-corr' not in aov and aov['p-unc'].iloc[location] < alpha):
         print('Reject H0: different distributions across {}. Perform post-hoc Tukey HSD.'.format(aov['Source'][location]))
-        try:
-            print("Corrected p-val: {}, DOF effect: {}, DOF error: {}, F: {}".format(aov['p-GG-corr'][location], aov['DF1'][location], aov['DF2'][location], aov['F'][location]))
-        except:
-            print("Uncorrected p-val: {}, DOF effect: {}, DOF error: {}, F: {}".format(aov['p-unc'][location], aov['DF1'][location], aov['DF2'][location], aov['F'][location]))
-
-        pt = pg.pairwise_tukey(dv=dv, between=between, data=data)
-        print(pt)
     else:
         print('Accept H0: Same distributions across {}.'.format(aov['Source'][location]))
+    try:
+        print("Corrected p-val: {}, DOF effect: {}, DOF error: {}, F: {}".format(aov['p-GG-corr'][location], aov['DF1'][location], aov['DF2'][location], aov['F'][location]))
+    except:
+        print("Uncorrected p-val: {}, DOF effect: {}, DOF error: {}, F: {}".format(aov['p-unc'][location], aov['DF1'][location], aov['DF2'][location], aov['F'][location]))
+
+    pt = pg.pairwise_tukey(dv=dv, between=between, data=data)
+    pg.print_table(pt)
 
 
-def compare_feedback_domain_on_performance(df_trials):
-    # todo: could consider analyzing the scaled rewards of answers rather than binary correctness
-
+def compare_feedback_domain_on_performance(df_trials, dv='is_opt_response', within='domain', plot=False):
     print("\n========== ANOVA: TEST DEMONSTRATION PERFORMANCE ==========")
-    aov = pg.mixed_anova(dv='is_opt_response', within='domain', subject='username', between='loop_condition',
-                      data=df_trials, correction=True)
 
-    post_hoc(aov, 0, 'is_opt_response', 'loop_condition', df_trials)
-    post_hoc(aov, 1, 'is_opt_response', 'domain', df_trials)
+    data = df_trials[df_trials.interaction_type == 'final test']
+    perform_mixed_anova(dv, within, 'username', 'loop_condition', data)
 
-    if ('p-GG-corr' in aov and aov['p-GG-corr'].iloc[2] < alpha) or ('p-GG-corr' not in aov and aov['p-unc'].iloc[2] < alpha):
-        print("There is an interaction effect between {} and {}! Check out manually".format(aov['Source'][0], aov['Source'][1]))
-    else:
-        print("There is no interaction effect between {} and {}".format(aov['Source'][0], aov['Source'][1]))
+    if plot:
+        data = df_trials[df_trials.interaction_type == 'final test']
+        ax = sns.barplot(data, x='loop_condition_string', y=dv, errorbar='ci',
+                         order=["Open", "Partial", "Full"])
+        ax.set(xlabel='Feedback Loop', ylabel='Average Reward Gap of Human Test Responses')
+        ax.set(title='Effect of Feedback Loop on Reward Gap of Human Test Responses')
+        # ax.set_ylim(0, 0.55) # for reward gap
+        ax.set_ylim(0, 1)      # for scaled reward
+        plt.show()
 
-def compare_feedback_domain_on_engagement(df_domain):
-    print("\n========== ANOVA: ENGAGEMENT ==========")
 
+def compare_feedback_domain_on_engagement(df_domain, within='domain', plot=False):
     df_domain_engagement = pd.DataFrame(
-        columns=['username', 'domain', 'loop_condition', 'engagement'])
+        columns=['username', within, 'loop_condition', 'loop_condition_string', 'engagement', 'attn', 'use'])
+
+    for username in np.unique(df_domain.username):
+        for domain in np.unique(df_domain.domain):
+            engagement = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn2 + \
+                        df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use1 + \
+                        df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use2 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use3) / 6
+
+            attn = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn2 + \
+                        df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3) / 3
+
+            use = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use1 + \
+                        df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use2 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use3) / 3
+
+            loop_condition = df_domain[df_domain.username == username].loop_condition.values[0]
+            loop_condition_string = df_domain[df_domain.username == username].loop_condition_string.values[0]
+
+            df_domain_engagement = pd.concat((df_domain_engagement, pd.DataFrame({'username': username, 'loop_condition': loop_condition, 'domain': domain,
+                               'loop_condition_string': loop_condition_string, 'engagement': engagement, 'attn': attn, 'use': use})), axis=0, ignore_index=True)
+
+    print("\n============================== ANOVA: ENGAGEMENT ==============================")
+    print_means(df_domain_engagement, 'engagement', 'loop_condition')
+    perform_mixed_anova(dv='engagement', within=within, subject='username', between='loop_condition',
+                        data=df_domain_engagement)
+    print("\n============================== ANOVA: ATTENTION ==============================")
+    print_means(df_domain_engagement, 'attn', 'loop_condition')
+    perform_mixed_anova(dv='attn', within=within, subject='username', between='loop_condition',
+                        data=df_domain_engagement)
+    print("\n============================== ANOVA: USE ==============================")
+    print_means(df_domain_engagement, 'use', 'loop_condition')
+    perform_mixed_anova(dv='use', within=within, subject='username', between='loop_condition',
+                        data=df_domain_engagement)
+
+    if plot:
+        ax = sns.barplot(df_domain_engagement[df_domain_engagement.domain == 'at'], x='loop_condition_string', y='use',
+                         errorbar='ci',
+                         order=["Open", "Partial", "Full"])
+        ax.set(xlabel='Feedback Loop', ylabel='Perceived Usability')
+        ax.set(title='Effect of Feedback Loop on Perceived Usability (Delivery Domain)')
+        ax.set_ylim(-3.5, 0)
+        plt.show()
+
+def plot_joint(df_trials, df_domain, within='domain', between='reward_diff'):
+    df_domain_engagement = pd.DataFrame(
+        columns=['username', within, 'loop_condition', 'loop_condition_string', 'engagement', 'attn', 'use', between])
+
     for username in np.unique(df_domain.username):
         for domain in np.unique(df_domain.domain):
             engagement = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn2 + \
                         df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3 - df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use1 - \
                         df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use2 - df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use3) / 6
 
+            attn = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn2 + \
+                        df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3) / 3
+
+            use = (-df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use1 - \
+                        df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use2 - df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use3) / 3
+
             loop_condition = df_domain[df_domain.username == username].loop_condition.values[0]
+            loop_condition_string = df_domain[df_domain.username == username].loop_condition_string.values[0]
+
+            if between == 'reward_diff':
+                between_val = np.mean(
+                    df_trials[(df_trials.username == username) & (df_trials.domain == domain)].reward_diff)
+            elif between == 'regret_norm':
+                between_val = np.mean(
+                    df_trials[(df_trials.username == username) & (df_trials.domain == domain)].regret_norm)
+            else:
+                raise ValueError("Invalid between-subjects variable")
 
             df_domain_engagement = pd.concat((df_domain_engagement, pd.DataFrame({'username': username, 'loop_condition': loop_condition, 'domain': domain,
-                               'engagement': engagement})), axis=0, ignore_index=True)
+                               'loop_condition_string': loop_condition_string, 'engagement': engagement, 'attn': attn, 'use': use, between: between_val})), axis=0, ignore_index=True)
 
-    print("\n========== ANOVA: ENGAGEMENT ==========")
-    aov = pg.mixed_anova(dv='engagement', within='domain', subject='username', between='loop_condition',
-                      data=df_domain_engagement, correction=True)
 
-    post_hoc(aov, 0, 'engagement', 'loop_condition', df_domain_engagement)
-    post_hoc(aov, 1, 'engagement', 'domain', df_domain_engagement)
+    # Increase the font size for all text elements
+    plt.rcParams.update({'font.size': 14})
+    bar_width = 0.7
+    subtitle_font_size = 14
+    fig, axs = plt.subplots(ncols=2, figsize=(7, 6))  # Adjust the figure size
 
-    if ('p-GG-corr' in aov and aov['p-GG-corr'].iloc[2] < alpha) or ('p-GG-corr' not in aov and aov['p-unc'].iloc[2] < alpha):
-        print("There is an interaction effect between {} and {}! Check out manually".format(aov['Source'][0], aov['Source'][1]))
+    df_trials = df_trials[df_trials.interaction_type == 'final test']
+    sns.barplot(data=df_trials, x='loop_condition_string', y='regret_norm', ax=axs[0], errorbar='ci',
+                order=["Open", "Partial", "Full"], width=bar_width)  # Adjust the bar width
+    axs[0].set(xlabel='Feedback Loop', ylabel='Normalized Regret of Human Test Responses')
+    axs[0].set_title('Feedback Loop on Normalized Regret \n of Human Test Responses', fontsize=subtitle_font_size)
+    axs[0].set_ylim(0, 0.4)
+
+    df_domain_engagement = df_domain_engagement[df_domain_engagement.domain == 'at']
+    sns.barplot(data=df_domain_engagement, x='loop_condition_string', y='use', ax=axs[1],
+                errorbar='ci', order=["Open", "Partial", "Full"], width=bar_width)  # Adjust the bar width
+    axs[1].set(xlabel='Feedback Loop', ylabel='Perceived Usability')
+    axs[1].set_title('Feedback Loop on Perceived \n Usability (Delivery Domain)', fontsize=subtitle_font_size)
+    axs[1].set_ylim(-3.5, 0)
+
+    # plt.suptitle('Effect of Feedback Loop', fontsize=16)
+    plt.tight_layout()
+    plt.show()
+
+
+def compare_feedback_domain_on_understanding(df_domain, within='domain'):
+
+    df_between = df_domain.groupby('username').agg({
+        'loop_condition': 'first',  # get the first loop_condition for each username
+        'understanding': 'median'  # get the mean of reward_diff for each username
+    }).reset_index()
+
+    kruskal = pg.kruskal(dv='understanding', between='loop_condition', data=df_between)
+    pg.print_table(kruskal)
+
+    if kruskal['p-unc'][0] < alpha:
+        print("There is a significant difference of feedback loop on understanding!")
+        print("mean understanding for open: {}".format(
+            np.mean(df_between[df_between.loop_condition == 'open'].understanding)))
+        print("mean understanding for pl: {}".format(
+            np.mean(df_between[df_between.loop_condition == 'pl'].understanding)))
+        print("mean understanding for cl: {}".format(
+            np.mean(df_between[df_between.loop_condition == 'cl'].understanding)))
+        print("mean understanding for wt: {}".format(
+            np.mean(df_between[df_between.loop_condition == 'wt'].understanding)))
+
     else:
-        print("There is no interaction effect between {} and {}".format(aov['Source'][0], aov['Source'][1]))
+        print("There is no significant difference of feedback loop on understanding!")
+
+    pg_wilcoxon = pg.wilcoxon(df_domain[df_domain.domain == 'at'].understanding, df_domain[df_domain.domain == 'sb'].understanding)
+    pg.print_table(pg_wilcoxon)
+
+    scipy_wilcoxon = wilcoxon(df_domain[df_domain.domain == 'at'].understanding, df_domain[df_domain.domain == 'sb'].understanding, method='approx')
+    print("z-statistic: {}".format(scipy_wilcoxon.zstatistic))
 
 
-def compare_feedback_on_improvement(df_trials):
+    if pg_wilcoxon['p-val'][0] < alpha:
+        print("There is a significant difference of domain on understanding!")
+        print("mean understanding for taxi: {}".format(
+            np.mean(df_domain[df_domain.domain == 'at'].understanding)))
+        print("mean understanding for skateboard: {}".format(
+            np.mean(df_domain[df_domain.domain == 'sb'].understanding)))
+
+        print("median understanding for taxi: {}".format(
+            np.median(df_domain[df_domain.domain == 'at'].understanding)))
+        print("median understanding for skateboard: {}".format(
+            np.median(df_domain[df_domain.domain == 'sb'].understanding)))
+    else:
+        print("There is no significant difference of domain on understanding!")
+
+    # for analyzing just cl vs wt (which doesn't require an omnibus test like kruskal)
+    pg_wilcoxon = pg.wilcoxon(df_domain[df_domain.loop_condition == 'cl'].understanding, df_domain[df_domain.loop_condition == 'wt'].understanding)
+    pg.print_table(pg_wilcoxon)
+
+    scipy_wilcoxon = wilcoxon(df_domain[df_domain.loop_condition == 'cl'].understanding, df_domain[df_domain.loop_condition == 'wt'].understanding, method='approx')
+    print("z-statistic: {}".format(scipy_wilcoxon.zstatistic))
+
+    if pg_wilcoxon['p-val'][0] < alpha:
+        print("There is a significant difference of domain on understanding!")
+        print("mean understanding for cl: {}".format(
+            np.mean(df_domain[df_domain.loop_condition == 'cl'].understanding)))
+        print("mean understanding for wt: {}".format(
+            np.mean(df_domain[df_domain.loop_condition == 'wt'].understanding)))
+    else:
+        print("There is no significant difference of domain on understanding!")
+
+
+def compare_feedback_on_improvement(df_trials, within='domain'):
     print("\n========== KRUSKAL: IMPROVEMENT SUBJECTIVE RATING ==========")
 
     # check if feedback affects ratings on improvement
     data = df_trials[df_trials.likert > 0]
 
+    print_means(data, 'likert', 'loop_condition')
+
     df_trials_improvement = pd.DataFrame(
-        columns=['username', 'domain', 'loop_condition', 'median_improvement'])
+        columns=['username', within, 'loop_condition', 'median_improvement'])
 
     for username in np.unique(data.username):
         for domain in np.unique(data.domain):
@@ -206,58 +515,11 @@ def compare_feedback_on_improvement(df_trials):
             df_trials_improvement = pd.concat([df_trials_improvement, pd.DataFrame([{'username': username, 'loop_condition': loop_condition, 'domain': domain,
                                    'median_improvement': median_improvement}])], ignore_index=True)
 
-    data_at = df_trials_improvement[df_trials_improvement.domain == 'at']
-    kruskal = pg.kruskal(dv='median_improvement', between='loop_condition',
-                         data=data_at)
-
-    if kruskal['p-unc'][0] < alpha / 2:
-        print("There is a significant difference on {} between the {} conditions for taxi!".format('median_improvement', 'loop'))
-
-        # if the anova is significant, run a post-hoc test (per domain)
-        mwu = pg.mwu(data_at[data_at.loop_condition == 'cl'].median_improvement,
-                     data_at[data_at.loop_condition == 'open'].median_improvement)
-        print(mwu)
-        mwu = pg.mwu(data_at[data_at.loop_condition == 'cl'].median_improvement,
-                     data_at[data_at.loop_condition == 'pl'].median_improvement)
-        print(mwu)
-        mwu = pg.mwu(data_at[data_at.loop_condition == 'pl'].median_improvement,
-                     data_at[data_at.loop_condition == 'open'].median_improvement)
-        print(mwu)
-    else:
-        print("There is no significant difference on {} between the {} conditions for taxi".format(
-            'median_improvement', 'loop'))
+    perform_mixed_anova('likert', within, 'username', 'loop_condition', data)
 
 
-    data_sb = df_trials_improvement[df_trials_improvement.domain == 'sb']
-    kruskal = pg.kruskal(dv='median_improvement', between='loop_condition',
-                         data=data_sb)
-
-    if kruskal['p-unc'][0] < alpha / 2:
-        print("There is a significant difference on {} between the {} conditions for skateboard!".format('median_improvement', 'loop'))
-
-        # if the anova is significant, run a post-hoc test (per domain)
-        mwu = pg.mwu(data_sb[data_sb.loop_condition == 'cl'].median_improvement,
-                     data_sb[data_sb.loop_condition == 'open'].median_improvement)
-        print(mwu)
-        mwu = pg.mwu(data_sb[data_sb.loop_condition == 'cl'].median_improvement,
-                     data_sb[data_sb.loop_condition == 'pl'].median_improvement)
-        print(mwu)
-        mwu = pg.mwu(data_sb[data_sb.loop_condition == 'pl'].median_improvement,
-                     data_sb[data_sb.loop_condition == 'open'].median_improvement)
-        print(mwu)
-    else:
-        print("There is no significant difference on {} between the {} conditions for skateboard".format(
-            'median_improvement', 'loop'))
-
-
-def calculate_avg_num_interactions(df_trials):
-    print("\n========== AVERAGE & MEDIAN NUMBER OF INTERACTIONS ==========")
-
-    # calculate the average number of interactions for the closed-loop condition
-    avg_interactions_at = np.sum(df_trials[(df_trials.domain == 'at') & (df_trials.loop_condition == 'cl')].interaction_type != 'final test') / len(
-        df_trials[df_trials.loop_condition == 'cl'].username.unique())
-    avg_interactions_sb = np.sum(df_trials[(df_trials.domain == 'sb') & (df_trials.loop_condition == 'cl')].interaction_type != 'final test') / len(
-        df_trials[df_trials.loop_condition == 'cl'].username.unique())
+def calculate_median_num_interactions(df_trials):
+    print("\n========== MEDIAN NUMBER OF INTERACTIONS ==========")
 
     exclude = ['diagnostic feedback', 'remedial feedback', 'final test']
 
@@ -265,6 +527,7 @@ def calculate_avg_num_interactions(df_trials):
     num_interactions_at = []
     num_interactions_sb = []
     perfect_training = []
+    perfect_interactions_at_usernames = []
     for username in df_trials[df_trials.loop_condition == 'cl'].username.unique():
         num_interactions_at_user = sum(~df_trials[(df_trials.domain == 'at') & (
                 df_trials.loop_condition == 'cl') & (df_trials.username == username)].interaction_type.isin(exclude))
@@ -275,10 +538,8 @@ def calculate_avg_num_interactions(df_trials):
 
         if num_interactions_at_user == 9 and num_interactions_sb_user == 14:
             perfect_training.append(username)
-
-    # calculate the average and median number of interactions for each domain
-    print("Avg number of closed-loop interactions for taxi: {}".format(avg_interactions_at))
-    print("Avg number of closed-loop interactions for skateboard: {}".format(avg_interactions_sb))
+        if num_interactions_at_user == 9:
+            perfect_interactions_at_usernames.append(username)
 
     median_interactions_at = np.median(num_interactions_at)
     median_interactions_sb = np.median(num_interactions_sb)
@@ -300,19 +561,9 @@ def calculate_avg_num_interactions(df_trials):
     print("People who went through both median training: {}".format(perfect_training))
 
 
-def compare_education_domain_on_performance(df_trials):
-    print("\n========== ANOVA: EDUCATION ON TEST DEMONSTRATION PERFORMANCE ==========")
-    aov = pg.mixed_anova(dv='is_opt_response', within='domain', subject='username', between='education',
-                         data=df_trials, correction=True)
-
-    post_hoc(aov, 0, 'is_opt_response', 'education', df_trials)
-    post_hoc(aov, 1, 'is_opt_response', 'domain', df_trials)
-
-    if ('p-GG-corr' in aov and aov['p-GG-corr'].iloc[2] < alpha) or ('p-GG-corr' not in aov and aov['p-unc'].iloc[2] < alpha):
-        print("There is an interaction effect between {} and {}! Check out manually".format(aov['Source'][0], aov['Source'][1]))
-    else:
-        print("There is no interaction effect between {} and {}".format(aov['Source'][0], aov['Source'][1]))
-
+def compare_education_domain_on_performance(df_trials, dv='is_opt_response'):
+    data = df_trials[df_trials.interaction_type == 'final test']
+    perform_mixed_anova(dv, 'domain', 'username', 'education', data)
 
 def composition_closed_loop(df_trials, summation=True):
     '''Calculate the composition of the closed-loop condition (i.e., how many users did the demo, test, feedback)'''
@@ -336,27 +587,14 @@ def composition_closed_loop(df_trials, summation=True):
                 if domain == 'at':
                     print(df_trials[(df_trials.username == username) & (df_trials.domain == domain)].interaction_type)
 
-def individual_performances(df_trials):
-    counter = 0
-    for username in df_trials.username.unique():
-        for domain in df_trials.domain.unique():
-            if len(df_trials[(df_trials.username == username) & (df_trials.domain == domain)]) > 0:
-                print("Performance for {} on {}: {}".format(username, domain, np.sum(df_trials[(df_trials.username == username) & (df_trials.domain == domain) & (df_trials.interaction_type == 'final test')].is_opt_response) / len(df_trials[(df_trials.username == username) & (df_trials.domain == domain) & (df_trials.interaction_type == 'final test')])))
-                counter += 1
-
-    print("Number of people who completed both domains: {}".format(counter))
-
 def individual_reward_weight_predictions(df_trials):
     data = df_trials[df_trials['unpickled_reward_ft_weights'].map(lambda d: len(d) > 0)].unpickled_reward_ft_weights
     for username in df_trials.username.unique():
         for domain in df_trials.domain.unique():
             if len(df_trials[(df_trials.username == username) & (df_trials.domain == domain)]) > 0:
-                # this person's data didn't get properly saved but they responded [-2, 1, -1] for the reward weights separately
-                if username in ['5d49d17b3dad1f0001e2aba1']:
-                    continue
+
                 print("Estimation for {} on {}: {}".format(username, domain, data[
                     (df_trials.username == username) & (df_trials.domain == domain)].iloc[0]))
-
 
 def print_qualitative_feedback(df_trials, df_users, df_domain):
     print("\n========== QUALITATIVE FEEDBACK ==========")
@@ -369,95 +607,50 @@ def print_qualitative_feedback(df_trials, df_users, df_domain):
         lambda d: len(d) > 0)]
 
     data.style.set_properties(**{'text-align': 'left'})
+    data_domain.style.set_properties(**{'text-align': 'left'})
+    data_users.style.set_properties(**{'text-align': 'left'})
+
     pd.set_option('display.max_colwidth', None)
-    width = data['unpickled_improvement_short_answer'].str.len().max()
+
+    width = max(data['unpickled_improvement_short_answer'].str.len().max(), data_domain['unpickled_engagement_short_answer'].str.len().max(), data_users['unpickled_final_feedback'].str.len().max())
     data2 = data.copy()
     data2['unpickled_improvement_short_answer'] = data['unpickled_improvement_short_answer'].str.ljust(width)
+    data_domain2 = data_domain.copy()
+    data_domain2['unpickled_engagement_short_answer'] = data_domain['unpickled_engagement_short_answer'].str.ljust(width)
+    data_users2 = data_users.copy()
+    data_users2['unpickled_final_feedback'] = data_users['unpickled_final_feedback'].str.ljust(width)
 
-    for username in df_trials.username.unique():
-        # print("Username: {}".format(username))
-        if len(data2[data.username == username].unpickled_improvement_short_answer) > 0:
-            print(data2[data.username == username].unpickled_improvement_short_answer)
-        if len(data_domain[data_domain.username == username].unpickled_engagement_short_answer) > 0:
-            print(data_domain[data_domain.username == username].unpickled_engagement_short_answer)
-        if len(data_users[data_users.username == username].unpickled_final_feedback) > 0:
-            print(data_users[data_users.username == username].unpickled_final_feedback)
+    for loop_condition in df_trials.loop_condition.unique():
+        print("===================================== Loop condition: {} =====================================".format(
+            loop_condition))
+        if len(data_users2[data_users2.loop_condition == loop_condition].unpickled_final_feedback) > 0:
+            print(data_users2[data_users2.loop_condition == loop_condition].unpickled_final_feedback)
+        for domain in df_trials.domain.unique():
+            print(
+                "===================================== Domain condition: {} =====================================".format(
+                    domain))
+
+            if len(data2[(data2.loop_condition == loop_condition) & (data2.domain == domain)].unpickled_improvement_short_answer) > 0:
+                print(data2[(data2.loop_condition == loop_condition) & (data2.domain == domain)].unpickled_improvement_short_answer)
+            if len(data_domain2[(data_domain2.loop_condition == loop_condition) & (data_domain2.domain == domain)].unpickled_engagement_short_answer) > 0:
+                print(data_domain2[(data_domain2.loop_condition == loop_condition) & (data_domain2.domain == domain)].unpickled_engagement_short_answer)
+
+    # # by username
+    # for username in df_trials.username.unique():
+    #     # print("Username: {}".format(username))
+    #     if len(data2[data.username == username].unpickled_improvement_short_answer) > 0:
+    #         print(data2[data.username == username].unpickled_improvement_short_answer)
+    #     if len(data_domain[data_domain.username == username].unpickled_engagement_short_answer) > 0:
+    #         print(data_domain[data_domain.username == username].unpickled_engagement_short_answer)
+    #     if len(data_users[data_users.username == username].unpickled_final_feedback) > 0:
+    #         print(data_users[data_users.username == username].unpickled_final_feedback)
+
 
 def analyze_time_spent(df_trials):
     np.mean(df_trials[df_trials.interaction_type == 'final test'].duration_ms) / 1000
 
-# ---------------------------------- Running the Analysis ---------------------------------- #
-
-if __name__ == '__main__':
-    # If we are getting the data from theorem, we should process it this way
-    # if sys.argv[1] == 'remote':
-    #     FLAG_LOCAL_VERSION = False
-    #     data = get_data()
-    df_users, df_trials, df_domain = get_data()
-
-    #------------------------ helper functions ------------------------#
-    calculate_avg_num_interactions(df_trials)
-
-    print_demographics(df_users)
-
-    #------------------------ descriptive statistics ------------------------#
-    individual_performances(df_trials)
-    individual_reward_weight_predictions(df_trials)
-    # print_qualitative_feedback(df_trials, df_users, df_domain)
-
-
-    # ------------------------ primary analyses ------------------------#
-
-    # compare effect of feedback and domain on performance
-    compare_feedback_domain_on_performance(df_trials)
-
-    # compare effect of feedback and domain on engagement
-    compare_feedback_domain_on_engagement(df_domain)
-
-    # compare effect of feedback and domain on improvement
-    compare_feedback_on_improvement(df_trials)
-
-
-    #------------------------ secondary analyses ------------------------#
-
-    # compare effect of education on performance
-    compare_education_domain_on_performance(df_trials)
-
-    # composition of closed-loop per domain
-    # composition_closed_loop(df_trials, summation=False)
-
-    # time spent
-    analyze_time_spent(df_trials)
-
-    # estimating reward weights (IRL)
+def analyze_reward_weights(df_trials):
     df_trials[df_trials['unpickled_reward_ft_weights'].map(lambda d: len(d) > 0)].unpickled_reward_ft_weights
-
-
-
-
-
-
-
-
-
-    #
-    # data = df_trials
-    # df_trials_reward_weights = pd.DataFrame(
-    #     columns=['username', 'domain', 'loop_condition', 'median_improvement'])
-    #
-    # for username in np.unique(data.username):
-    #     for domain in np.unique(data.domain):
-    #
-    #         median_improvement = float(np.median(data[(data.username == username) & (data.domain == domain)].likert))
-    #
-    #         loop_condition = data[data.username == username].loop_condition.values[0]
-    #
-    #         df_trials_reward_weights = pd.concat([df_trials_reward_weights, pd.DataFrame(
-    #             [{'username': username, 'loop_condition': loop_condition, 'domain': domain,
-    #               'median_improvement': median_improvement}])], ignore_index=True)
-    #
-    #
-    #
     df_trials_reward_weights = df_trials[df_trials['unpickled_reward_ft_weights'].map(lambda d: len(d) > 0)].copy()
     def normalize_reward_weights(weights):
         normalized_weights = np.array([[float(weights[0]), float(weights[1]), -1]])
@@ -466,6 +659,106 @@ if __name__ == '__main__':
 
     df_trials_reward_weights['scaled_reward_ft_weights'] = df_trials_reward_weights['unpickled_reward_ft_weights'].apply(normalize_reward_weights)
 
+    sb_gt_weights = np.array([[0.59565914, 0.3519804, -0.72201107]])
+    at_gt_weights = np.array([[-0.63599873, 0.74199852, -0.21199958]])
+
+    def correct_sign(data, iv, gt_weights):
+        gt_sign = np.sign(gt_weights)
+        for condition in np.unique(data[iv]):
+            print(condition)
+            incorrect_sign_ct, correct_sign_ct = 0, 0
+            data_condition = data[data[iv] == condition]
+            for i in range(len(data_condition)):
+                if (np.sign(data_condition.iloc[i].scaled_reward_ft_weights) == gt_sign).all():
+                    correct_sign_ct += 1
+                else:
+                    incorrect_sign_ct += 1
+
+            print('correct sign: ', correct_sign_ct)
+            print('incorrect sign: ', incorrect_sign_ct)
+
+    correct_sign(df_trials_reward_weights[df_trials_reward_weights.domain == 'at'], 'loop_condition', at_gt_weights)
+    correct_sign(df_trials_reward_weights[df_trials_reward_weights.domain == 'sb'], 'loop_condition', sb_gt_weights)
+
+    # if I want to see how many estimates belong in the BEC area
     # BEC_helpers.sample_human_models_uniform([np.array([[0, 0, -1]])], 50)
     at_BEC_constraints = [np.array([[1, 1, 0]]), np.array([[-1, 0, 2]]), np.array([[0, -1, -4]])]
     sb_BEC_constraints = [np.array([[5, 2, 5]]), np.array([[-6,  4, -3]]), np.array([[ 3, -3,  1]])]
+
+
+# ---------------------------------- Running the Analysis ---------------------------------- #
+
+if __name__ == '__main__':
+    get_remote = False
+
+    if get_remote:
+        df_users, df_trials, df_domain = get_data()
+        with open('dfs_f23.pickle', 'wb') as f:
+            pickle.dump((df_users, df_trials, df_domain), f)
+    else:
+        with open('dfs_f23_processed.pickle', 'rb') as f:
+            df_users, df_trials, df_domain = pickle.load(f)
+
+    # ------------------------ helper functions ------------------------#
+    # validate_submissions(df_users, df_trials, df_domain, get_remote)
+
+    # calculate_median_num_interactions(df_trials)
+
+    # print_demographics(df_users)
+
+
+
+    # ------------------------ data selection ------------------------#
+    # if I'm interested in only considering a subset of the full dataset
+    # RA-L
+    df_trials = df_trials[(df_trials.loop_condition == 'cl') | (df_trials.loop_condition == 'pl') | (df_trials.loop_condition == 'open')]
+    df_domain = df_domain[(df_domain.loop_condition == 'cl') | (df_domain.loop_condition == 'pl') | (df_domain.loop_condition == 'open')]
+
+    # just ct and wt
+    # df_trials = df_trials[(df_trials.loop_condition == 'cl') | (df_trials.loop_condition == 'wt')]
+    # df_domain = df_domain[(df_domain.loop_condition == 'cl') | (df_domain.loop_condition == 'wt')]
+
+
+
+    #------------------------ descriptive statistics ------------------------#
+    # individual_performances(df_trials, 'scaled_diff')
+    # individual_reward_weight_predictions(df_trials)
+    # print_qualitative_feedback(df_trials, df_users, df_domain)
+
+    # ------------------------ primary analyses ------------------------#
+
+    # compare effect of feedback and domain on performance
+    # compare_feedback_domain_on_performance(df_trials, dv='regret_norm')
+
+    # compare effect of feedback and domain on engagement
+    # compare_feedback_domain_on_engagement(df_domain, plot=False)
+
+    # compare effect of feedback and domain on improvement
+    # compare_feedback_on_improvement(df_trials)
+
+    # compare effect of feedback and domain on understanding
+    # compare_feedback_domain_on_understanding(df_domain)
+
+    # plot_joint(df_trials, df_domain, between='regret_norm')
+
+    #------------------------ secondary analyses ------------------------#
+
+    # compare effect of education on performance
+    # compare_education_domain_on_performance(df_trials, 'regret_norm')
+
+    # compare effect of feedback and domain on performance
+    # compare_feedback_domain_on_performance(df_trials, 'regret_norm', within='test_difficulty')
+
+    # composition of closed-loop per domain
+    # composition_closed_loop(df_trials, summation=False)
+
+    # time spent
+    # analyze_time_spent(df_trials)
+
+    # estimating reward weights (IRL)
+    # analyze_reward_weights(df_trials)
+
+    # todo: other potential analyses
+    #  1. some people take a long time and some people take a short time (can compare the duration -and the number of pages total). is there a difference in performance?
+    #  2. how many diagnostic tests were answered correctly but rated as unhelpful for improving their understanding of the game strategy?
+    #  3. how many people said that they understood the game strategy but did poorly on the final tests?

@@ -15,6 +15,17 @@
     <link rel="stylesheet" href="/static/css/jspsych.css" type="text/css" />
   </head>
   <body>
+
+    <style>
+    table {
+        /* #font-size: 0.8em; /* Reduce font size */
+        padding: 0; /* Remove padding */
+        margin: 0; /* Remove margin */
+        line-height: 1; /* Reduce line height */
+    }
+</style>
+
+
     <div class="container-fluid" style="padding-left: 5%; padding-right: 5%">
     <div id="container-instructions" class="text-center">
     <!-- non button section, id'd by non-buttons, should be entirely replaced by
@@ -34,7 +45,18 @@
         <!--<h2 id="debug"></h2><br><br><br>-->
         <div class="row justify-content-around">
             <canvas id="game" width="750" height="550"></canvas>
-            <div id="table_controlinfo"></div>
+            <div id="container">
+                <div id="table_controlinfo"></div>
+                <div id="reward_weight_table"><br>
+            <table width="500">
+                <tr><th>Actions</th><th>Energy change</th></tr>
+                <tr><td>Moving with the orange rectangle grabbed</td><td>+ 0.825%</td></tr>
+                <tr><td>Moving out of a purple square</td><td>+ 0.4875%</td></tr>
+                <tr><td>Any action that you take</td><td>- 1%</td></tr>
+            </table>
+            <br></div>
+
+            </div>
         </div>
         <div id="feedback"></div>
         <div id="survey">
@@ -247,18 +269,18 @@
             }
         else if ((interaction_type == "diagnostic test") || (interaction_type == "remedial test") || (interaction_type == "final test")) {
                 if (localStorage.getItem("already completed") == 'true') {
-                     $("#table_controlinfo").replaceWith(`<div><br><br><br>
+                     $("#table_controlinfo").replaceWith(`<div><br><br>
         <table width="500">
-            <tr><th>Key</th><th>Action</th></tr>
+            <tr><th>Key</th><th>Effect</th></tr>
             <tr><td>space bar</td><td>next movement</td></tr>
             <tr><td>r</td><td>reset simulation</td></tr>
         </table>
         <br></div>`);
                 }
                 else {
-                    $("#table_controlinfo").replaceWith(`<div><br><br><br><br>
+                    $("#table_controlinfo").replaceWith(`<div><br>
         <table width="500">
-            <tr><th>Key</th><th>Action</th></tr>
+            <tr><th>Key</th><th>Effect</th></tr>
             <tr><td>up/down/left/right arrow keys</td><td>corresponding movement</td></tr>
             <tr><td>g</td><td>grab</td></tr>
             <tr><td>d</td><td>drop</td></tr>
@@ -268,7 +290,11 @@
                 }
                 if (interaction_type == "final test") {
                     $("#header").replaceWith('<h1>Strategy assessment (' + (Number(localStorage.getItem("iteration")) + 1).toString() + '/6)</h1>');
-                    $("#info_main").replaceWith('<h3>Chip has finished teaching the strategy -- let\'s see how much you learned!<br>Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.<br>(We\'ll reveal which and how many of the six tests you answered correctly after the final one.)');
+                    // cl, pl, open, wtcl
+                    //$("#info_main").replaceWith('<h3>Chip has finished teaching the strategy -- let\'s see how much you learned!<br>Please demonstrate how you would complete this game\'s task while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.<br>(We\'ll reveal which and how many of the six tests you answered correctly after the final one.)');
+                    // wt
+                    $("#info_main").replaceWith('<h3>Chip has finished teaching the strategy -- let\'s see how much you learned!<br>Please demonstrate how you would complete this <b>game\'s task (moving into the grey square)</b> <br>' +
+                        'while minimizing Chips energy loss.</h3>You <b>may reset</b> at any time <b>before the game ends</b> if think you have made a mistake.<br>(We\'ll reveal which and how many of the six tests you answered correctly after the final one.)');
                 } else if (interaction_type == "diagnostic test") {
                     $("#header").replaceWith('<h1>Check-in test</h1>');
                     if (localStorage.getItem("already completed") == 'true') {
@@ -287,9 +313,9 @@
                     }                }
             }
         else {
-            $("#table_controlinfo").replaceWith(`<div><br><br><br>
+            $("#table_controlinfo").replaceWith(`<div><br><br>
         <table width="500">
-            <tr><th>Key</th><th>Action</th></tr>
+            <tr><th>Key</th><th>Effect</th></tr>
             <tr><td>space bar</td><td>next movement</td></tr>
             <tr><td>r</td><td>reset simulation</td></tr>
         </table>
@@ -964,15 +990,13 @@
                         document.getElementById('score_val2').innerHTML = score
 
                         // exploratory data collection on whether people are able to explicitly predict the weights
-                        $("#survey").html("<br><h3>Finally, please provide your best guess of energy change of the actions below (the last one is given and decimals are allowed!):</h3><table class='center'><tr><th>Action</th><th>Sample sequence(s)</th><th>Energy change</th></tr><tr><td>Moving with the orange rectangle grabbed</td><td><img src = 'static/img/skateboard2_skateboard2.png' width='75' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/skateboard2_skateboard3.png' width='75' height=auto /></td><td><input id='reward_ft_wt_1' type='number' style='width: 4em;'</>%</td></tr><tr><td>Moving <u>out of</u> a purple square (e.g. into purple <u>or</u> white square)</td><td><img src = 'static/img/skateboard2_purple1.png' width='150' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/skateboard2_purple2.png' width='150' height=auto /></td><td><input id='reward_ft_wt_2' type='number' style='width: 4em;'</>%</td></tr><tr><td>Any action that you take (e.g. moving right, grabbing, etc) </td><td><img src = 'static/img/right1.png' width='150' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/right2.png' width='150' height=auto /><br><br><img src = 'static/img/skateboard2_skateboard1.png' width='75' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/skateboard2_skateboard2.png' width='75' height=auto /></td>  <td>-1.0%</td></tr></table>");
+                        // $("#survey").html("<br><h3>Finally, please provide your best guess of energy change of the actions below (the last one is given and decimals are allowed!):</h3><table class='center'><tr><th>Action</th><th>Sample sequence(s)</th><th>Energy change</th></tr><tr><td>Moving with the orange rectangle grabbed</td><td><img src = 'static/img/skateboard2_skateboard2.png' width='75' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/skateboard2_skateboard3.png' width='75' height=auto /></td><td><input id='reward_ft_wt_1' type='number' style='width: 4em;'</>%</td></tr><tr><td>Moving <u>out of</u> a purple square (e.g. into purple <u>or</u> white square)</td><td><img src = 'static/img/skateboard2_purple1.png' width='150' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/skateboard2_purple2.png' width='150' height=auto /></td><td><input id='reward_ft_wt_2' type='number' style='width: 4em;'</>%</td></tr><tr><td>Any action that you take (e.g. moving right, grabbing, etc) </td><td><img src = 'static/img/right1.png' width='150' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/right2.png' width='150' height=auto /><br><br><img src = 'static/img/skateboard2_skateboard1.png' width='75' height=auto /><img src = 'static/img/arrow.png' width='30' height=auto /><img src = 'static/img/skateboard2_skateboard2.png' width='75' height=auto /></td>  <td>-1.0%</td></tr></table>");
                     }
-                    else {
                         $("#next").replaceWith(`<button type="button" id="next"
                     onclick="next()"
                     value="next" class="btn btn-primary btn-lg continue">
                     Next <span class="glyphicon glyphicon-arrow-right"></span>
                     </button>` );
-                    }
                 } else if (localStorage.getItem("already completed") === "false") {
                     show_likert = true
                 }

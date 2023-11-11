@@ -587,7 +587,7 @@ def index():
 
     completed = True if current_user.study_completed == 1 else False
 
-    loop_conditions = ["open"]
+    loop_conditions = ["wt"]  # cl, pl, open, wt, wtcl
     rand.shuffle(loop_conditions)
     # domains = ["at", "ct", "sb"]
     domains = ["at", "sb"]
@@ -705,8 +705,8 @@ def sandbox():
         "<table class=\"center\"><tr><th>Task</th><th>Sample sequence</th></tr><tr><td>Dropping off the green pentagon at the purple star</td><td><img src = 'static/img/sandbox_dropoff1.png' width=\"75\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/sandbox_dropoff2.png' width=\"75\" height=auto /></td></tr></table> <br>" +
         "<h4>Each game will consist of <b>actions that change your energy level</b> differently. In this game, the following actions affect your energy:</h4> <br>" +
         "<table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr>" +
-        "<tr><td>Moving through the orange diamond</td><td><img src = 'static/img/sandbox_diamond1.png' width=\"225\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/sandbox_diamond2.png' width=\"225\" height=auto /> <img src='static/img/arrow.png' width=\"30\" height=auto /><img src ='static/img/sandbox_diamond3.png' width=\"225\" height=auto/> <td><h3><b>+3%</b></h3></td></tr>" +
-        "<tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td><h3><b>-1%</b></h3></td></tr></table> <br>" +
+        "<tr><td>Moving through the orange diamond</td><td><img src = 'static/img/sandbox_diamond1.png' width=\"225\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/sandbox_diamond2.png' width=\"225\" height=auto /> <img src='static/img/arrow.png' width=\"30\" height=auto /><img src ='static/img/sandbox_diamond3.png' width=\"225\" height=auto/> <td><h3><b>+ 3%</b></h3></td></tr>" +
+        "<tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td><h3><b>- 1%</b></h3></td></tr></table> <br>" +
         "<h4><b>Grab the green pentagon</b> and <b>drop it off at the purple star</b> with the <b>maximum possible energy remaining</b>. </h4> " +
         "<h5>You should end with 89% energy left (you won't be able to move if energy falls to 0%, but you can reset by pressing 'r'). <u>You will need to successfully complete this practice game to continue on with the study!</u></h5>" +
         "<h5>Note: Since this is practice, we have revealed each actions's effect on Chip's energy and also provide a running counter of Chip's current energy level below.</h5> <br>")
@@ -740,18 +740,36 @@ def post_practice():
     current_user.set_curr_progress("post practice")
     print(current_user.curr_progress)
     db.session.commit()
-    # preamble = ("<h3>Good job on completing the practice game! Let's now head over to the <b>two main games</b> and <b>begin the real study</b>.</h3><br>" +
+    # energy change is hidden
+    # cl
+    # preamble = ("<br><br><h3>Good job on completing the practice game! Let's now head over to the <b>two main games</b> and <b>begin the real study</b>.</h3><br>" +
     #         "<h3>In these games, you will <b>not</b> be told how each action changes Chip's energy level.</h3><br>" +
     #         "For example, note the '???' in the Energy Change column below. <table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr><tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>???</td></tr></table> <br>" +
     #         "<h3>Instead, you will have to <u>figure that out</u> and subsequently the best strategy for completing the task while minimizing Chip's energy loss <u>by observing Chip's demonstrations</u> and <u>testing your knowledge of Chip's behavior!</u></h3><br>" +
     #             "<h3>If you incorrectly predict Chip's behavior on check-in tests in between demonstrations, <u>Chip will give you corrective feedback and provide additional demonstrations and tests</u> to help you learn!</h3><br>" +
     #         "<h4>Finally, <u>you may navigate back to previous interactions</u> (e.g. demonstrations, feedback, etc) to refresh your memory <u>when you're not being tested!</u></h4>")
-    preamble = ("<h3>Good job on completing the practice game! Let's now head over to the <b>two main games</b> and <b>begin the real study</b>.</h3><br>" +
-            "<h3>In these games, you will <b>not</b> be told how each action changes Chip's energy level.</h3><br>" +
-            "For example, note the '???' in the Energy Change column below. <table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr><tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>???</td></tr></table> <br>" +
-            "<h3>Instead, you will have to <u>figure that out</u> and subsequently the best strategy for completing the task while minimizing Chip's energy loss <u>by observing Chip's demonstrations!</u></h3><br>" +
-                "<h4>In between demonstrations, Chip may test your understanding by asking you to predict the best strategy and giving you corrective feedback to help you learn!</h4><br>" +
-            "<h4>Finally, <u>you may navigate back to previous interactions</u> (e.g. demonstrations) to refresh your memory <u>when you're not being tested!</u></h4>")
+    # pl, open
+    # preamble = ("<br><br><h3>Good job on completing the practice game! Let's now head over to the <b>two main games</b> and <b>begin the real study</b>.</h3><br>" +
+    #         "<h3>In these games, you will <b>not</b> be told how each action changes Chip's energy level.</h3><br>" +
+    #         "For example, note the '???' in the Energy Change column below. <table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr><tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>???</td></tr></table> <br>" +
+    #         "<h3>Instead, you will have to <u>figure that out</u> and subsequently the best strategy for completing the task while minimizing Chip's energy loss <u>by observing Chip's demonstrations!</u></h3><br>" +
+    #             "<h4>In between demonstrations, Chip may test your understanding by asking you to predict the best strategy and giving you corrective feedback to help you learn!</h4><br>" +
+    #         "<h4>Finally, <u>you may navigate back to previous interactions</u> (e.g. demonstrations) to refresh your memory <u>when you're not being tested!</u></h4>")
+
+    # energy change is given
+    # wtcl
+    # preamble = ("<br><br><h3>Good job on completing the practice game! Let's now head over to the <b>two main games</b> and <b>begin the real study</b>.</h3><br>" +
+    #         "<h3>In these games, you will be told how each action changes Chip's energy level</h3><br>" +
+    #         "For example, note the '- 1%' in the Energy Change column below. <table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr><tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>- 1%</td></tr></table> <br>" +
+    #         "<h3>and <u>also be shown demonstrations</u> of the best strategy for completing the task while minimizing Chip's energy loss.</h3><br>" +
+    #             "<h3>And if you incorrectly predict Chip's behavior on check-in tests in between demonstrations, <u>Chip will give you corrective feedback and provide additional demonstrations and tests</u> to help you learn!</h3><br>" +
+    #         "<h4>Finally, <u>you may navigate back to previous interactions</u> (e.g. demonstrations, feedback, etc) to refresh your memory <u>when you're not being tested!</u></h4>")
+    # wt
+    preamble = ("<br><br><h3>Good job on completing the practice game! Let's now head over to the <b>two main games</b> and <b>begin the real study</b>.</h3><br>" +
+            "<h3>For each of these games, Chip will let you know each action changes Chip's energy level.</h3><br>" +
+            "For example, note the '- 1%' in the Energy Change column below. <table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr><tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>- 1%</td></tr></table> <br>" +
+            "<h3>Then you will answer some questions about Chip's teaching and then test your understanding on a number of game instances.</h3><br>")
+
     return render_template("mike/post_practice.html", preamble=preamble)
 
 @socketio.on("next domain")
@@ -1011,6 +1029,117 @@ def settings(data):
                    ["remedial test", 6, 3], ["remedial feedback", 6, 3],
                    ["survey", 0],
                    ["final test",  0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4], ["final test", 5]]
+        },
+        "wtcl": {
+            "at": [["demo", -1], ["demo", 0], ["demo", 1],
+                   ["diagnostic test", 0], ["diagnostic feedback", 0], ["remedial demo", 0],
+                   ["remedial test", 0, 0], ["remedial feedback", 0, 0],
+                   ["remedial test", 0, 1], ["remedial feedback", 0, 1],
+                   ["remedial test", 0, 2], ["remedial feedback", 0, 2],
+                   ["remedial test", 0, 3], ["remedial feedback", 0, 3],
+                   ["demo", 2], ["demo", 3],
+                   ["diagnostic test", 1], ["diagnostic feedback", 1], ["remedial demo", 1],
+                   ["remedial test", 1, 0], ["remedial feedback", 1, 0],
+                   ["remedial test", 1, 1], ["remedial feedback", 1, 1],
+                   ["remedial test", 1, 2], ["remedial feedback", 1, 2],
+                   ["remedial test", 1, 3], ["remedial feedback", 1, 3],
+                   ["diagnostic test", 2], ["diagnostic feedback", 2], ["remedial demo", 2],
+                   ["remedial test", 2, 0], ["remedial feedback", 2, 0],
+                   ["remedial test", 2, 1], ["remedial feedback", 2, 1],
+                   ["remedial test", 2, 2], ["remedial feedback", 2, 2],
+                   ["remedial test", 2, 3], ["remedial feedback", 2, 3],
+                   ["demo", 4],
+                   ["diagnostic test", 3], ["diagnostic feedback", 3], ["remedial demo", 3],
+                   ["remedial test", 3, 0], ["remedial feedback", 3, 0],
+                   ["remedial test", 3, 1], ["remedial feedback", 3, 1],
+                   ["remedial test", 3, 2], ["remedial feedback", 3, 2],
+                   ["remedial test", 3, 3], ["remedial feedback", 3, 3],
+                   ["survey", 0],
+                   ["final test", 0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4],
+                   ["final test", 5]],
+            "ct": [["demo", -1], ["demo", 0], ["demo", 1],
+                   ["diagnostic test", 0], ["diagnostic feedback", 0], ["remedial demo", 0],
+                   ["remedial test", 0, 0], ["remedial feedback", 0, 0],
+                   ["remedial test", 0, 1], ["remedial feedback", 0, 1],
+                   ["remedial test", 0, 2], ["remedial feedback", 0, 2],
+                   ["remedial test", 0, 3], ["remedial feedback", 0, 3],
+                   ["diagnostic test", 1], ["diagnostic feedback", 1], ["remedial demo", 1],
+                   ["remedial test", 1, 0], ["remedial feedback", 1, 0],
+                   ["remedial test", 1, 1], ["remedial feedback", 1, 1],
+                   ["remedial test", 1, 2], ["remedial feedback", 1, 2],
+                   ["remedial test", 1, 3], ["remedial feedback", 1, 3],
+                   ["demo", 2], ["demo", 3],
+                   ["diagnostic test", 2], ["diagnostic feedback", 2], ["remedial demo", 2],
+                   ["remedial test", 2, 0], ["remedial feedback", 2, 0],
+                   ["remedial test", 2, 1], ["remedial feedback", 2, 1],
+                   ["remedial test", 2, 2], ["remedial feedback", 2, 2],
+                   ["remedial test", 2, 3], ["remedial feedback", 2, 3],
+                   ["diagnostic test", 3], ["diagnostic feedback", 3], ["remedial demo", 3],
+                   ["remedial test", 3, 0], ["remedial feedback", 3, 0],
+                   ["remedial test", 3, 1], ["remedial feedback", 3, 1],
+                   ["remedial test", 3, 2], ["remedial feedback", 3, 2],
+                   ["remedial test", 3, 3], ["remedial feedback", 3, 3],
+                   ["demo", 4],
+                   ["diagnostic test", 4], ["diagnostic feedback", 4], ["remedial demo", 4],
+                   ["remedial test", 4, 0], ["remedial feedback", 4, 0],
+                   ["remedial test", 4, 1], ["remedial feedback", 4, 1],
+                   ["remedial test", 4, 2], ["remedial feedback", 4, 2],
+                   ["remedial test", 4, 3], ["remedial feedback", 4, 3],
+                   ["survey", 0],
+                   ["final test", 0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4],
+                   ["final test", 5]],
+            "sb": [["demo", -1], ["demo", 0], ["demo", 1],
+                   ["diagnostic test", 0], ["diagnostic feedback", 0], ["remedial demo", 0],
+                   ["remedial test", 0, 0], ["remedial feedback", 0, 0],
+                   ["remedial test", 0, 1], ["remedial feedback", 0, 1],
+                   ["remedial test", 0, 2], ["remedial feedback", 0, 2],
+                   ["remedial test", 0, 3], ["remedial feedback", 0, 3],
+                   ["diagnostic test", 1], ["diagnostic feedback", 1], ["remedial demo", 1],
+                   ["remedial test", 1, 0], ["remedial feedback", 1, 0],
+                   ["remedial test", 1, 1], ["remedial feedback", 1, 1],
+                   ["remedial test", 1, 2], ["remedial feedback", 1, 2],
+                   ["remedial test", 1, 3], ["remedial feedback", 1, 3],
+                   ["demo", 2], ["demo", 3],
+                   ["diagnostic test", 2], ["diagnostic feedback", 2], ["remedial demo", 2],
+                   ["remedial test", 2, 0], ["remedial feedback", 2, 0],
+                   ["remedial test", 2, 1], ["remedial feedback", 2, 1],
+                   ["remedial test", 2, 2], ["remedial feedback", 2, 2],
+                   ["remedial test", 2, 3], ["remedial feedback", 2, 3],
+                   ["diagnostic test", 3], ["diagnostic feedback", 3], ["remedial demo", 3],
+                   ["remedial test", 3, 0], ["remedial feedback", 3, 0],
+                   ["remedial test", 3, 1], ["remedial feedback", 3, 1],
+                   ["remedial test", 3, 2], ["remedial feedback", 3, 2],
+                   ["remedial test", 3, 3], ["remedial feedback", 3, 3],
+                   ["demo", 4], ["demo", 5], ["demo", 6],
+                   ["diagnostic test", 4], ["diagnostic feedback", 4], ["remedial demo", 4],
+                   ["remedial test", 4, 0], ["remedial feedback", 4, 0],
+                   ["remedial test", 4, 1], ["remedial feedback", 4, 1],
+                   ["remedial test", 4, 2], ["remedial feedback", 4, 2],
+                   ["remedial test", 4, 3], ["remedial feedback", 4, 3],
+                   ["diagnostic test", 5], ["diagnostic feedback", 5], ["remedial demo", 5],
+                   ["remedial test", 5, 0], ["remedial feedback", 5, 0],
+                   ["remedial test", 5, 1], ["remedial feedback", 5, 1],
+                   ["remedial test", 5, 2], ["remedial feedback", 5, 2],
+                   ["remedial test", 5, 3], ["remedial feedback", 5, 3],
+                   ["diagnostic test", 6], ["diagnostic feedback", 6], ["remedial demo", 6],
+                   ["remedial test", 6, 0], ["remedial feedback", 6, 0],
+                   ["remedial test", 6, 1], ["remedial feedback", 6, 1],
+                   ["remedial test", 6, 2], ["remedial feedback", 6, 2],
+                   ["remedial test", 6, 3], ["remedial feedback", 6, 3],
+                   ["survey", 0],
+                   ["final test", 0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4],
+                   ["final test", 5]]
+        },
+        "wt": {
+            "at": [["demo", -1], ["survey", 0],
+                   ["final test", 0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4],
+                   ["final test", 5]],
+            "ct": [["demo", -1], ["survey", 0],
+                   ["final test", 0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4],
+                   ["final test", 5]],
+            "sb": [["demo", -1], ["survey", 0],
+                   ["final test", 0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4],
+                   ["final test", 5]]
         }
     }
     print(loop_cond)
@@ -1189,7 +1318,7 @@ def settings(data):
             # REQUIRES: domain and loop condition are the same throughout this function
             # it, iter, and subiter are the old versions
             # current_user.{interaction_type, iteration, subiteration} are the new versions
-            if loop_cond == "open" or loop_cond == "debug":
+            if loop_cond == "open" or loop_cond == "debug" or loop_cond == "wt":
                 current_user.interaction_type = arr[idx + 1][0]
                 current_user.iteration = arr[idx + 1][1]
             elif loop_cond == "pl":
@@ -1200,7 +1329,7 @@ def settings(data):
                 else:
                     current_user.interaction_type = arr[idx + 1][0]
                     current_user.iteration = arr[idx + 1][1]
-            elif loop_cond == "cl":
+            elif loop_cond == "cl" or loop_cond == "wtcl":
                 # skip the remedial demos and tests if the human answers correctly or if it's a rerun of a test (i.e. tag = -1)
                 if it == "diagnostic test" and data["user input"]["opt_response"] and (data["user input"]["mdp_parameters"]['tag'] != -1):
                     # move to next demo from next unit
@@ -1399,7 +1528,12 @@ def settings(data):
                 response["params"]["tag"] = -1
 
     go_prev = "true"
-    if (current_user.iteration == 0 and current_user.interaction_type == "demo") or ("test" in current_user.interaction_type and already_completed == "false"):
+    # cl, pl, open, wtcl
+    # if (current_user.iteration == 0 and current_user.interaction_type == "demo") or ("test" in current_user.interaction_type and already_completed == "false"):
+    #     go_prev = "false"
+
+    # wt
+    if (current_user.iteration == 0 and current_user.interaction_type == "demo") or ("test" in current_user.interaction_type and already_completed == "false") or current_user.interaction_type == "survey":
         go_prev = "false"
 
     # debug_string = f"domain={domain}, interaction type={current_user.interaction_type}, iteration={current_user.iteration}, subiteration={current_user.subiteration}"
@@ -1603,7 +1737,7 @@ def consent():
     if IS_IN_PERSON:
         procedure = "This study may take up to 90 minutes, and audio/screen recordings will be collected."
     else:
-        procedure = "Most people complete the study within 30 minutes."
+        procedure = "Most people complete the study within 15 minutes."
     return render_template("consent.html", title="Consent", form=form, procedure=procedure)
 
 # @app.route("/training", methods=["GET", "POST"])
