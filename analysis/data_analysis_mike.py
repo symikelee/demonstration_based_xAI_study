@@ -34,14 +34,14 @@ LOOP_MAPPING = {'cl': 'Full', 'pl': 'Partial', 'open': 'Open', 'wt': 'Weights', 
 alpha = 0.05
 
 skip_users = []
-# remove users who are missing data (reward weight estimates and one of the final tests)
-skip_users.extend(['58aca85e0da7f10001de92d4', '602fb33786b077cdbad2d5bb'])
+# remove users who are missing data (the first two are missing reward weight estimates and one of the final tests)
+skip_users.extend(['58aca85e0da7f10001de92d4', '602fb33786b077cdbad2d5bb', '54420ec6faa52483c585496'])
 # remove users who did not complete the study
 skip_users.extend(['614b55e22ff3944a165736bb', '5f0214e58782120a8c970fd6'])
 # remove users who restarted the study after a partial first attempt (weight only condition)
 skip_users.extend(['5cf7796a99ccba000193a8f1'])
 
-# the rationale for the users below are explained in the paper
+# the rationale for removing the users below are explained in the paper
 # remove users who perfectly went through the closed-loop teaching framework (and thus did not see any remedial instruction)
 skip_users.extend(['59dbbdce5de9b000017ebf19'])
 # remove users who underwent more than 3 std dev more interactions than the average in the closed-loop teaching framework
@@ -67,6 +67,14 @@ def get_data():
     df_users['unpickled_ethnicity'] = df_users['ethnicity'].apply(pickle.loads)
     df_users['unpickled_final_feedback'] = df_users['final_feedback'].apply(pickle.loads)
     df_users['education'] = df_users['education'].apply(lambda x: min(x, 5))
+
+    # these people accidentally entered in their username incorrectly
+    df_users.loc[
+        df_users[df_users.username == 'https://app.prolific.com/studies/654fde536d706cb9de5b40be?source=pa'].index[
+            0], 'username'] = '5fff0b0bcbc37a5f5928ed26'
+    df_users.loc[
+        df_users[df_users.username == 'https://machine-teaching-study.harp.ri.cmu.edu/login?next=%2F'].index[
+            0], 'username'] = '6511f1f1490c9df9f8c7890e'
 
     # only parse the columns that I want
     df_users = df_users[['username', 'consent', 'age', 'gender', 'unpickled_ethnicity', 'education', 'unpickled_final_feedback', 'loop_condition', 'domain_1', 'domain_2', 'domain_3', 'user_id']]
@@ -213,18 +221,24 @@ def validate_submissions(df_users, df_trials, df_domain, use_csv=False):
         if len(df_domain[(df_domain.username == username)]) != 2:
             print("Has more or fewer teaching surveys")
             flag = True
-
-        if df_trials[df_trials.username == username].loop_condition.iloc[0] in ['cl', 'pl', 'open']:
-            if len(reward_weight_data[df_trials.username == username]) != 2:
-                print("Didn't complete all 2 reward weight tests")
-                flag = True
+        try:
+            if df_trials[df_trials.username == username].loop_condition.iloc[0] in ['cl', 'pl', 'open', 'wtcl']:
+                if df_trials[df_trials.username == username].loop_condition.iloc[0] in ['cl', 'pl', 'open']:
+                    if len(reward_weight_data[df_trials.username == username]) != 2:
+                        print("Didn't complete all 2 reward weight tests")
+                        flag = True
+        except:
+            print("Wasn't able to check reward weight data")
+            flag = True
 
             if len(improvement_likert_data[improvement_likert_data.username == username].likert) < 23:
                 print("Not enough improvement likert scales")
                 flag = True
 
         if flag:
-            print(username)
+            print("{} didn't pass the validation".format(username))
+        else:
+            print("{} passed the validation".format(username))
 
 
 def print_means(data, dv, iv):
@@ -354,18 +368,32 @@ def compare_feedback_domain_on_engagement(df_domain, within='domain', plot=False
             df_domain_engagement = pd.concat((df_domain_engagement, pd.DataFrame({'username': username, 'loop_condition': loop_condition, 'domain': domain,
                                'loop_condition_string': loop_condition_string, 'engagement': engagement, 'attn': attn, 'use': use})), axis=0, ignore_index=True)
 
-    print("\n============================== ANOVA: ENGAGEMENT ==============================")
-    print_means(df_domain_engagement, 'engagement', 'loop_condition')
-    perform_mixed_anova(dv='engagement', within=within, subject='username', between='loop_condition',
-                        data=df_domain_engagement)
+    # print("\n============================== ANOVA: ENGAGEMENT ==============================")
+    # print_means(df_domain_engagement, 'engagement', 'loop_condition')
+    # perform_mixed_anova(dv='engagement', within=within, subject='username', between='loop_condition',
+    #                     data=df_domain_engagement)
+
     print("\n============================== ANOVA: ATTENTION ==============================")
     print_means(df_domain_engagement, 'attn', 'loop_condition')
     perform_mixed_anova(dv='attn', within=within, subject='username', between='loop_condition',
                         data=df_domain_engagement)
+
+    df_domain_attn = df_domain[['attn1', 'attn2', 'attn3']]
+    print("Overall cronbach's alpha: {}".format(pg.cronbach_alpha(df_domain_attn)))
+    for key in df_domain_attn.keys():
+        df_domain_attn_temp = df_domain_attn.drop(columns=key)
+        print("Cronbach's alpha with {} dropped: {}".format(key, pg.cronbach_alpha(df_domain_attn_temp)))
+
     print("\n============================== ANOVA: USE ==============================")
     print_means(df_domain_engagement, 'use', 'loop_condition')
     perform_mixed_anova(dv='use', within=within, subject='username', between='loop_condition',
                         data=df_domain_engagement)
+
+    df_domain_use = df_domain[['use1', 'use2', 'use3']]
+    print("Overall cronbach's alpha: {}".format(pg.cronbach_alpha(df_domain_use)))
+    for key in df_domain_use.keys():
+        df_domain_use_temp = df_domain_use.drop(columns=key)
+        print("Cronbach's alpha with {} dropped: {}".format(key, pg.cronbach_alpha(df_domain_use_temp)))
 
     if plot:
         ax = sns.barplot(df_domain_engagement[df_domain_engagement.domain == 'at'], x='loop_condition_string', y='use',
@@ -453,10 +481,31 @@ def compare_feedback_domain_on_understanding(df_domain, within='domain'):
             np.mean(df_between[df_between.loop_condition == 'cl'].understanding)))
         print("mean understanding for wt: {}".format(
             np.mean(df_between[df_between.loop_condition == 'wt'].understanding)))
+        print("mean understanding for wtcl: {}".format(
+            np.mean(df_between[df_between.loop_condition == 'wtcl'].understanding)))
+
+        if ('wt' in df_between.loop_condition.unique() and 'cl' in df_between.loop_condition.unique() and 'wtcl' in df_between.loop_condition.unique()):
+            print("cl vs wt")
+            pg_wilcoxon = pg.wilcoxon(df_between[df_between.loop_condition == 'cl'].understanding,
+                                      df_between[df_between.loop_condition == 'wt'].understanding)
+            pg.print_table(pg_wilcoxon)
+
+            print("wtcl vs wt")
+            pg_wilcoxon = pg.wilcoxon(df_between[df_between.loop_condition == 'wtcl'].understanding,
+                                      df_between[df_between.loop_condition == 'wt'].understanding)
+            pg.print_table(pg_wilcoxon)
+
+            print("cl vs wtcl")
+            pg_wilcoxon = pg.wilcoxon(df_between[df_between.loop_condition == 'cl'].understanding,
+                                      df_between[df_between.loop_condition == 'wtcl'].understanding)
+            pg.print_table(pg_wilcoxon)
+        else:
+            raise Exception("Post-hoc analyses haven't been implemented for these conditions.")
 
     else:
         print("There is no significant difference of feedback loop on understanding!")
 
+    print("domain on understanding")
     pg_wilcoxon = pg.wilcoxon(df_domain[df_domain.domain == 'at'].understanding, df_domain[df_domain.domain == 'sb'].understanding)
     pg.print_table(pg_wilcoxon)
 
@@ -478,21 +527,7 @@ def compare_feedback_domain_on_understanding(df_domain, within='domain'):
     else:
         print("There is no significant difference of domain on understanding!")
 
-    # for analyzing just cl vs wt (which doesn't require an omnibus test like kruskal)
-    pg_wilcoxon = pg.wilcoxon(df_domain[df_domain.loop_condition == 'cl'].understanding, df_domain[df_domain.loop_condition == 'wt'].understanding)
-    pg.print_table(pg_wilcoxon)
 
-    scipy_wilcoxon = wilcoxon(df_domain[df_domain.loop_condition == 'cl'].understanding, df_domain[df_domain.loop_condition == 'wt'].understanding, method='approx')
-    print("z-statistic: {}".format(scipy_wilcoxon.zstatistic))
-
-    if pg_wilcoxon['p-val'][0] < alpha:
-        print("There is a significant difference of domain on understanding!")
-        print("mean understanding for cl: {}".format(
-            np.mean(df_domain[df_domain.loop_condition == 'cl'].understanding)))
-        print("mean understanding for wt: {}".format(
-            np.mean(df_domain[df_domain.loop_condition == 'wt'].understanding)))
-    else:
-        print("There is no significant difference of domain on understanding!")
 
 
 def compare_feedback_on_improvement(df_trials, within='domain'):
@@ -518,7 +553,7 @@ def compare_feedback_on_improvement(df_trials, within='domain'):
     perform_mixed_anova('likert', within, 'username', 'loop_condition', data)
 
 
-def calculate_median_num_interactions(df_trials):
+def calculate_median_num_interactions(df_trials, condition='cl'):
     print("\n========== MEDIAN NUMBER OF INTERACTIONS ==========")
 
     exclude = ['diagnostic feedback', 'remedial feedback', 'final test']
@@ -528,11 +563,11 @@ def calculate_median_num_interactions(df_trials):
     num_interactions_sb = []
     perfect_training = []
     perfect_interactions_at_usernames = []
-    for username in df_trials[df_trials.loop_condition == 'cl'].username.unique():
+    for username in df_trials[df_trials.loop_condition == condition].username.unique():
         num_interactions_at_user = sum(~df_trials[(df_trials.domain == 'at') & (
-                df_trials.loop_condition == 'cl') & (df_trials.username == username)].interaction_type.isin(exclude))
+                df_trials.loop_condition == condition) & (df_trials.username == username)].interaction_type.isin(exclude))
         num_interactions_sb_user = sum(~df_trials[(df_trials.domain == 'sb') & (
-                df_trials.loop_condition == 'cl') & (df_trials.username == username)].interaction_type.isin(exclude))
+                df_trials.loop_condition == condition) & (df_trials.username == username)].interaction_type.isin(exclude))
         num_interactions_at.append(num_interactions_at_user)
         num_interactions_sb.append(num_interactions_sb_user)
 
@@ -552,8 +587,8 @@ def calculate_median_num_interactions(df_trials):
     print("People who perfectly went through both training: {}".format(perfect_training))
 
     # obtain the participants who saw the median number of interactions
-    median_interactions_at_users = np.array(df_trials[df_trials.loop_condition == 'cl'].username.unique())[np.array(num_interactions_at) == median_interactions_at]
-    median_interactions_sb_users = np.array(df_trials[df_trials.loop_condition == 'cl'].username.unique())[np.array(num_interactions_sb) == median_interactions_sb]
+    median_interactions_at_users = np.array(df_trials[df_trials.loop_condition == condition].username.unique())[np.array(num_interactions_at) == median_interactions_at]
+    median_interactions_sb_users = np.array(df_trials[df_trials.loop_condition == condition].username.unique())[np.array(num_interactions_sb) == median_interactions_sb]
     median_training = []
     for at_user in median_interactions_at_users:
         if at_user in median_interactions_sb_users:
@@ -700,9 +735,9 @@ if __name__ == '__main__':
             df_users, df_trials, df_domain = pickle.load(f)
 
     # ------------------------ helper functions ------------------------#
-    # validate_submissions(df_users, df_trials, df_domain, get_remote)
+    # validate_submissions(df_users, df_trials, df_domain)
 
-    # calculate_median_num_interactions(df_trials)
+    # calculate_median_num_interactions(df_trials, condition='wt')
 
     # print_demographics(df_users)
 
@@ -710,15 +745,13 @@ if __name__ == '__main__':
 
     # ------------------------ data selection ------------------------#
     # if I'm interested in only considering a subset of the full dataset
-    # RA-L
-    df_trials = df_trials[(df_trials.loop_condition == 'cl') | (df_trials.loop_condition == 'pl') | (df_trials.loop_condition == 'open')]
-    df_domain = df_domain[(df_domain.loop_condition == 'cl') | (df_domain.loop_condition == 'pl') | (df_domain.loop_condition == 'open')]
+    # RA-L conditions (cl, pl, open)
+    # df_trials = df_trials[(df_trials.loop_condition == 'cl') | (df_trials.loop_condition == 'pl') | (df_trials.loop_condition == 'open')]
+    # df_domain = df_domain[(df_domain.loop_condition == 'cl') | (df_domain.loop_condition == 'pl') | (df_domain.loop_condition == 'open')]
 
-    # just ct and wt
-    # df_trials = df_trials[(df_trials.loop_condition == 'cl') | (df_trials.loop_condition == 'wt')]
-    # df_domain = df_domain[(df_domain.loop_condition == 'cl') | (df_domain.loop_condition == 'wt')]
-
-
+    # follow-up user study on direct reward explanations (cl, wt, wtcl)
+    df_trials = df_trials[(df_trials.loop_condition == 'cl') | (df_trials.loop_condition == 'wt') | (df_trials.loop_condition == 'wtcl')]
+    df_domain = df_domain[(df_domain.loop_condition == 'cl') | (df_domain.loop_condition == 'wt') | (df_domain.loop_condition == 'wtcl')]
 
     #------------------------ descriptive statistics ------------------------#
     # individual_performances(df_trials, 'scaled_diff')
@@ -728,7 +761,7 @@ if __name__ == '__main__':
     # ------------------------ primary analyses ------------------------#
 
     # compare effect of feedback and domain on performance
-    # compare_feedback_domain_on_performance(df_trials, dv='regret_norm')
+    compare_feedback_domain_on_performance(df_trials, dv='reward_diff')
 
     # compare effect of feedback and domain on engagement
     # compare_feedback_domain_on_engagement(df_domain, plot=False)
