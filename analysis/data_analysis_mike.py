@@ -29,17 +29,22 @@ FRUSTRATION_MAPPING = {0: '0 - Extremely Frustrating', 1: '1 - Somewhat Frustrat
 
 ONLINE_INTERACTION_TYPES = ['no_feedback', 'showing', 'preference', 'binary_combined', 'credit_assignment']
 
-LOOP_MAPPING = {'cl': 'Full', 'pl': 'Partial', 'open': 'Open', 'wt': 'Weights', 'wtcl': "Weights + Full"}
+LOOP_MAPPING = {'cl': 'Full', 'pl': 'Partial', 'open': 'Open', 'wt': 'Direct reward', 'wtcl': "Joint"}
 
 alpha = 0.05
 
 skip_users = []
-# remove users who are missing data (the first two are missing reward weight estimates and one of the final tests)
-skip_users.extend(['58aca85e0da7f10001de92d4', '602fb33786b077cdbad2d5bb', '54420ec6faa52483c585496'])
+# remove users who are missing data (the first two are missing reward weight estimates and one of the final tests,
+# and the final person is a pl participant who was not able to provide reward weight estimates)
+skip_users.extend(['58aca85e0da7f10001de92d4', '602fb33786b077cdbad2d5bb', '54420ec6faa52483c585496', '5dc5da21d999de45a504651b'])
 # remove users who did not complete the study
-skip_users.extend(['614b55e22ff3944a165736bb', '5f0214e58782120a8c970fd6'])
+skip_users.extend(['614b55e22ff3944a165736bb', '5f0214e58782120a8c970fd6', '649cbefc9ac085131a41f626', '56cb314508d7300005fd312a'])
 # remove users who restarted the study after a partial first attempt (weight only condition)
 skip_users.extend(['5cf7796a99ccba000193a8f1'])
+# remove users who ended up being able to attempt the study twice in a different condition (though their data isn't correct and/or they returned their submission)
+# note that some of these users originally belonged to another condition (and thus should be careful not to remove them from the original condition)
+skip_users.extend(['60bdecc23648063db2bb828a', '5c92f797803bff0017fef8dd', '652985d179fb620c91ac14a1', '6511e688100fd33b378fa688',
+'58d3bc1642648b0001f21ca4', '5dec6a96da522335df62a1b5', '653e69acd1d1340f02fa4cbc', '5dd05d80b2204f1487f7812c', '59ccd702faf42e00012b68f5'])
 
 # the rationale for removing the users below are explained in the paper
 # remove users who perfectly went through the closed-loop teaching framework (and thus did not see any remedial instruction)
@@ -75,6 +80,9 @@ def get_data():
     df_users.loc[
         df_users[df_users.username == 'https://machine-teaching-study.harp.ri.cmu.edu/login?next=%2F'].index[
             0], 'username'] = '6511f1f1490c9df9f8c7890e'
+    df_users.loc[
+        df_users[df_users.username == '616ebc0e14bbc010f11935b3@email.prolific.com'].index[
+            0], 'username'] = '616ebc0e14bbc010f11935b3'
 
     # only parse the columns that I want
     df_users = df_users[['username', 'consent', 'age', 'gender', 'unpickled_ethnicity', 'education', 'unpickled_final_feedback', 'loop_condition', 'domain_1', 'domain_2', 'domain_3', 'user_id']]
@@ -141,9 +149,128 @@ def get_data():
     df_trials.iloc[missing_idx].unpickled_reward_ft_weights.append('-2')
     df_trials.iloc[missing_idx].unpickled_reward_ft_weights.append('1')
 
+    # swap or remove mistakes in condition labels
+    df_trials_open = df_trials[df_trials.loop_condition == 'open']
+
+    # open loop participants should not see diagnostic tests nor diagnostic feedback
+    swap_list_open = np.union1d(df_trials_open[(df_trials_open.interaction_type == 'diagnostic test')].username.unique(),
+                 df_trials_open[(df_trials_open.interaction_type == 'diagnostic feedback')].username.unique())
+    print('Number of incorectly labeled open loop participants: {}'.format(len(swap_list_open)))
+    # print(swap_list_open)
+
+    # pl participants should see demos and diagnostic tests
+    df_trials_pl = df_trials[df_trials.loop_condition == 'pl']
+    swap_list_pl = np.setdiff1d(df_trials_pl[(df_trials_pl.interaction_type == 'demo')].username.unique(),
+                                  df_trials_pl[(df_trials_pl.interaction_type == 'diagnostic test')].username.unique())
+    print('Number of incorectly labeled pl loop participants: {}'.format(len(swap_list_pl)))
+
+    # cl participants should see demos and diagnostic tests
+    df_trials_cl = df_trials[(df_trials.loop_condition == 'cl')]
+    swap_list_cl = np.setdiff1d(df_trials_cl[(df_trials_cl.interaction_type == 'demo')].username.unique(),
+                                  df_trials_cl[(df_trials_cl.interaction_type == 'diagnostic test')].username.unique())
+    print('Number of incorrectly labeled cl participants: {}'.format(len(swap_list_cl)))
+
+    # wt participants should see final tests and diagnostic tests
+    df_trials_wt = df_trials[(df_trials.loop_condition == 'wt')]
+    swap_list_wt = df_trials_wt[(df_trials_wt.interaction_type == 'demo')].username.unique()
+    print('Number of incorrectly labeled wt participants: {}'.format(len(swap_list_wt)))
+
+    # wtcl participants should see final tests and diagnostic tests
+    df_trials_wtcl = df_trials[(df_trials.loop_condition == 'wtcl')]
+    swap_list_wtcl = np.setdiff1d(df_trials_wtcl[(df_trials_wtcl.interaction_type == 'final test')].username.unique(),
+                                df_trials_wtcl[(df_trials_wtcl.interaction_type == 'diagnostic test')].username.unique())
+    print('Number of incorrectly labeled wtcl participants: {}'.format(len(swap_list_wtcl)))
+
+    # sanity checks (check for consistency)
+    # for username in swap_list_pl:
+    #     print(len(df_trials[(df_trials.interaction_type == 'demo') & (df_trials.username == username)]))
+    #
+    # for username in swap_list_open:
+    #     print(len(df_trials[(df_trials.interaction_type == 'diagnostic test') & (df_trials.username == username)]))
+
+    # remove incorrectly labeled conditions
+    df_trials = df_trials[~df_trials['username'].isin(swap_list_open)]
+    df_trials = df_trials[~df_trials['username'].isin(swap_list_pl)]
+    df_trials = df_trials[~df_trials['username'].isin(swap_list_cl)]
+    df_trials = df_trials[~df_trials['username'].isin(swap_list_wtcl)]
+    df_trials = df_trials[~df_trials['username'].isin(swap_list_wt)]
+
+    df_users = df_users[~df_users['username'].isin(swap_list_open)]
+    df_users = df_users[~df_users['username'].isin(swap_list_pl)]
+    df_users = df_users[~df_users['username'].isin(swap_list_cl)]
+    df_users = df_users[~df_users['username'].isin(swap_list_wtcl)]
+    df_users = df_users[~df_users['username'].isin(swap_list_wt)]
+
+    df_domain = df_domain[~df_domain['username'].isin(swap_list_open)]
+    df_domain = df_domain[~df_domain['username'].isin(swap_list_pl)]
+    df_domain = df_domain[~df_domain['username'].isin(swap_list_cl)]
+    df_domain = df_domain[~df_domain['username'].isin(swap_list_wtcl)]
+    df_domain = df_domain[~df_domain['username'].isin(swap_list_wt)]
+
     # string versions of the loop conditions
     df_trials['loop_condition_string'] = df_trials['loop_condition'].apply(lambda x: LOOP_MAPPING[x])
     df_domain['loop_condition_string'] = df_domain['loop_condition'].apply(lambda x: LOOP_MAPPING[x])
+
+    # save the data into a csv for inspection
+    df_trials_subset = df_trials[
+        ['user_id', 'interaction_type', 'loop_condition', 'is_opt_response', 'unpickled_moves', 'domain',
+         'unpickled_mdp_parameters', 'opt_traj_reward', 'test_difficulty', 'tag', 'age', 'gender',
+         'unpickled_ethnicity', 'education']]
+    df_trials_subset.to_csv('data_dump_corrected.csv', index=False)
+
+    # join the databases (below has the correct data for cl, wt, wtcl)
+    with open('dfs_f23_processed_correct_cl_wt_wtcl.pickle', 'rb') as f:
+        df_users_correct_cl_wt_wtcl, df_trials_correct_cl_wt_wtcl, df_domain_correct_cl_wt_wtcl = pickle.load(f)
+
+    df_users_correct_cl_wt_wtcl = df_users_correct_cl_wt_wtcl[df_users_correct_cl_wt_wtcl.loop_condition.isin(['cl', 'wt', 'wtcl'])]
+    df_trials_correct_cl_wt_wtcl = df_trials_correct_cl_wt_wtcl[df_trials_correct_cl_wt_wtcl.loop_condition.isin(['cl', 'wt', 'wtcl'])]
+    df_domain_correct_cl_wt_wtcl = df_domain_correct_cl_wt_wtcl[df_domain_correct_cl_wt_wtcl.loop_condition.isin(['cl', 'wt', 'wtcl'])]
+
+    df_users = df_users[df_users.loop_condition.isin(['pl', 'open'])]
+    df_trials = df_trials[df_trials.loop_condition.isin(['pl', 'open'])]
+    df_domain = df_domain[df_domain.loop_condition.isin(['pl', 'open'])]
+
+    # sanity check after joining the databases
+    overlap = list(set(df_users.username.unique()) & set(df_users_correct_cl_wt_wtcl.username.unique()))
+    if len(overlap) > 0:
+        print("Overlap between the two datasets: ")
+        print(overlap)
+    else:
+        print("No overlap")
+
+    df_users = pd.concat([df_users, df_users_correct_cl_wt_wtcl]).reset_index()
+    df_trials = pd.concat([df_trials, df_trials_correct_cl_wt_wtcl]).reset_index()
+    df_domain = pd.concat([df_domain, df_domain_correct_cl_wt_wtcl]).reset_index()
+
+    # sanity check after joining the databases
+    # open loop participants should not see diagnostic tests nor diagnostic feedback
+    df_trials_open = df_trials[df_trials.loop_condition == 'open']
+    swap_list_open = np.union1d(df_trials_open[(df_trials_open.interaction_type == 'diagnostic test')].username.unique(),
+                 df_trials_open[(df_trials_open.interaction_type == 'diagnostic feedback')].username.unique())
+    print('Number of incorectly labeled open loop participants: {}'.format(len(swap_list_open)))
+
+    # pl participants should see demos and diagnostic tests
+    df_trials_pl = df_trials[df_trials.loop_condition == 'pl']
+    swap_list_pl = np.setdiff1d(df_trials_pl[(df_trials_pl.interaction_type == 'demo')].username.unique(),
+                                  df_trials_pl[(df_trials_pl.interaction_type == 'diagnostic test')].username.unique())
+    print('Number of incorectly labeled pl loop participants: {}'.format(len(swap_list_pl)))
+
+    # cl participants should see demos and diagnostic tests
+    df_trials_cl = df_trials[(df_trials.loop_condition == 'cl')]
+    swap_list_cl = np.setdiff1d(df_trials_cl[(df_trials_cl.interaction_type == 'demo')].username.unique(),
+                                  df_trials_cl[(df_trials_cl.interaction_type == 'diagnostic test')].username.unique())
+    print('Number of incorrectly labeled cl participants: {}'.format(len(swap_list_cl)))
+
+    # wt participants should see final tests and diagnostic tests
+    df_trials_wt = df_trials[(df_trials.loop_condition == 'wt')]
+    swap_list_wt = df_trials_wt[(df_trials_wt.interaction_type == 'demo')].username.unique()
+    print('Number of incorrectly labeled wt participants: {}'.format(len(swap_list_wt)))
+
+    # wtcl participants should see final tests and diagnostic tests
+    df_trials_wtcl = df_trials[(df_trials.loop_condition == 'wtcl')]
+    swap_list_wtcl = np.setdiff1d(df_trials_wtcl[(df_trials_wtcl.interaction_type == 'final test')].username.unique(),
+                                df_trials_wtcl[(df_trials_wtcl.interaction_type == 'diagnostic test')].username.unique())
+    print('Number of incorrectly labeled wtcl participants: {}'.format(len(swap_list_wtcl)))
 
     conn.close()
 
@@ -325,11 +452,22 @@ def post_hoc(aov, location, dv, between, data):
     except:
         print("Uncorrected p-val: {}, DOF effect: {}, DOF error: {}, F: {}".format(aov['p-unc'][location], aov['DF1'][location], aov['DF2'][location], aov['F'][location]))
 
-    pt = pg.pairwise_tukey(dv=dv, between=between, data=data)
-    pg.print_table(pt)
+    if len(data[between].unique()) > 2:
+        print("Tukey HSD")
 
+        pt = pg.pairwise_tukey(dv=dv, between=between, data=data)
+        pg.print_table(pt)
+    else:
+        print("T-test")
 
-def compare_feedback_domain_on_performance(df_trials, dv='is_opt_response', within='domain', plot=False):
+        vars = data[between].unique()
+        pt = pg.ttest(data[data[between] == vars[0]][dv], data[data[between] == vars[1]][dv])
+        pg.print_table(pt)
+
+        for var in vars:
+            print("{} mean: {}".format(var, data[data[between] == var][dv].mean()))
+
+def compare_feedback_domain_on_performance(df_trials, dv='reward_diff', within='domain', plot=False):
     print("\n========== ANOVA: TEST DEMONSTRATION PERFORMANCE ==========")
 
     data = df_trials[df_trials.interaction_type == 'final test']
@@ -356,8 +494,9 @@ def compare_feedback_domain_on_engagement(df_domain, within='domain', plot=False
                         df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use1 + \
                         df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use2 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use3) / 6
 
-            attn = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn2 + \
-                        df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3) / 3
+            # attn = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn2 + \
+            #             df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3) / 3
+            attn = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3) / 2
 
             use = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use1 + \
                         df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use2 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use3) / 3
@@ -410,15 +549,16 @@ def plot_joint(df_trials, df_domain, within='domain', between='reward_diff'):
 
     for username in np.unique(df_domain.username):
         for domain in np.unique(df_domain.domain):
-            engagement = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn2 + \
-                        df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3 - df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use1 - \
-                        df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use2 - df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use3) / 6
+            # engagement = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn2 + \
+            #             df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3 - df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use1 - \
+            #             df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use2 - df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use3) / 6
 
-            attn = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn2 + \
-                        df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3) / 3
+            # attn = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn2 + \
+            #             df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3) / 3
+            attn = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3) / 2
 
-            use = (-df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use1 - \
-                        df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use2 - df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use3) / 3
+            use = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use1 + \
+                        df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use2 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use3) / 3
 
             loop_condition = df_domain[df_domain.username == username].loop_condition.values[0]
             loop_condition_string = df_domain[df_domain.username == username].loop_condition_string.values[0]
@@ -433,7 +573,7 @@ def plot_joint(df_trials, df_domain, within='domain', between='reward_diff'):
                 raise ValueError("Invalid between-subjects variable")
 
             df_domain_engagement = pd.concat((df_domain_engagement, pd.DataFrame({'username': username, 'loop_condition': loop_condition, 'domain': domain,
-                               'loop_condition_string': loop_condition_string, 'engagement': engagement, 'attn': attn, 'use': use, between: between_val})), axis=0, ignore_index=True)
+                               'loop_condition_string': loop_condition_string, 'attn': attn, 'use': use, between: between_val})), axis=0, ignore_index=True)
 
 
     # Increase the font size for all text elements
@@ -443,23 +583,202 @@ def plot_joint(df_trials, df_domain, within='domain', between='reward_diff'):
     fig, axs = plt.subplots(ncols=2, figsize=(7, 6))  # Adjust the figure size
 
     df_trials = df_trials[df_trials.interaction_type == 'final test']
-    sns.barplot(data=df_trials, x='loop_condition_string', y='regret_norm', ax=axs[0], errorbar='ci',
+    sns.barplot(data=df_trials, x='loop_condition_string', y=between, ax=axs[0], errorbar='ci',
                 order=["Open", "Partial", "Full"], width=bar_width)  # Adjust the bar width
     axs[0].set(xlabel='Feedback Loop', ylabel='Normalized Regret of Human Test Responses')
-    axs[0].set_title('Feedback Loop on Normalized Regret \n of Human Test Responses', fontsize=subtitle_font_size)
-    axs[0].set_ylim(0, 0.4)
+    axs[0].set_title('Feedback Loop on Regret \n of Human Test Responses', fontsize=subtitle_font_size)
+    # axs[0].set_ylim(0, 0.4) # use for regret norm
+    axs[0].set_ylim(0, 0.55) # use for reward diff
 
-    df_domain_engagement = df_domain_engagement[df_domain_engagement.domain == 'at']
+    df_domain_engagement = df_domain_engagement[df_domain_engagement.domain == 'sb']
     sns.barplot(data=df_domain_engagement, x='loop_condition_string', y='use', ax=axs[1],
                 errorbar='ci', order=["Open", "Partial", "Full"], width=bar_width)  # Adjust the bar width
     axs[1].set(xlabel='Feedback Loop', ylabel='Perceived Usability')
-    axs[1].set_title('Feedback Loop on Perceived \n Usability (Delivery Domain)', fontsize=subtitle_font_size)
-    axs[1].set_ylim(-3.5, 0)
+    axs[1].set_title('Feedback Loop on Perceived \n Usability (Skateboard Domain)', fontsize=subtitle_font_size-1)
+    axs[1].set_ylim(0, 4.5)
 
     # plt.suptitle('Effect of Feedback Loop', fontsize=16)
     plt.tight_layout()
     plt.show()
 
+def plot_joint_attn_improvement(df_trials, df_domain, within='domain', between='reward_diff'):
+    df_domain_engagement = pd.DataFrame(
+        columns=['username', within, 'loop_condition', 'loop_condition_string', 'engagement', 'attn', 'use', between])
+
+    for username in np.unique(df_domain.username):
+        for domain in np.unique(df_domain.domain):
+            # engagement = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn2 + \
+            #             df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3 - df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use1 - \
+            #             df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use2 - df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use3) / 6
+
+            # attn = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn2 + \
+            #             df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3) / 3
+            attn = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3) / 2
+
+            use = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use1 + \
+                        df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use2 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use3) / 3
+
+            loop_condition = df_domain[df_domain.username == username].loop_condition.values[0]
+            loop_condition_string = df_domain[df_domain.username == username].loop_condition_string.values[0]
+
+            if between == 'reward_diff':
+                between_val = np.mean(
+                    df_trials[(df_trials.username == username) & (df_trials.domain == domain)].reward_diff)
+            elif between == 'regret_norm':
+                between_val = np.mean(
+                    df_trials[(df_trials.username == username) & (df_trials.domain == domain)].regret_norm)
+            else:
+                raise ValueError("Invalid between-subjects variable")
+
+            df_domain_engagement = pd.concat((df_domain_engagement, pd.DataFrame({'username': username, 'loop_condition': loop_condition, 'domain': domain,
+                               'loop_condition_string': loop_condition_string, 'attn': attn, 'use': use, between: between_val})), axis=0, ignore_index=True)
+
+
+    # Increase the font size for all text elements
+    plt.rcParams.update({'font.size': 17})
+    bar_width = 0.7
+    subtitle_font_size = 19
+    fig, axs = plt.subplots(ncols=3, figsize=(14, 9))  # Adjust the figure size
+
+    # for plotting subjective results
+    ylim = 5
+    # ignore the first column (only keep to have the second two columns the same size as the first)
+    # data = df_domain_engagement
+    # sns.barplot(data=data, x='loop_condition_string', y='use', ax=axs[0],
+    #             errorbar='ci', order=["Direct reward", "Full", "Joint"], width=bar_width)  # Adjust the bar width
+    # axs[0].set(xlabel='Explanation Type', ylabel='Perceived Usability')
+    # axs[0].set_title('Main Effect (across both domains)', fontsize=subtitle_font_size)
+    # axs[0].set_ylim(0, ylim)
+
+    # for plotting objective results
+    final_test_data = df_trials[df_trials.interaction_type == 'final test']
+    sns.barplot(data=final_test_data, x='loop_condition_string', y=between, ax=axs[0], errorbar='ci',
+                order=["Direct reward", "Full", "Joint"], width=bar_width)  # Adjust the bar width
+    axs[0].set(xlabel='Explanation Type', ylabel='Regret of Human Test Responses')
+    axs[0].set_title('Regret of Human Test Responses', fontsize=subtitle_font_size)
+    # axs[0].set_ylim(0, 0.4) # use for regret norm
+    axs[0].set_ylim(0, 0.95) # use for reward diff
+
+    # attn
+    data = df_domain_engagement
+    sns.barplot(data=data, x='loop_condition_string', y='attn', ax=axs[1],
+                errorbar='ci', order=["Direct reward", "Full", "Joint"], width=bar_width)  # Adjust the bar width
+    axs[1].set(xlabel='Explanation Type', ylabel='Focused Attention Rating')
+    axs[1].set_title('Focused Attention Rating', fontsize=subtitle_font_size)
+    axs[1].set_ylim(1, ylim)
+
+    # Get the current color cycle
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    # Create a new color cycle that starts with the second color
+    new_colors = colors[1:] + colors[:1]
+    # Set the color cycle
+    plt.rcParams['axes.prop_cycle'] = plt.cycler(color=new_colors)
+
+    # improvement
+    data = df_trials[df_trials.likert > 0]
+    sns.barplot(data=data, x='loop_condition_string', y='likert', ax=axs[2],
+                errorbar='ci', order=["Full", "Joint"], width=bar_width)  # Adjust the bar width
+    axs[2].set(xlabel='Explanation Type', ylabel='Improvement Rating')
+    axs[2].set_title('Improvement Rating', fontsize=subtitle_font_size)
+    axs[2].set_ylim(1, ylim)
+
+    # plt.suptitle('Explanation Type on Perceived Usability', fontsize=20)
+
+    plt.tight_layout()
+    plt.show()
+    a = 2
+
+def plot_custom_followup(df_trials, df_domain, within='domain', between='reward_diff'):
+    df_domain_engagement = pd.DataFrame(
+        columns=['username', within, 'loop_condition', 'loop_condition_string', 'engagement', 'attn', 'use', between])
+
+    for username in np.unique(df_domain.username):
+        for domain in np.unique(df_domain.domain):
+            # engagement = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn2 + \
+            #             df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3 - df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use1 - \
+            #             df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use2 - df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use3) / 6
+
+            # attn = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn2 + \
+            #             df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3) / 3
+            attn = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn1 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].attn3) / 2
+
+            use = (df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use1 + \
+                        df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use2 + df_domain[(df_domain.username == username) & (df_domain.domain == domain)].use3) / 3
+
+            loop_condition = df_domain[df_domain.username == username].loop_condition.values[0]
+            loop_condition_string = df_domain[df_domain.username == username].loop_condition_string.values[0]
+
+            if between == 'reward_diff':
+                between_val = np.mean(
+                    df_trials[(df_trials.username == username) & (df_trials.domain == domain)].reward_diff)
+            elif between == 'regret_norm':
+                between_val = np.mean(
+                    df_trials[(df_trials.username == username) & (df_trials.domain == domain)].regret_norm)
+            else:
+                raise ValueError("Invalid between-subjects variable")
+
+            df_domain_engagement = pd.concat((df_domain_engagement, pd.DataFrame({'username': username, 'loop_condition': loop_condition, 'domain': domain,
+                               'loop_condition_string': loop_condition_string, 'attn': attn, 'use': use, between: between_val})), axis=0, ignore_index=True)
+
+
+    # Increase the font size for all text elements
+    plt.rcParams.update({'font.size': 17})
+    bar_width = 0.7
+    subtitle_font_size = 17
+    fig, axs = plt.subplots(ncols=3, figsize=(14, 9))  # Adjust the figure size
+
+    # for plotting objective results
+    final_test_data = df_trials[df_trials.interaction_type == 'final test']
+    sns.barplot(data=final_test_data, x='loop_condition_string', y=between, ax=axs[0], errorbar='ci',
+                order=["Direct reward", "Full", "Joint"], width=bar_width)  # Adjust the bar width
+    axs[0].set(xlabel='Explanation Type', ylabel='Regret of Human Test Responses')
+    axs[0].set_title('Main Effect (across both domains)', fontsize=subtitle_font_size)
+    # axs[0].set_ylim(0, 0.4) # use for regret norm
+    axs[0].set_ylim(0, 1.5) # use for reward diff
+
+    data = final_test_data[final_test_data.domain == 'at']
+    sns.barplot(data=data, x='loop_condition_string', y=between, ax=axs[1], errorbar='ci',
+                order=["Direct reward", "Full", "Joint"], width=bar_width)  # Adjust the bar width
+    axs[1].set(xlabel='Explanation Type', ylabel='Regret of Human Test Responses')
+    axs[1].set_title('Delivery Domain', fontsize=subtitle_font_size)
+    # axs[0].set_ylim(0, 0.4) # use for regret norm
+    axs[1].set_ylim(0, 1.5) # use for reward diff
+
+    data = final_test_data[final_test_data.domain == 'sb']
+    sns.barplot(data=data, x='loop_condition_string', y=between, ax=axs[2], errorbar='ci',
+                order=["Direct reward", "Full", "Joint"], width=bar_width)  # Adjust the bar width
+    axs[2].set(xlabel='Explanation Type', ylabel='Regret of Human Test Responses')
+    axs[2].set_title('Skateboard Domain', fontsize=subtitle_font_size)
+    # axs[0].set_ylim(0, 0.4) # use for regret norm
+    axs[2].set_ylim(0, 1.5)  # use for reward diff
+    plt.suptitle('Explanation Type on Regret of Human Test Responses', fontsize=20)
+
+    # # for plotting subjective results
+    # ylim = 4.55
+    # data = df_domain_engagement
+    # sns.barplot(data=data, x='loop_condition_string', y='use', ax=axs[0],
+    #             errorbar='ci', order=["Direct reward", "Full", "Joint"], width=bar_width)  # Adjust the bar width
+    # axs[0].set(xlabel='Explanation Type', ylabel='Perceived Usability')
+    # axs[0].set_title('Main Effect (across both domains)', fontsize=subtitle_font_size)
+    # axs[0].set_ylim(0, ylim)
+    #
+    # data = df_domain_engagement[df_domain_engagement.domain == 'at']
+    # sns.barplot(data=data, x='loop_condition_string', y='use', ax=axs[1],
+    #             errorbar='ci', order=["Direct reward", "Full", "Joint"], width=bar_width)  # Adjust the bar width
+    # axs[1].set(xlabel='Explanation Type', ylabel='Perceived Usability')
+    # axs[1].set_title('Delivery Domain', fontsize=subtitle_font_size)
+    # axs[1].set_ylim(0, ylim)
+    #
+    # data = df_domain_engagement[df_domain_engagement.domain == 'sb']
+    # sns.barplot(data=data, x='loop_condition_string', y='use', ax=axs[2],
+    #             errorbar='ci', order=["Direct reward", "Full", "Joint"], width=bar_width)  # Adjust the bar width
+    # axs[2].set(xlabel='Explanation Type', ylabel='Perceived Usability')
+    # axs[2].set_title('Skateboard Domain', fontsize=subtitle_font_size)
+    # axs[2].set_ylim(0, ylim)
+    # plt.suptitle('Explanation Type on Perceived Usability', fontsize=20)
+
+    plt.tight_layout()
+    plt.show()
 
 def compare_feedback_domain_on_understanding(df_domain, within='domain'):
 
@@ -483,6 +802,19 @@ def compare_feedback_domain_on_understanding(df_domain, within='domain'):
             np.mean(df_between[df_between.loop_condition == 'wt'].understanding)))
         print("mean understanding for wtcl: {}".format(
             np.mean(df_between[df_between.loop_condition == 'wtcl'].understanding)))
+
+        for domain in df_domain[within].unique():
+            print(domain)
+            print("mean understanding for open: {}".format(
+                np.mean(df_domain[(df_domain.loop_condition == 'open') & (df_domain.domain == domain)].understanding)))
+            print("mean understanding for pl: {}".format(
+                np.mean(df_domain[(df_domain.loop_condition == 'pl') & (df_domain.domain == domain)].understanding)))
+            print("mean understanding for cl: {}".format(
+                np.mean(df_domain[(df_domain.loop_condition == 'cl') & (df_domain.domain == domain)].understanding)))
+            print("mean understanding for wt: {}".format(
+                np.mean(df_domain[(df_domain.loop_condition == 'wt') & (df_domain.domain == domain)].understanding)))
+            print("mean understanding for wtcl: {}".format(
+                np.mean(df_domain[(df_domain.loop_condition == 'wtcl') & (df_domain.domain == domain)].understanding)))
 
         if ('wt' in df_between.loop_condition.unique() and 'cl' in df_between.loop_condition.unique() and 'wtcl' in df_between.loop_condition.unique()):
             print("cl vs wt")
@@ -541,6 +873,7 @@ def compare_feedback_on_improvement(df_trials, within='domain'):
     df_trials_improvement = pd.DataFrame(
         columns=['username', within, 'loop_condition', 'median_improvement'])
 
+    # todo: I think I decided against using the median improvement (and instead opted for parametric analysis since we've obtained many measurements) -- verify and remove this code if so
     for username in np.unique(data.username):
         for domain in np.unique(data.domain):
             median_improvement = float(np.median(data[(data.username == username) & (data.domain == domain)].likert))
@@ -672,7 +1005,7 @@ def print_qualitative_feedback(df_trials, df_users, df_domain):
 
     # # by username
     # for username in df_trials.username.unique():
-    #     # print("Username: {}".format(username))
+    #     print("Username: {}".format(username))
     #     if len(data2[data.username == username].unpickled_improvement_short_answer) > 0:
     #         print(data2[data.username == username].unpickled_improvement_short_answer)
     #     if len(data_domain[data_domain.username == username].unpickled_engagement_short_answer) > 0:
@@ -685,8 +1018,7 @@ def analyze_time_spent(df_trials):
     np.mean(df_trials[df_trials.interaction_type == 'final test'].duration_ms) / 1000
 
 def analyze_reward_weights(df_trials):
-    df_trials[df_trials['unpickled_reward_ft_weights'].map(lambda d: len(d) > 0)].unpickled_reward_ft_weights
-    df_trials_reward_weights = df_trials[df_trials['unpickled_reward_ft_weights'].map(lambda d: len(d) > 0)].copy()
+    df_trials_reward_weights = df_trials[df_trials['unpickled_reward_ft_weights'].map(lambda d: (len(d) > 0) and len(d[1]) > 0)].copy()
     def normalize_reward_weights(weights):
         normalized_weights = np.array([[float(weights[0]), float(weights[1]), -1]])
 
@@ -712,7 +1044,9 @@ def analyze_reward_weights(df_trials):
             print('correct sign: ', correct_sign_ct)
             print('incorrect sign: ', incorrect_sign_ct)
 
+    print('at')
     correct_sign(df_trials_reward_weights[df_trials_reward_weights.domain == 'at'], 'loop_condition', at_gt_weights)
+    print('sb')
     correct_sign(df_trials_reward_weights[df_trials_reward_weights.domain == 'sb'], 'loop_condition', sb_gt_weights)
 
     # if I want to see how many estimates belong in the BEC area
@@ -737,42 +1071,48 @@ if __name__ == '__main__':
     # ------------------------ helper functions ------------------------#
     # validate_submissions(df_users, df_trials, df_domain)
 
-    # calculate_median_num_interactions(df_trials, condition='wt')
-
-    # print_demographics(df_users)
-
-
+    # calculate_median_num_interactions(df_trials, condition='cl')
 
     # ------------------------ data selection ------------------------#
     # if I'm interested in only considering a subset of the full dataset
-    # RA-L conditions (cl, pl, open)
-    # df_trials = df_trials[(df_trials.loop_condition == 'cl') | (df_trials.loop_condition == 'pl') | (df_trials.loop_condition == 'open')]
-    # df_domain = df_domain[(df_domain.loop_condition == 'cl') | (df_domain.loop_condition == 'pl') | (df_domain.loop_condition == 'open')]
+    # original user study conditions (cl, pl, open)
+    df_users = df_users[(df_users.loop_condition == 'cl') | (df_users.loop_condition == 'pl') | (df_users.loop_condition == 'open')]
+    df_trials = df_trials[(df_trials.loop_condition == 'cl') | (df_trials.loop_condition == 'pl') | (df_trials.loop_condition == 'open')]
+    df_domain = df_domain[(df_domain.loop_condition == 'cl') | (df_domain.loop_condition == 'pl') | (df_domain.loop_condition == 'open')]
 
     # follow-up user study on direct reward explanations (cl, wt, wtcl)
-    df_trials = df_trials[(df_trials.loop_condition == 'cl') | (df_trials.loop_condition == 'wt') | (df_trials.loop_condition == 'wtcl')]
-    df_domain = df_domain[(df_domain.loop_condition == 'cl') | (df_domain.loop_condition == 'wt') | (df_domain.loop_condition == 'wtcl')]
+    # df_users = df_users[(df_users.loop_condition == 'cl') | (df_users.loop_condition == 'wt') | (df_users.loop_condition == 'wtcl')]
+    # df_trials = df_trials[(df_trials.loop_condition == 'cl') | (df_trials.loop_condition == 'wt') | (df_trials.loop_condition == 'wtcl')]
+    # df_domain = df_domain[(df_domain.loop_condition == 'cl') | (df_domain.loop_condition == 'wt') | (df_domain.loop_condition == 'wtcl')]
 
     #------------------------ descriptive statistics ------------------------#
-    # individual_performances(df_trials, 'scaled_diff')
+    # individual_performances(df_trials, 'reward_diff')
     # individual_reward_weight_predictions(df_trials)
     # print_qualitative_feedback(df_trials, df_users, df_domain)
 
+    # print_demographics(df_users)
+
     # ------------------------ primary analyses ------------------------#
 
-    # compare effect of feedback and domain on performance
-    compare_feedback_domain_on_performance(df_trials, dv='reward_diff')
+    # compare effect of feedback and domain on performance (H1)
+    compare_feedback_domain_on_performance(df_trials)
 
-    # compare effect of feedback and domain on engagement
+    # compare effect of feedback and domain on focused attn and perceived usability (H2)
     # compare_feedback_domain_on_engagement(df_domain, plot=False)
 
-    # compare effect of feedback and domain on improvement
+    # compare effect of feedback and domain on improvement (H3)
     # compare_feedback_on_improvement(df_trials)
 
-    # compare effect of feedback and domain on understanding
+    # compare effect of feedback and domain on understanding (H4)
     # compare_feedback_domain_on_understanding(df_domain)
 
-    # plot_joint(df_trials, df_domain, between='regret_norm')
+    # custom plots for original user study conditions (cl, pl, open)
+    # plot regret and usability (latter only in the delivery domain)
+    # plot_joint(df_trials, df_domain, between='reward_diff')
+    # plot_joint_attn_improvement(df_trials, df_domain)
+
+    # custom plots for follow-up user study conditions (cl, wt, wtcl)
+    # plot_custom_followup(df_trials, df_domain, between='reward_diff')
 
     #------------------------ secondary analyses ------------------------#
 

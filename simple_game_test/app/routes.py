@@ -587,11 +587,11 @@ def index():
 
     completed = True if current_user.study_completed == 1 else False
 
-    loop_conditions = ["wt"]  # cl, pl, open, wt, wtcl
-    rand.shuffle(loop_conditions)
+    loop_conditions = ["open"]  # cl, pl, open, wt, wtcl
+    # rand.shuffle(loop_conditions)
     # domains = ["at", "ct", "sb"]
-    domains = ["at", "sb"]
-    # domains = ["sb", "at"]
+    # domains = ["at", "sb"]
+    domains = ["sb", "at"]
     # rand.shuffle(domains)
 
     current_user.loop_condition = loop_conditions[0]
@@ -749,12 +749,12 @@ def post_practice():
     #             "<h3>If you incorrectly predict Chip's behavior on check-in tests in between demonstrations, <u>Chip will give you corrective feedback and provide additional demonstrations and tests</u> to help you learn!</h3><br>" +
     #         "<h4>Finally, <u>you may navigate back to previous interactions</u> (e.g. demonstrations, feedback, etc) to refresh your memory <u>when you're not being tested!</u></h4>")
     # pl, open
-    # preamble = ("<br><br><h3>Good job on completing the practice game! Let's now head over to the <b>two main games</b> and <b>begin the real study</b>.</h3><br>" +
-    #         "<h3>In these games, you will <b>not</b> be told how each action changes Chip's energy level.</h3><br>" +
-    #         "For example, note the '???' in the Energy Change column below. <table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr><tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>???</td></tr></table> <br>" +
-    #         "<h3>Instead, you will have to <u>figure that out</u> and subsequently the best strategy for completing the task while minimizing Chip's energy loss <u>by observing Chip's demonstrations!</u></h3><br>" +
-    #             "<h4>In between demonstrations, Chip may test your understanding by asking you to predict the best strategy and giving you corrective feedback to help you learn!</h4><br>" +
-    #         "<h4>Finally, <u>you may navigate back to previous interactions</u> (e.g. demonstrations) to refresh your memory <u>when you're not being tested!</u></h4>")
+    preamble = ("<br><br><h3>Good job on completing the practice game! Let's now head over to the <b>two main games</b> and <b>begin the real study</b>.</h3><br>" +
+            "<h3>In these games, you will <b>not</b> be told how each action changes Chip's energy level.</h3><br>" +
+            "For example, note the '???' in the Energy Change column below. <table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr><tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>???</td></tr></table> <br>" +
+            "<h3>Instead, you will have to <u>figure that out</u> and subsequently the best strategy for completing the task while minimizing Chip's energy loss <u>by observing Chip's demonstrations!</u></h3><br>" +
+                "<h4>In between demonstrations, Chip may test your understanding by asking you to predict the best strategy and giving you corrective feedback to help you learn!</h4><br>" +
+            "<h4>Finally, <u>you may navigate back to previous interactions</u> (e.g. demonstrations) to refresh your memory <u>when you're not being tested!</u></h4>")
 
     # energy change is given
     # wtcl
@@ -765,10 +765,10 @@ def post_practice():
     #             "<h3>And if you incorrectly predict Chip's behavior on check-in tests in between demonstrations, <u>Chip will give you corrective feedback and provide additional demonstrations and tests</u> to help you learn!</h3><br>" +
     #         "<h4>Finally, <u>you may navigate back to previous interactions</u> (e.g. demonstrations, feedback, etc) to refresh your memory <u>when you're not being tested!</u></h4>")
     # wt
-    preamble = ("<br><br><h3>Good job on completing the practice game! Let's now head over to the <b>two main games</b> and <b>begin the real study</b>.</h3><br>" +
-            "<h3>For each of these games, Chip will let you know each action changes Chip's energy level.</h3><br>" +
-            "For example, note the '- 1%' in the Energy Change column below. <table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr><tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>- 1%</td></tr></table> <br>" +
-            "<h3>Then you will answer some questions about Chip's teaching and then test your understanding on a number of game instances.</h3><br>")
+    # preamble = ("<br><br><h3>Good job on completing the practice game! Let's now head over to the <b>two main games</b> and <b>begin the real study</b>.</h3><br>" +
+    #         "<h3>For each of these games, Chip will let you know each action changes Chip's energy level.</h3><br>" +
+    #         "For example, note the '- 1%' in the Energy Change column below. <table class=\"center\"><tr><th>Action</th><th>Sample sequence</th><th>Energy change</th></tr><tr><td>Any action that you take (e.g. moving right)</td><td><img src = 'static/img/right1.png' width=\"150\" height=auto /><img src = 'static/img/arrow.png' width=\"30\" height=auto /><img src = 'static/img/right2.png' width=\"150\" height=auto /><td>- 1%</td></tr></table> <br>" +
+    #         "<h3>Then you will answer some questions about Chip's teaching and then test your understanding on a number of game instances.</h3><br>")
 
     return render_template("mike/post_practice.html", preamble=preamble)
 
@@ -812,6 +812,9 @@ def next_domain(data):
     current_user.final_test_rand_idxs = []
     current_user.pf_model = None
     print(current_user.curr_progress)
+    if len(data) > 0:
+        print("reward_ft_weights (if relevant): ")
+        print(data["reward_ft_weights"])
 
     if current_user.curr_progress == "post practice":
         print("slayyy")
@@ -893,8 +896,7 @@ def settings(data):
 
     progression = {
         "debug": {
-            "at": [["demo", -1], ["demo", 0], ["demo", 1],
-                   ["survey", 0],
+            "at": [["demo", -1], ["demo", 0],
                    ["final test",  0], ["final test", 1]],
             "ct": [["demo", -1], ["demo", 0], ["demo", 1],
                    ["survey", 0],
@@ -902,6 +904,15 @@ def settings(data):
             "sb": [["demo", -1], ["demo", 0], ["demo", 1],
                    ["survey", 0],
                    ["final test",  0], ["final test", 1]]
+            # "at": [["demo", -1], ["demo", 0], ["survey", 0]],
+            # "ct": [["demo", -1], ["demo", 0], ["survey", 0]],
+            # "sb": [["demo", -1], ["demo", 0], ["survey", 0]]
+            # "at": [["demo", -1], ["final test", 0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4],
+            #        ["final test", 5]],
+            # "ct": [["demo", -1], ["final test", 0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4],
+            #        ["final test", 5]],
+            # "sb": [["demo", -1], ["final test", 0], ["final test", 1], ["final test", 2], ["final test", 3], ["final test", 4],
+            #        ["final test", 5]]
         },
         "open": {
             "at": [["demo", -1], ["demo", 0], ["demo", 1], ["demo", 2], ["demo", 3], ["demo", 4], ["demo", 5], ["demo", 6], ["demo", 7], ["demo", 8], ["demo", 9],
@@ -1529,12 +1540,12 @@ def settings(data):
 
     go_prev = "true"
     # cl, pl, open, wtcl
-    # if (current_user.iteration == 0 and current_user.interaction_type == "demo") or ("test" in current_user.interaction_type and already_completed == "false"):
-    #     go_prev = "false"
+    if (current_user.iteration == 0 and current_user.interaction_type == "demo") or ("test" in current_user.interaction_type and already_completed == "false"):
+        go_prev = "false"
 
     # wt
-    if (current_user.iteration == 0 and current_user.interaction_type == "demo") or ("test" in current_user.interaction_type and already_completed == "false") or current_user.interaction_type == "survey":
-        go_prev = "false"
+    # if (current_user.iteration == 0 and current_user.interaction_type == "demo") or ("test" in current_user.interaction_type and already_completed == "false") or current_user.interaction_type == "survey":
+    #     go_prev = "false"
 
     # debug_string = f"domain={domain}, interaction type={current_user.interaction_type}, iteration={current_user.iteration}, subiteration={current_user.subiteration}"
     debug_string = ''
@@ -1737,7 +1748,7 @@ def consent():
     if IS_IN_PERSON:
         procedure = "This study may take up to 90 minutes, and audio/screen recordings will be collected."
     else:
-        procedure = "Most people complete the study within 15 minutes."
+        procedure = "Most people complete the study within 30 minutes."
     return render_template("consent.html", title="Consent", form=form, procedure=procedure)
 
 # @app.route("/training", methods=["GET", "POST"])
